@@ -16,7 +16,6 @@ const COLORS = {
   bgUtility: "#1A1A24",         
   borderUtility: "#3A3A4A"      
 };
-
 export default function StrumentiScreen() {
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
 
@@ -57,7 +56,6 @@ export default function StrumentiScreen() {
       alert("Errore durante la creazione del file di backup.");
     }
   };
-
   // 📂 IMPORTA BACKUP JSON
   const gestisciImportazioneWeb = async (evento: any) => {
     const file = evento.target.files?.[0];
@@ -85,7 +83,7 @@ export default function StrumentiScreen() {
     lettore.readAsText(file);
   };
 
-  // 📄 ESPORTA DIARIO IN PDF (Simulato / Predisposto per integrazione expo-print)
+  // 📄 ESPORTA DIARIO IN PDF
   const esportaDiarioPDF = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -97,7 +95,6 @@ export default function StrumentiScreen() {
       }
 
       alert("Predisposizione tracciamento ed esportazione in formato PDF medico avviata!");
-      // Qui si integrerà il modulo expo-print per generare il foglio A4
     } catch (error) {
       alert("Errore durante la generazione del PDF.");
     }
@@ -121,7 +118,7 @@ export default function StrumentiScreen() {
       <Text style={styles.sectionLabel}>Manutenzione e Report</Text>
       <View style={styles.cardAzioni}>
         
-        {/* Riga Esporta Backup */}
+        {/* 1. Riga Esporta Backup */}
         <TouchableOpacity style={styles.rowAzione} onPress={esportaBackupJSON}>
           <View style={styles.leftAzione}>
             <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
@@ -135,7 +132,7 @@ export default function StrumentiScreen() {
           <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
         </TouchableOpacity>
 
-        {/* Riga Importa Backup */}
+        {/* 2. Riga Importa Backup */}
         {Platform.OS === 'web' ? (
           <label style={styles.rowAzioneLabel}>
             <View style={styles.leftAzione}>
@@ -147,7 +144,7 @@ export default function StrumentiScreen() {
                 <Text style={styles.descAzione}>Ripristina il database caricando un file JSON</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} style={{ marginRight: 2 }} />
+            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
             <input type="file" accept=".json" onChange={gestisciImportazioneWeb} style={{ display: 'none' }} />
           </label>
         ) : (
@@ -165,7 +162,7 @@ export default function StrumentiScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Riga Esporta PDF */}
+        {/* 3. Riga Esporta PDF */}
         <TouchableOpacity style={[styles.rowAzione, { borderBottomWidth: 0 }]} onPress={esportaDiarioPDF}>
           <View style={styles.leftAzione}>
             <View style={[styles.iconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.1)' }]}>
@@ -220,12 +217,12 @@ const styles = StyleSheet.create({
   
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 22, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
   
-  // Box contenitore per le righe delle azioni
+  // 📐 STRUTTURA DELLE CARD RIGIDAMENTE STRUTTURATA E UNIFORMATA NATIVE/WEB
   cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', overflow: 'hidden' },
-  rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass },
-  rowAzioneLabel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, cursor: 'pointer', width: '100%', boxSizing: 'border-box' },
+  rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
+  rowAzioneLabel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, cursor: 'pointer', width: '100%', boxSizing: 'border-box' },
   leftAzione: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  iconWrapper: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
+  iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
   titoloAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
   descAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: COLORS.muted, marginTop: 2 },
 
