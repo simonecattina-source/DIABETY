@@ -217,10 +217,22 @@ const styles = StyleSheet.create({
   
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 22, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
   
-  // 📐 STRUTTURA DELLE CARD RIGIDAMENTE STRUTTURATA E UNIFORMATA NATIVE/WEB
+  // 📐 ALLINEAMENTO BLINDATO: FORZATURA COMPORTAMENTO FLEX PER EVITARE IL CROLLO INLINE DEL LABELS
   cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', overflow: 'hidden' },
   rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
-  rowAzioneLabel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, cursor: 'pointer', width: '100%', boxSizing: 'border-box' },
+  rowAzioneLabel: { 
+    display: 'flex',            // 🌟 Forzatura Flex esplicita contro il ripiego inline di HTML
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    padding: 14, 
+    height: 68, 
+    borderBottomWidth: 1, 
+    borderBottomColor: COLORS.borderGlass, 
+    cursor: 'pointer', 
+    width: '100%', 
+    boxSizing: 'border-box' 
+  },
   leftAzione: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
   titoloAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
