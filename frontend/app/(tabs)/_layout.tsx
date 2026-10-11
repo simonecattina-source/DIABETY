@@ -24,6 +24,11 @@ export default function TabsLayout() {
           <NativeTabs.Trigger.Icon sf="plus.circle.fill" />
           <NativeTabs.Trigger.Label>Inserisci</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
+        {/* 🧠 NUOVA SCHEDA INIEZIONE BOLO REGISTRATA SOTTO MODALITÀ STRUTTURALE NATIVA APPLE */}
+        <NativeTabs.Trigger name="bolo">
+          <NativeTabs.Trigger.Icon sf="calculator.circle.fill" />
+          <NativeTabs.Trigger.Label>Bolo</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
         <NativeTabs.Trigger name="storico">
           <NativeTabs.Trigger.Icon sf="list.bullet.rectangle" />
           <NativeTabs.Trigger.Label>Storico</NativeTabs.Trigger.Label>
@@ -32,7 +37,6 @@ export default function TabsLayout() {
           <NativeTabs.Trigger.Icon sf="chart.bar.xaxis.asending" />
           <NativeTabs.Trigger.Label>Grafici</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
-        {/* Aggiornato il puntamento della rotta nativa */}
         <NativeTabs.Trigger name="impostazioni">
           <NativeTabs.Trigger.Icon sf="gearshape.2.fill" />
           <NativeTabs.Trigger.Label>Impostazioni</NativeTabs.Trigger.Label>
@@ -40,12 +44,10 @@ export default function TabsLayout() {
       </NativeTabs>
     );
   }
-
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        // Applicazione del ciano neon e grigio tech senza rompere le definizioni natali
         tabBarActiveTintColor: DESIGN_NEON.activeNeon,
         tabBarInactiveTintColor: DESIGN_NEON.inactiveTech,
         tabBarStyle: {
@@ -54,9 +56,9 @@ export default function TabsLayout() {
           borderTopWidth: 1,
           elevation: 0,
           shadowOpacity: 0,
-          ...(Platform.OS === "web" ? { height: 64 } : {}), // Preservata la regola web originale
+          ...(Platform.OS === "web" ? { height: 64 } : {}), 
         },
-        tabBarItemStyle: { alignSelf: "center" }, // Ripristinato il centramento geometrico originale
+        tabBarItemStyle: { alignSelf: "center" }, 
         tabBarLabelStyle: { 
           fontFamily: 'Plus Jakarta Sans',
           fontSize: 11, 
@@ -73,7 +75,17 @@ export default function TabsLayout() {
           ),
         }}
       />
-      
+
+      {/* 🧠 NUOVA SCHEDA BOLO INSERITA NELLA BARRA CROSS-PLATFORM CON ICONA CALCOLATRICE */}
+      <Tabs.Screen
+        name="bolo"
+        options={{
+          title: "Bolo",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calculator" size={size} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="storico"
         options={{
@@ -94,7 +106,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ⚙️ SCHEDA STRUMENTI RINOMINATA IN IMPOSTAZIONI COME ULTIMA ROTTA */}
       <Tabs.Screen
         name="impostazioni"
         options={{
