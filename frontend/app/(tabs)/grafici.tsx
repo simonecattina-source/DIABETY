@@ -33,8 +33,7 @@ const MOMENTI_SHORT = {
   "Dopo Cena": "22:00",
   "Notte": "24:00"
 };
-
-export default function GraficiScreen() {
+public default function GraficiScreen() {
   const [datiReali, setDatiReali] = useState<any[]>([]);
   const [mediaGlicemia, setMediaGlicemia] = useState<number>(0);
   const [mediaOggi, setMediaOggi] = useState<number>(0); 
@@ -70,7 +69,7 @@ export default function GraficiScreen() {
       setModalTesto("Questo grafico mostra l'andamento della glicemia nella giornata di oggi.\n\nLa curva continua azzurra unisce cronologicamente i tuoi test. Il grafico recupera automaticamente l'ultima misurazione di ieri sera prima di mezzanotte e la usa come punto di partenza a inizio giornata.");
     } else if (tipo === 'giornaliere') {
       setModalTitolo("Andamento Medie Giornaliere");
-      setModalTesto("Questo grafico mostra il trend macro della tua media glicemica includendo tutti i 90 giorni del trimestre.\n\nLa fascia tra le due linee tratteggiate evidenzia il range ideale (70 - 180 mg/dL). Le linee tratteggiate indicano i limiti di sicurezza.");
+      setModalTesto("Questo grafico mostra il trend macro della tua media glicemica includendo tutti i 90 giorni del trimestre.\n\nLa fascia tra le due linee tratteggiate evidenzia il range ideale (70 - 180 mg/dL). Le linee tratteggiate indicano i limites di sicurezza.");
     } else if (tipo === 'momenti') {
       setModalTitolo("Medie per Momento");
       setModalTesto("Questo grafico analizza lo storico trimestrale (90 giorni) diviso per i 7 momenti della giornata.\n\nOgni colonna mostra la media calcolata in quello specifico orario. Lo stato indica: Verde (a target), Arancione (basso/ipo) o Rosso (alto/iper). Il trattino (-) indica assenza di dati.");
@@ -122,7 +121,6 @@ export default function GraficiScreen() {
           const dataOggiTesto = formattaDataTesto(oggiObj);
           const dataIeriTesto = formattaDataTesto(ieriObj);
 
-          // 🌟 ISOLAMENTO E CALCOLO DELLA MEDIA DI OGGI
           const logDiOggi = elenco.filter((item: any) => item.dataTesto === dataOggiTesto);
           if (logDiOggi.length > 0) {
             const sommaOggi = logDiOggi.reduce((acc: number, item: any) => acc + item.glicemia, 0);
@@ -330,10 +328,10 @@ export default function GraficiScreen() {
           </defs>
           
           <rect x={margineLaterale} y={rigaSoglia180Y} width={spazioUtileX} height={rigaSoglia70Y - rigaSoglia180Y} fill="rgba(0, 230, 118, 0.03)" />
-          <line x1={margineLaterale} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineLaterale} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
+          <line x1={margineLaterale} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineLaterale} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1" strokeDasharray="3 3" opacity={0.5} />
           <text x={larghezzaGrafico - 5} y={rigaSoglia180Y + 3} fill={COLORS.error} fontSize="9" fontWeight="bold" textAnchor="end">180</text>
           
-          <line x1={margineLaterale} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineLaterale} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
+          <line x1={margineLaterale} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineLaterale} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1" strokeDasharray="3 3" opacity={0.5} />
           <text x={larghezzaGrafico - 5} y={rigaSoglia70Y + 3} fill={COLORS.warning} fontSize="9" fontWeight="bold" textAnchor="end">70</text>
           
           {percorsoGradienteStr !== "" && <path d={percorsoGradienteStr} fill="url(#neonPurpleGrad)" />}
@@ -385,21 +383,6 @@ export default function GraficiScreen() {
         </View>
       </View>
     );
-  };
-
-  const ottieniColoreGlicata = (val: number) => {
-    if (val === 0) return "#1F1F29";
-    if (val < 7.0) return COLORS.success;   
-    if (val <= 8.0) return COLORS.warning;  
-    return COLORS.error;                    
-  };
-
-  const calcolaPercentualeBarraGlicata = (val: number) => {
-    if (val === 0) return 0;
-    const MIN_GLIC = 4.0;
-    const MAX_GLICEMIA = 12.0;
-    const protetto = Math.max(MIN_GLIC, Math.min(MAX_GLICEMIA, val));
-    return ((protetto - MIN_GLIC) / (MAX_GLICEMIA - MIN_GLIC)) * 100;
   };
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -568,45 +551,34 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Space Grotesk', fontSize: 24, fontWeight: '800', color: COLORS.onSurface, marginBottom: 16, letterSpacing: -0.5 },
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, letterSpacing: -0.2 },
   subLabelSpiegazione: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, marginTop: 4, marginBottom: 16 },
-  
-  // 📐 CONTENITORE ORIZZONTALE RIGA SUPERIORE
   rigaCardSuperioriContainer: { flexDirection: 'row', width: '100%', gap: 10, marginBottom: 16 },
-  
-  // 📐 COLONNA SINISTRA TRIMESTRE (PRENDE 2 PARTI SU 3)
   cardSuperioreDueTerzi: { flex: 2, backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: COLORS.borderGlass, justifyContent: 'space-between' },
   rigaBoxInterniTrimestre: { flexDirection: 'row', gap: 6, marginTop: 10, width: '100%' },
   infoBoxStatMini: { flex: 1, backgroundColor: '#020204', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.borderGlass, borderLeftWidth: 3, alignItems: 'flex-start', minHeight: 65 },
-  
-  // 📐 COLONNA DESTRA OGGI (PRENDE 1 PARTE SU 3)
   cardSuperioreUnTerzo: { flex: 1, backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: COLORS.borderGlass, justifyContent: 'space-between' },
   containerBoxInternoOggi: { marginTop: 10, width: '100%' },
   infoBoxStatOggiCompatto: { backgroundColor: '#020204', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.borderGlass, borderLeftWidth: 3, alignItems: 'flex-start', minHeight: 65 },
-
   statLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: '700', color: COLORS.muted, marginBottom: 2 },
   statValueMini: { fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: '900', color: COLORS.onSurface },
   unitaMisuraSub: { fontSize: 9, color: COLORS.muted, fontWeight: '400' },
   statValueOggiCentrale: { fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: '900' },
-  
   cardGraficoContenitore: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 16, width: '100%', alignItems: 'flex-start', borderWidth: 1, borderColor: COLORS.borderGlass },
   rigaTitoloGrafico: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' },
   pulsanteInfoTocco: { padding: 4, justifyContent: 'center', alignItems: 'center', opacity: 0.85 },
   containerGraficoSvg: { width: '100%', marginTop: 6, position: 'relative' },
   rigaEtichetteDate: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8, paddingHorizontal: 2 },
   dataTestoLabel: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '700', color: COLORS.muted },
-  
   rigaColonneContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', minHeight: 140, paddingTop: 15, alignItems: 'flex-end' },
   singolaColonnaWrapper: { flex: 1, alignItems: 'center', gap: 6 },
   valoreColonnaTesto: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '800' },
   colonnaRettangolo: { width: 16, borderRadius: 4, minHeight: 4 },
   etichettaColonnaMomento: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: '700', color: COLORS.muted, marginTop: 2 },
-  
   sfondoModalCentrato: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.85)', padding: 20 },
   corpoSchedaModal: { backgroundColor: '#111116', borderRadius: 16, padding: 22, width: '100%', maxWidth: 340, borderWidth: 1, borderColor: '#22222E', alignItems: 'flex-start' },
   titoloModal: { fontFamily: 'Space Grotesk', fontSize: 18, fontWeight: '800', color: COLORS.onSurface, marginBottom: 12 },
-  testoDescrizioneModal: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, lineHeight: 20, textAlign: 'left' },
+  testoDescrizioneModal: { fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, color: COLORS.muted, lineHeight: 22, textAlign: 'left' },
   bottoneChiudiModal: { marginTop: 22, backgroundColor: '#1A1A24', borderWidth: 1, borderColor: COLORS.borderGlass, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, alignSelf: 'stretch', alignItems: 'center' },
   testoBottoneChiudi: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
-
   containerInterfacciaGlicata: { width: '100%', marginTop: 5 },
   rigaDatiGlicataPrincipale: { flexDirection: 'row', alignItems: 'baseline', gap: 10, marginBottom: 14 },
   valoreGlicataTestoCentrale: { fontFamily: 'Space Grotesk', fontSize: 32, fontWeight: '800', letterSpacing: -0.5 },
