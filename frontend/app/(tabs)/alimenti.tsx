@@ -166,7 +166,7 @@ export default function AlimentiScreen() {
                     onPress={() => aggiungiAlPiatto(item)}
                     disabled={grammiValore <= 0}
                   >
-                    <Ionicons name="add" size={18} color={0x0A0A0C} />
+                    <Ionicons name="add" size={18} color="#0A0A0C" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -189,7 +189,7 @@ export default function AlimentiScreen() {
           </View>
         }
       />
-      {/* 🍽️ PANNELLO ORA VISIVAMENTE ISOLATO DALLO SFONDO GRAZIE AL BORDO CYAN ED EFFETTO FLOATING */}
+      {/* 🍽️ PANNELLO VISIVAMENTE ISOLATO DALLO SFONDO GRAZIE AL COLORE PIÙ CHIARO ED EFFETTO FLOATING */}
       {piattoSelezionato.length > 0 && (
         <View style={styles.footerPiattoCumulativo}>
           <View style={styles.headerPiattoRiepilogo}>
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   textChipCategoria: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600', color: COLORS.muted },
   textChipCategoriaAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
 
-  listContent: { padding: 16, paddingBottom: 180 }, // Spazio di sicurezza maggiorato per non nascondere l'ultimo cibo sotto il nuovo pannello sollevato
+  listContent: { padding: 16, paddingBottom: 180 }, // Spazio di sicurezza per lo scorrimento sopra il pannello floating
   cardAlimentoPremium: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: COLORS.borderGlass, marginBottom: 12, width: '100%' },
   rigaInfoSuperiore: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottomWidth: 1, borderBottomColor: "rgba(255, 255, 255, 0.04)", paddingBottom: 10 },
   boxTestiSinistra: { flex: 1, marginRight: 10, alignItems: 'flex-start' },
@@ -257,33 +257,33 @@ const styles = StyleSheet.create({
   valoreCalcolatoCho: { fontFamily: 'Space Grotesk', fontSize: 18, fontWeight: '800', color: COLORS.muted },
   unitaChoSub: { fontSize: 11, color: COLORS.muted, fontWeight: '500' },
 
-  // 📐 STILE AGGIORNATO: Finestra ultra-distinguibile ad alto contrasto con galleggiamento tridimensionale
+  // 📐 CSS PANNELLO "IL TUO PIATTO" ULTRA-DISTINGUIBILE CON SFONDO ZINCO TECH E CONTORNO CYAN
   footerPiattoCumulativo: { 
     position: 'absolute', 
     bottom: 0, 
     left: 0, 
     right: 0, 
-    backgroundColor: "#1A1A24", // Schiarito rispetto al fondo #0A0A0C per un distacco immediato
+    backgroundColor: "#22222C", // Schiarito significativamente per un distacco netto dallo sfondo OLED #0A0A0C
     borderTopWidth: 1.5, 
-    borderTopColor: "#00E5FF",  // Linea Ciano Neon netta per marcare la sovrapposizione
+    borderTopColor: "#00E5FF",  // Filo Ciano Neon brillante per marcare visivamente l'elevazione
     borderLeftWidth: 1,
-    borderLeftColor: "rgba(0, 229, 255, 0.15)",
+    borderLeftColor: "rgba(0, 229, 255, 0.20)",
     borderRightWidth: 1,
-    borderRightColor: "rgba(0, 229, 255, 0.15)",
+    borderRightColor: "rgba(0, 229, 255, 0.20)",
     padding: 16, 
     borderTopLeftRadius: 24, 
     borderTopRightRadius: 24, 
     shadowColor: "#000000", 
-    shadowOffset: { width: 0, height: -10 }, 
-    shadowOpacity: 0.65, 
-    shadowRadius: 16, 
-    elevation: 24 
+    shadowOffset: { width: 0, height: -12 }, 
+    shadowOpacity: 0.75, 
+    shadowRadius: 18, 
+    elevation: 25 
   },
   headerPiattoRiepilogo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, width: '100%' },
   titoloPiattoSezione: { fontFamily: 'Space Grotesk', fontSize: 16, fontWeight: '700', color: COLORS.onSurface },
   testoSvuotaPiatto: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.error, fontWeight: '600' },
   scrollCibiPiatto: { width: '100%', maxHeight: 36, marginBottom: 4 },
-  chipCiboInserito: { flexDirection: 'row', alignItems: 'center', backgroundColor: "#111116", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.08)", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, gap: 6 },
+  chipCiboInserito: { flexDirection: 'row', alignItems: 'center', backgroundColor: "#13131A", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.08)", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, gap: 6 },
   testoChipCiboInserito: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.onSurface, fontWeight: '500' },
   btnRimuoviCiboSingolo: { justifyContent: 'center', alignItems: 'center', paddingLeft: 2 },
   rigaTotaleCumulativoFinale: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.06)", paddingTop: 12, marginTop: 8 },
