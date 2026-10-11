@@ -11,8 +11,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { queryClient } from "@/src/query-client";
 
-// 🌟 IMPORTAZIONE ASSOLUTA SICURA PER L'INTERRUTTORE GENERALE
-import { ThemeProvider } from "@/context/ThemeContext";
+// 🌟 FIX PERCORSO: Risaliamo di un livello da app/ per raggiungere context/ senza usare la chiocciola
+import { ThemeProvider } from "../context/ThemeContext";
 
 LogBox.ignoreAllLogs(true);
 
@@ -70,13 +70,13 @@ export default function RootLayout() {
   }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
+
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <QueryClientProvider client={queryClient}>
             <KeyboardProvider>
-              {/* 🌟 GABBIA STRUTTURALE DEL TEMA INSERITA INTORNO ALLA NAVIGAZIONE STACK */}
               <ThemeProvider>
                 <Stack screenOptions={{ headerShown: false }} />
               </ThemeProvider>
