@@ -9,7 +9,7 @@ const COLORS = {
   background: "#0A0A0C",        
   surfaceSecondary: "#13131A",  
   brandPrimary: "#00E5FF",      
-  brandSecondary: "#7D52FF",    // Viola tech per la sesta card dei grafici
+  brandSecondary: "#7D52FF",    // Viola tech per le card 6 e 7
   onSurface: "#FFFFFF",         
   muted: "#7E7E86",             
   success: "#00E676",           
@@ -47,12 +47,7 @@ export default function StrumentiScreen() {
         const blob = new Blob([storicoEsistente], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = 'backup_diabety_diario.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        a.href = url; a.download = 'backup_diabety_diario.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
         mostraMessaggioNotifica("✓ Backup scaricato correttamente");
       } else {
         const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(storicoEsistente)}`;
@@ -66,6 +61,7 @@ export default function StrumentiScreen() {
       alert("Errore durante la creazione del file di backup.");
     }
   };
+
   // 📂 IMPORTA BACKUP JSON
   const gestisciImportazioneWeb = async (evento: any) => {
     const file = evento.target.files?.[0];
@@ -92,7 +88,6 @@ export default function StrumentiScreen() {
     };
     lettore.readAsText(file);
   };
-  // 📄 GENERAZIONE DEL DOCUMENTO CLINICO IN ORIZZONTALE IDENTICO ALLO STORICO
   const esportaDocumentoMatriceStoricoPDF = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -104,167 +99,68 @@ export default function StrumentiScreen() {
       }
 
       if (filtroPdfSelezionato !== 'Tutti') {
-        const giorniFiltro = parseInt(filtroPdfSelezionato);
-        const oggi = new Date();
-        const dataInizioOggi = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate()).getTime();
-        
+        const giorniFiltro = parseInt(filtroPdfSelezionato); const oggi = new Date(); const dataInizioOggi = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate()).getTime();
         dati = dati.filter((item: any) => {
           if (!item.dataTesto || !item.dataTesto.includes('/')) return false;
-          const [g, m, a] = item.dataTesto.split('/');
-          const annoCompleto = parseInt(a) < 50 ? 2000 + parseInt(a) : 1900 + parseInt(a);
-          const tsItem = new Date(annoCompleto, parseInt(m) - 1, parseInt(g)).getTime();
-          const diff = (dataInizioOggi - tsItem) / (1000 * 60 * 60 * 24);
-          return diff <= giorniFiltro && diff >= -1;
+          const [g, m, a] = item.dataTesto.split('/'); const tsItem = new Date(parseInt(a) < 50 ? 2000 + parseInt(a) : 1900 + parseInt(a), parseInt(m) - 1, parseInt(g)).getTime();
+          const diff = (dataInizioOggi - tsItem) / (1000 * 60 * 60 * 24); return diff <= giorniFiltro && diff >= -1;
         });
       }
 
       if (dati.length === 0) {
-        alert(`Nessun dato registrato nell'intervallo di tempo selezionato [${filtroPdfSelezionato}].`);
-        return;
+        alert(`Nessun dato registrato nell'intervallo di tempo selezionato [${filtroPdfSelezionato}].`); return;
       }
 
       const sezioni: Record<string, any[]> = {};
       dati.forEach((item: any) => {
-        const dataChiave = item.dataTesto || "Oggi";
-        if (!sezioni[dataChiave]) sezioni[dataChiave] = [];
-        sezioni[dataChiave].push(item);
+        const dataChiave = item.dataTesto || "Oggi"; if (!sezioni[dataChiave]) sezioni[dataChiave] = []; sezioni[dataChiave].push(item);
       });
 
-      const sezioniOrdinate = Object.keys(sezioni)
-        .sort((a, b) => {
-          const [gA, mA, anA] = a.split('/');
-          const [gB, mB, anB] = b.split('/');
-          return new Date(parseInt(anB) < 50 ? 2000+parseInt(anB) : 1900+parseInt(anB), parseInt(mB)-1, parseInt(gB)).getTime() - 
-                 new Date(parseInt(anA) < 50 ? 2000+parseInt(anA) : 1900+parseInt(anA), parseInt(mA)-1, parseInt(gA)).getTime();
-        })
-        .map(chiave => {
-          const elementiOrdinati = sezioni[chiave].sort((itemA, itemB) => itemB.ora.localeCompare(itemA.ora));
-          return { title: chiave, data: elementiOrdinati };
-        });
+      const sezioniOrdinate = Object.keys(sezioni).sort((a, b) => {
+        const [gA, mA, anA] = a.split('/'); const [gB, mB, anB] = b.split('/');
+        return new Date(parseInt(anB) < 50 ? 2000+parseInt(anB) : 1900+parseInt(anB), parseInt(mB)-1, parseInt(gB)).getTime() - new Date(parseInt(anA) < 50 ? 2000+parseInt(anA) : 1900+parseInt(anA), parseInt(mA)-1, parseInt(gA)).getTime();
+      }).map(chiave => {
+        const elementiOrdinati = sezioni[chiave].sort((itemA, itemB) => itemB.ora.localeCompare(itemA.ora)); return { title: chiave, data: elementiOrdinati };
+      });
 
-      let corpoHtmlCompleto = "";
-      const dimensioneBloccoGiorni = 4;
-
+      let corpoHtmlCompleto = ""; const dimensioneBloccoGiorni = 4;
       for (let i = 0; i < sezioniOrdinate.length; i += dimensioneBloccoGiorni) {
-        const bloccoQuattroGiorni = sezioniOrdinate.slice(i, i + dimensioneBloccoGiorni);
-        let righeTabellaBlocco = "";
-
+        const bloccoQuattroGiorni = sezioniOrdinate.slice(i, i + dimensioneBloccoGiorni); let righeTabellaBlocco = "";
         bloccoQuattroGiorni.forEach(sezione => {
-          const rigaGlicemie: Record<string, string> = {};
-          const rigaInsuline: Record<string, string> = {};
-          const rigaNote: Record<string, string> = {};
-
-          MOMENTI_COLONNE.forEach(m => {
-            rigaGlicemie[m] = "-"; rigaInsuline[m] = "-"; rigaNote[m] = "-";
-          });
-
+          const rigaGlicemie: Record<string, string> = {}; const rigaInsuline: Record<string, string> = {}; const rigaNote: Record<string, string> = {};
+          MOMENTI_COLONNE.forEach(m => { rigaGlicemie[m] = "-"; rigaInsuline[m] = "-"; rigaNote[m] = "-"; });
           sezione.data.forEach(item => {
             if (MOMENTI_COLONNE.includes(item.tipo)) {
-              let colore = '#34C759';
-              if (item.glicemia > 180) colore = '#FF3B30';
-              if (item.glicemia < 70) colore = '#FF9F0A';
-
+              let colore = '#34C759'; if (item.glicemia > 180) colore = '#FF3B30'; if (item.glicemia < 70) colore = '#FF9F0A';
               rigaGlicemie[item.tipo] = `<span style="color: ${colore}; font-weight: bold;">${item.glicemia} mg/dL</span>`;
               rigaInsuline[item.tipo] = item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : "-";
               rigaNote[item.tipo] = item.note ? `<span style="font-style: italic; color: #555;">${item.note}</span>` : "-";
             }
           });
-
           let trGlicemieHtml = ""; let trInsulineHtml = ""; let trNoteHtml = "";
-          MOMENTI_COLONNE.forEach(m => {
-            trGlicemieHtml += `<td>${rigaGlicemie[m]}</td>`;
-            trInsulineHtml += `<td>${rigaInsuline[m]}</td>`;
-            trNoteHtml += `<td>${rigaNote[m]}</td>`;
-          });
-
-          righeTabellaBlocco += `
-            <tr>
-              <td class="cell-data" rowspan="3">${sezione.title}</td>
-              <td class="cell-label">Glicemia</td>
-              ${trGlicemieHtml}
-            </tr>
-            <tr>
-              <td class="cell-label">Insulina</td>
-              ${trInsulineHtml}
-            </tr>
-            <tr class="row-separator">
-              <td class="cell-label">Note</td>
-              ${trNoteHtml}
-            </tr>`;
+          MOMENTI_COLONNE.forEach(m => { trGlicemieHtml += `<td>${rigaGlicemie[m]}</td>`; trInsulineHtml += `<td>${rigaInsuline[m]}</td>`; trNoteHtml += `<td>${rigaNote[m]}</td>`; });
+          righeTabellaBlocco += `<tr><td class="cell-data" rowspan="3">${sezione.title}</td><td class="cell-label">Glicemia</td>${trGlicemieHtml}</tr><tr><td class="cell-label">Insulina</td>${trInsulineHtml}</tr><tr class="row-separator"><td class="cell-label">Note</td>${trNoteHtml}</tr>`;
         });
-
         const rigaInterruzionePagina = (i + 4 < sezioniOrdinate.length) ? 'style="page-break-after: always;"' : '';
-        const htmlTitoloIntestazione = (i === 0) 
-          ? `<h1>Diabety - Registro Storico Giornaliero</h1>` 
-          : `<div style="height: 10px;"></div>`;
-
-        corpoHtmlCompleto += `
-          <div class="pagina-pdf" ${rigaInterruzionePagina}>
-            ${htmlTitoloIntestazione}
-            <table>
-              <thead>
-                <tr>
-                  <th>Data</th><th>Parametro</th>
-                  <th>Prima Colazione</th><th>Dopo Colazione</th><th>Spuntino</th>
-                  <th>Prima Pranzo</th><th>Dopo Pranzo</th><th>Merenda</th>
-                  <th>Prima Cena</th><th>Dopo Cena</th><th>Notte</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${righeTabellaBlocco}
-              </tbody>
-            </table>
-          </div>`;
+        const htmlTitoloIntestazione = (i === 0) ? `<h1>Diabety - Registro Storico Giornaliero</h1>` : `<div style="height: 10px;"></div>`;
+        corpoHtmlCompleto += `<div class="pagina-pdf" ${rigaInterruzionePagina}>${htmlTitoloIntestazione}<table><thead><tr><th>Data</th><th>Parametro</th><th>Prima Colazione</th><th>Dopo Colazione</th><th>Spuntino</th><th>Prima Pranzo</th><th>Dopo Pranzo</th><th>Merenda</th><th>Prima Cena</th><th>Dopo Cena</th><th>Notte</th></tr></thead><tbody>${righeTabellaBlocco}</tbody></table></div>`;
       }
 
-      const htmlTemplateHTML = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              @page { size: landscape; margin: 10mm; }
-              body { font-family: sans-serif; color: #1c1c1e; padding: 0; margin: 0; background: #ffffff; }
-              .pagina-pdf { box-sizing: border-box; width: 100%; }
-              h1 { font-size: 18px; color: #0A66C2; margin: 0 0 10px 0; font-weight: bold; border-bottom: 2px solid #0A66C2; padding-bottom: 4px; }
-              table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 5px; }
-              th, td { border: 1px solid #c7c7cc; padding: 6px 4px; font-size: 10px; text-align: center; vertical-align: middle; word-wrap: break-word; }
-              th { background-color: #f2f2f7; font-weight: bold; font-size: 9px; text-transform: uppercase; }
-              .cell-data { font-weight: bold; background-color: #f0f5fa; color: #0A66C2; font-size: 10.5px; width: 75px; }
-              .cell-label { font-weight: 600; background-color: #f2f2f7; text-align: left; padding-left: 5px; width: 80px; }
-              .row-separator td { background-color: #ffffff; }
-            </style>
-          </head>
-          <body>
-            ${corpoHtmlCompleto}
-          </body>
-        </html>`;
+      const htmlTemplateHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page { size: landscape; margin: 10mm; } body { font-family: sans-serif; color: #1c1c1e; padding: 0; margin: 0; background: #ffffff; } .pagina-pdf { box-sizing: border-box; width: 100%; } h1 { font-size: 18px; color: #0A66C2; margin: 0 0 10px 0; font-weight: bold; border-bottom: 2px solid #0A66C2; padding-bottom: 4px; } table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 5px; } th, td { border: 1px solid #c7c7cc; padding: 6px 4px; font-size: 10px; text-align: center; vertical-align: middle; word-wrap: break-word; } th { background-color: #f2f2f7; font-weight: bold; font-size: 9px; text-transform: uppercase; } .cell-data { font-weight: bold; background-color: #f0f5fa; color: #0A66C2; font-size: 10.5px; width: 75px; } .cell-label { font-weight: 600; background-color: #f2f2f7; text-align: left; padding-left: 5px; width: 80px; } .row-separator td { background-color: #ffffff; }</style></head><body>${corpoHtmlCompleto}</body></html>`;
 
       if (Platform.OS === 'web') {
         const finestraStampa = window.open('', '_blank');
         if (finestraStampa) {
-          finestraStampa.document.write(htmlTemplateHTML);
-          finestraStampa.document.close();
+          finestraStampa.document.write(htmlTemplateHTML); finestraStampa.document.close();
           finestraStampa.onload = () => { finestraStampa.focus(); finestraStampa.print(); };
         } else {
-          const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
-          const risposta = await fetch(uri);
-          const blobFile = await risposta.blob();
-          const urlDownload = URL.createObjectURL(blobFile);
-          const tagAnchor = document.createElement('a');
-          tagAnchor.href = urlDownload;
-          tagAnchor.download = `Registro_Glicemico_Diabety_${filtroPdfSelezionato.replace(" ", "_")}.pdf`;
-          document.body.appendChild(tagAnchor);
-          tagAnchor.click();
-          document.body.removeChild(tagAnchor);
+          const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML }); const risposta = await fetch(uri); const blobFile = await risposta.blob(); const urlDownload = URL.createObjectURL(blobFile);
+          const tagAnchor = document.createElement('a'); tagAnchor.href = urlDownload; tagAnchor.download = `Registro_Glicemico_Diabety_${filtroPdfSelezionato.replace(" ", "_")}.pdf`; document.body.appendChild(tagAnchor); tagAnchor.click(); document.body.removeChild(tagAnchor);
         }
       } else {
-        const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
-        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
+        const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML }); await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
       }
-    } catch (error) {
-      alert("Impossibile completare la stampa del documento.");
-    }
+    } catch (error) { alert("Impossibile completare la stampa del documento."); }
   };
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -285,7 +181,7 @@ export default function StrumentiScreen() {
       <Text style={styles.sectionLabel}>Manutenzione e Report</Text>
       <View style={styles.cardAzioni}>
         
-        {/* 1. Riga Esporta Backup */}
+        {/* 1. Esporta Backup */}
         <TouchableOpacity style={styles.rowAzione} onPress={esportaBackupJSON}>
           <View style={styles.leftAzione}>
             <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
@@ -299,7 +195,7 @@ export default function StrumentiScreen() {
           <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
         </TouchableOpacity>
 
-        {/* 2. Riga Importa Backup */}
+        {/* 2. Importa Backup */}
         {Platform.OS === 'web' ? (
           <label style={styles.rowAzioneLabel}>
             <View style={styles.leftAzione}>
@@ -329,10 +225,9 @@ export default function StrumentiScreen() {
           </TouchableOpacity>
         )}
 
-        {/* 🌟 LINEA DI SEPARAZIONE COMPLETA TRA IMPORTA E REGISTRO PDF */}
         <View style={styles.dividerAzione} />
 
-        {/* 3. Riga Esporta PDF Avanzata */}
+        {/* 3. Esporta PDF Avanzata */}
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDocumentoMatriceStoricoPDF}>
             <View style={styles.leftAzione}>
@@ -347,19 +242,12 @@ export default function StrumentiScreen() {
             <Ionicons name="chevron-forward" size={18} color={COLORS.brandPrimary} />
           </TouchableOpacity>
 
-          {/* 📅 Pulsantiera Orizzontale Interna */}
           <View style={styles.containerMiniFiltriPdf}>
             {['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'].map((intervallo) => {
               const attivo = filtroPdfSelezionato === intervallo;
               return (
-                <TouchableOpacity
-                  key={intervallo}
-                  style={[styles.chipMiniPdf, attivo && styles.chipMiniPdfAttiva]}
-                  onPress={() => setFiltroPdfSelezionato(intervallo)}
-                >
-                  <Text style={[styles.textMiniChipPdf, attivo && styles.textMiniChipPdfAttivo]}>
-                    {intervallo}
-                  </Text>
+                <TouchableOpacity key={intervallo} style={[styles.chipMiniPdf, attivo && styles.chipMiniPdfAttiva]} onPress={() => setFiltroPdfSelezionato(intervallo)}>
+                  <Text style={[styles.textMiniChipPdf, attivo && styles.textMiniChipPdfAttivo]}>{intervallo}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -367,6 +255,7 @@ export default function StrumentiScreen() {
         </View>
 
       </View>
+
       {/* 📚 SEZIONE GUIDA ALL'USO POSIZIONATA IN CODA COME ULTIMA SEZIONE IN ASSOLUTO */}
       <Text style={styles.sectionLabel}>Manuale & Linee Guida</Text>
       
@@ -411,7 +300,6 @@ export default function StrumentiScreen() {
           L'applicazione applica un algoritmo rigoroso di conservazione locale calcolato su una finestra mobile di <Text style={{color: COLORS.onSurface, fontWeight: '600'}}>90 giorni</Text> rispetto al record più recente. I vecchi dati vengono eliminati automaticamente per ottimizzare la memoria del dispositivo: ricordati di salvare periodicamente un file di backup per non perderli.
         </Text>
       </View>
-
       {/* CARD 4: REPORTISTICA COMPLIANT */}
       <View style={styles.infoBlockPremium}>
         <View style={styles.rigaTitoloManuale}>
@@ -451,6 +339,19 @@ export default function StrumentiScreen() {
         </Text>
       </View>
 
+      {/* 🧠 CARD 7 (NUOVA): CALCOLATORE DEL BOLO INSULINICO CON SOTTOTESTO FISSATO A DIMENSIONE 14 */}
+      <View style={styles.infoBlockPremium}>
+        <View style={styles.rigaTitoloManuale}>
+          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.08)' }]}>
+            <Ionicons name="calculator-outline" size={16} color={COLORS.brandPrimary} />
+          </View>
+          <Text style={styles.infoBlockTitle}>7. Calcolatore del Bolo Insulinico</Text>
+        </View>
+        <Text style={styles.infoBlockText}>
+          Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro.
+        </Text>
+      </View>
+
     </ScrollView>
   );
 }
@@ -465,24 +366,9 @@ const styles = StyleSheet.create({
   
   cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', overflow: 'hidden' },
   rowAzione: { flexDirection: 'row', alignItems: 'center', justifyBetween: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
-  rowAzioneLabel: { 
-    display: 'flex', 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    padding: 14, 
-    height: 68, 
-    cursor: 'pointer', 
-    width: '100%', 
-    boxSizing: 'border-box' 
-  },
+  rowAzioneLabel: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, cursor: 'pointer', width: '100%', boxSizing: 'border-box' },
   
-  dividerAzione: {
-    height: 1,
-    backgroundColor: COLORS.borderGlass,
-    width: '100%'
-  },
-
+  dividerAzione: { height: 1, backgroundColor: COLORS.borderGlass, width: '100%' },
   leftAzione: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
   titoloAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
@@ -497,47 +383,11 @@ const styles = StyleSheet.create({
   textMiniChipPdf: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600', color: COLORS.muted },
   textMiniChipPdfAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
 
-  infoBlockPremium: { 
-    marginBottom: 12, 
-    backgroundColor: COLORS.surfaceSecondary, 
-    padding: 16, 
-    borderRadius: 16, 
-    borderWidth: 1, 
-    borderColor: COLORS.borderGlass, 
-    width: '100%',
-    alignItems: 'flex-start'
-  },
-  rigaTitoloManuale: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 10, 
-    marginBottom: 10,
-    width: '100%'
-  },
-  miniIconWrapper: { 
-    width: 28, 
-    height: 28, 
-    borderRadius: 8, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    borderWidth: 1, 
-    borderColor: COLORS.borderGlass 
-  },
-  infoBlockTitle: { 
-    fontFamily: 'Plus Jakarta Sans', 
-    fontSize: 14, 
-    fontWeight: '800', 
-    color: COLORS.onSurface,
-    letterSpacing: -0.2
-  },
-  infoBlockText: { 
-    fontFamily: 'Plus Jakarta Sans', 
-    fontSize: 14, 
-    color: COLORS.muted, 
-    lineHeight: 22, 
-    textAlign: 'left',
-    paddingLeft: 2
-  },
+  infoBlockPremium: { marginBottom: 12, backgroundColor: COLORS.surfaceSecondary, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', alignItems: 'flex-start' },
+  rigaTitoloManuale: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10, width: '100%' },
+  miniIconWrapper: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
+  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '800', color: COLORS.onSurface, letterSpacing: -0.2 },
+  infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: COLORS.muted, lineHeight: 22, textAlign: 'left', paddingLeft: 2 },
 
   notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
   notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 13 }
