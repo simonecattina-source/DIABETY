@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Platform, Dimensions, TouchableOpacity, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Platform, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
@@ -151,7 +151,7 @@ export default function GraficiScreen() {
                 oreMinuti = parseInt(m);
               }
               return { minutiAssoluti: (ore * 60) + oreMinuti, glicemia: item.glicemia };
-            }).sort((a: any, b: any) => a.minutiAssoluti - b.minutiAssolutes);
+            }).sort((a: any, b: any) => a.minutiAssoluti - b.minutiAssoluti);
 
             const ultimoControlloIeriSera = logDiIeriOrdinati[logDiIeriOrdinati.length - 1];
             puntiOggi.unshift({ minutiAssoluti: 0, glicemia: ultimoControlloIeriSera.glicemia });
@@ -233,10 +233,11 @@ export default function GraficiScreen() {
   const renderizzaGraficoLinea24Ore = () => {
     if (puntiGrafico24Ore.length === 0) return null;
     
-    const larghezzaGrafico = Dimensions.get('window').width - (Platform.OS === 'web' ? 32 : 64);
-    const altezzaGrafico = 150;
-    const margineSinistro = 25;
-    const margineDestroProtetto = 35; 
+    // 📐 INTERNAZIONALE REATTIVO: Scala fissa a 1000 punti per distruggere le deformazioni da PC
+    const larghezzaGrafico = 1000;
+    const altezzaGrafico = 300;
+    const margineSinistro = 40;
+    const margineDestroProtetto = 60; 
     const spazioUtileX = larghezzaGrafico - margineSinistro - margineDestroProtetto;
 
     const rigaSoglia180Y = calcolaCoordinateLineaX(180, altezzaGrafico);
@@ -259,40 +260,42 @@ export default function GraficiScreen() {
 
     return (
       <View style={styles.containerGraficoSvg}>
-        <svg width={larghezzaGrafico} height="175" style={{ display: 'block', overflow: 'visible' }}>
+        {/* 🛠️ BLOCCO VIEWBOX: width="100%" costringe l'SVG ad allargarsi in modo fluido mantenendo i rapporti geometrici stabili */}
+        <svg width="100%" height="200" viewBox="0 0 1000 340" style={{ display: 'block', overflow: 'visible' }}>
           <defs>
             <linearGradient id="neonCyanGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={COLORS.brandPrimary} stopOpacity="0.28" />
+              <stop offset="0%" stopColor={COLORS.brandPrimary} stopOpacity="0.25" />
               <stop offset="100%" stopColor={COLORS.brandPrimary} stopOpacity="0.00" />
             </linearGradient>
           </defs>
           
           <rect x={margineSinistro} y={rigaSoglia180Y} width={spazioUtileX} height={rigaSoglia70Y - rigaSoglia180Y} fill="rgba(0, 230, 118, 0.04)" />
           
-          {/* 🛠️ SPOSTATI A SINISTRA: Testi delle soglie riposizionati sopra l'inizio della linea tratteggiata per liberare la destra */}
-          <line x1={margineSinistro} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1" strokeDasharray="3 3" opacity={0.6} />
-          <text x={margineSinistro + 6} y={rigaSoglia180Y - 6} fill={COLORS.error} fontSize="9" fontWeight="bold" textAnchor="start">180 mg/dL</text>
+          <line x1={margineSinistro} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1.5" strokeDasharray="4 4" opacity={0.6} />
+          <text x={margineSinistro + 12} y={rigaSoglia180Y - 10} fill={COLORS.error} fontSize="18" fontWeight="bold" textAnchor="start">180 mg/dL</text>
           
-          <line x1={margineSinistro} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1" strokeDasharray="3 3" opacity={0.6} />
-          <text x={margineSinistro + 6} y={rigaSoglia70Y - 6} fill={COLORS.warning} fontSize="9" fontWeight="bold" textAnchor="start">70 mg/dL</text>
+          <line x1={margineSinistro} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1.5" strokeDasharray="4 4" opacity={0.6} />
+          <text x={margineSinistro + 12} y={rigaSoglia70Y - 10} fill={COLORS.warning} fontSize="18" fontWeight="bold" textAnchor="start">70 mg/dL</text>
           
           {percorsoGradienteStr !== "" && <path d={percorsoGradienteStr} fill="url(#neonCyanGrad)" />}
-          {percorsoCurvaStr !== "" && <path d={percorsoCurvaStr} fill="none" stroke={COLORS.brandPrimary} strokeWidth="3" strokeLinecap="round" />}
+          {percorsoCurvaStr !== "" && <path d={percorsoCurvaStr} fill="none" stroke={COLORS.brandPrimary} strokeWidth="5" strokeLinecap="round" />}
           
           {coordinataPunti.map((p, i) => (
             <g key={i}>
-              <circle cx={p.x} cy={p.y} r="4" fill={p.glicemia > 180 ? COLORS.error : p.glicemia < 70 ? COLORS.warning : COLORS.success} stroke="#0A0A0C" strokeWidth="1.5" />
-              <text x={p.x} y={p.y - 9} fill={COLORS.onSurface} fontSize="9" fontWeight="800" textAnchor="middle">{p.glicemia}</text>
+              <circle cx={p.x} cy={p.y} r="8" fill={p.glicemia > 180 ? COLORS.error : p.glicemia < 70 ? COLORS.warning : COLORS.success} stroke="#0A0A0C" strokeWidth="2.5" />
+              <text x={p.x} y={p.y - 16} fill={COLORS.onSurface} fontSize="16" fontWeight="800" textAnchor="middle">{p.glicemia}</text>
             </g>
           ))}
+          
+          {/* 🛠️ ASSE DELLE ORE EMBEDDATO: Ora fa blocco unico con il grafico ed elimina lo sfasamento */}
+          <g fill={COLORS.muted} fontSize="16" fontWeight="bold" textAnchor="middle">
+            <text x={margineSinistro} y="335">00:00</text>
+            <text x={margineSinistro + (spazioUtileX * 0.25)} y="335">06:00</text>
+            <text x={margineSinistro + (spazioUtileX * 0.5)} y="335">12:00</text>
+            <text x={margineSinistro + (spazioUtileX * 0.75)} y="335">18:00</text>
+            <text x={larghezzaGrafico - margineDestroProtetto} y="335">24:00</text>
+          </g>
         </svg>
-        <View style={[styles.rigaEtichetteDate, { width: spazioUtileX, marginLeft: margineSinistro }]}>
-          <Text style={styles.dataTestoLabel}>00:00</Text>
-          <Text style={styles.dataTestoLabel}>06:00</Text>
-          <Text style={styles.dataTestoLabel}>12:00</Text>
-          <Text style={styles.dataTestoLabel}>18:00</Text>
-          <Text style={styles.dataTestoLabel}>24:00</Text>
-        </View>
       </View>
     );
   };
@@ -300,10 +303,10 @@ export default function GraficiScreen() {
   const renderizzaGraficoLineaGiorni = () => {
     if (puntiGraficoLinea.length === 0) return null;
     
-    const larghezzaGrafico = Dimensions.get('window').width - (Platform.OS === 'web' ? 32 : 64);
-    const altezzaGrafico = 150;
-    const margineSinistro = 20;
-    const margineDestroProtetto = 35; 
+    const larghezzaGrafico = 1000;
+    const altezzaGrafico = 300;
+    const margineSinistro = 40;
+    const margineDestroProtetto = 60; 
     const spazioUtileX = larghezzaGrafico - margineSinistro - margineDestroProtetto;
 
     const rigaSoglia180Y = calcolaCoordinateLineaX(180, altezzaGrafico);
@@ -325,38 +328,50 @@ export default function GraficiScreen() {
 
     return (
       <View style={styles.containerGraficoSvg}>
-        <svg width={larghezzaGrafico} height="175" style={{ display: 'block', overflow: 'visible' }}>
+        <svg width="100%" height="200" viewBox="0 0 1000 340" style={{ display: 'block', overflow: 'visible' }}>
+          <defs>
+            <linearGradient id="neonPurpleGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={COLORS.brandSecondary} stopOpacity="0.25" />
+              <stop offset="100%" stopColor={COLORS.brandSecondary} stopOpacity="0.00" />
+            </linearGradient>
+          </defs>
+          
           <rect x={margineSinistro} y={rigaSoglia180Y} width={spazioUtileX} height={rigaSoglia70Y - rigaSoglia180Y} fill="rgba(0, 230, 118, 0.03)" />
           
-          {/* 🛠️ SPOSTATI A SINISTRA: Testi macro-soglie del trimestre posizionati sopra ad inizio riga */}
-          <line x1={margineSinistro} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1" strokeDasharray="3 3" opacity={0.5} />
-          <text x={margineSinistro + 6} y={rigaSoglia180Y - 6} fill={COLORS.error} fontSize="9" fontWeight="bold" textAnchor="start">180 mg/dL</text>
+          <line x1={margineSinistro} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1.5" strokeDasharray="4 4" opacity={0.5} />
+          <text x={margineSinistro + 12} y={rigaSoglia180Y - 10} fill={COLORS.error} fontSize="18" fontWeight="bold" textAnchor="start">180 mg/dL</text>
           
-          <line x1={margineSinistro} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1" strokeDasharray="3 3" opacity={0.5} />
-          <text x={margineSinistro + 6} y={rigaSoglia70Y - 6} fill={COLORS.warning} fontSize="9" fontWeight="bold" textAnchor="start">70 mg/dL</text>
+          <line x1={margineSinistro} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1.5" strokeDasharray="4 4" opacity={0.5} />
+          <text x={margineSinistro + 12} y={rigaSoglia70Y - 10} fill={COLORS.warning} fontSize="18" fontWeight="bold" textAnchor="start">70 mg/dL</text>
           
           {percorsoGradienteStr !== "" && <path d={percorsoGradienteStr} fill="url(#neonPurpleGrad)" />}
-          {percorsoCurvaStr !== "" && <path d={percorsoCurvaStr} fill="none" stroke={COLORS.brandSecondary} strokeWidth="3" strokeLinecap="round" />}
+          {percorsoCurvaStr !== "" && <path d={percorsoCurvaStr} fill="none" stroke={COLORS.brandSecondary} strokeWidth="5" strokeLinecap="round" />}
           
           {coordinataPunti.map((p, i) => {
             const nascondiScrittaValore = coordinataPunti.length > 15 && i % 3 !== 0;
             const colorePuntoTrimestre = p.media > 180 ? COLORS.error : p.media < 70 ? COLORS.warning : COLORS.success;
             return (
               <g key={`macro-${i}`}>
-                <circle cx={p.x} cy={p.y} r="3.5" fill={colorePuntoTrimestre} stroke="#0A0A0C" strokeWidth="1.5" />
+                <circle cx={p.x} cy={p.y} r="7" fill={colorePuntoTrimestre} stroke="#0A0A0C" strokeWidth="2.5" />
                 {!nascondiScrittaValore && (
-                  <text x={p.x} y={p.y - 9} fill={COLORS.onSurface} fontSize="9" fontWeight="800" textAnchor="middle">{p.media}</text>
+                  <text x={p.x} y={p.y - 16} fill={COLORS.onSurface} fontSize="16" fontWeight="800" textAnchor="middle">{p.media}</text>
                 )}
               </g>
             );
           })}
+          
+          {/* 🛠️ ASSE DELLE DATE EMBEDDATO: Perfettamente calibrato */}
+          <g fill={COLORS.muted} fontSize="16" fontWeight="bold" textAnchor="middle">
+            {puntiGraficoLinea.map((p, i) => {
+              const mostraData = i === 0 || i === Math.floor(puntiGraficoLinea.length / 2) || i === puntiGraficoLinea.length - 1;
+              if (!mostraData) return null;
+              
+              const posPercentuale = i / (puntiGraficoLinea.length - 1 || 1);
+              const xPos = margineSinistro + (posPercentuale * spazioUtileX);
+              return <text key={`lbl-${i}`} x={xPos} y="335">{p.dataLabel.slice(0, 5)}</text>;
+            })}
+          </g>
         </svg>
-        <View style={[styles.rigaEtichetteDate, { width: spazioUtileX, marginLeft: margineSinistro }]}>
-          {puntiGraficoLinea.map((p, i) => {
-            const mostraData = i === 0 || i === Math.floor(puntiGraficoLinea.length / 2) || i === puntiGraficoLinea.length - 1;
-            return <Text key={i} style={[styles.dataTestoLabel, { opacity: mostraData ? 1 : 0 }]}>{p.dataLabel.slice(0, 5)}</Text>;
-          })}
-        </View>
       </View>
     );
   };
@@ -385,7 +400,6 @@ export default function GraficiScreen() {
       </View>
     );
   };
-
   const ottieniColoreGlicata = (val: number) => {
     if (val === 0) return "#1F1F29";
     if (val < 7.0) return COLORS.success;   
@@ -400,6 +414,7 @@ export default function GraficiScreen() {
     const protetto = Math.max(MIN_GLIC, Math.min(MAX_GLICEMIA, val));
     return ((protetto - MIN_GLIC) / (MAX_GLICEMIA - MIN_GLIC)) * 100;
   };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>Analisi e Grafici</Text>
@@ -567,13 +582,14 @@ const styles = StyleSheet.create({
   unitaMisuraSub: { fontSize: 9, color: COLORS.muted, fontWeight: '400' },
   statValueMini: { fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: '900', color: COLORS.onSurface },
   statValueOggiCentrale: { fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: '900' },
-  cardGraficoContenitore: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 16, width: '100%', alignItems: 'flex-start', borderWidth: 1, borderColor: COLORS.borderGlass },
+  
+  // 📐 CONTENITORE CARD: Forza la card ad allinearsi perfettamente senza far sbordare l'SVG interno
+  cardGraficoContenitore: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 16, width: '100%', alignItems: 'stretch', borderWidth: 1, borderColor: COLORS.borderGlass, overflow: 'hidden' },
   rigaTitoloGrafico: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' },
   pulsanteInfoTocco: { padding: 4, justifyContent: 'center', alignItems: 'center', opacity: 0.85 },
-  containerGraficoSvg: { width: '100%', marginTop: 6, position: 'relative' },
   
-  rigaEtichetteDate: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingHorizontal: 2 },
-  dataTestoLabel: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '700', color: COLORS.muted },
+  // 📐 AREA SVG REATTIVA: Svincolata dai pixel fissi hardware per assecondare la griglia elastica del browser
+  containerGraficoSvg: { width: '100%', marginTop: 6 },
   
   rigaColonneContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', minHeight: 140, paddingTop: 15, alignItems: 'flex-end' },
   singolaColonnaWrapper: { flex: 1, alignItems: 'center', gap: 6 },
