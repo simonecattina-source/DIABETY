@@ -11,10 +11,12 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { queryClient } from "@/src/query-client";
 
+// 🌟 IMPORTAZIONE DEL PROVIDER DI TEMA GLOBALE SPOSTATO FUORI DA APP
+import { ThemeProvider } from "../context/ThemeContext";
+
 LogBox.ignoreAllLogs(true);
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
-
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     SpaceGrotesk: require("../assets/fonts/SpaceGrotesk.ttf"),
@@ -26,7 +28,6 @@ export default function RootLayout() {
   // 🔒 BLOCCO ZOOM DEFINITIVO PER IPHONE (Meta + Eventi JavaScript iOS)
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      // 1. Forza il tag viewport standard
       let metaViewport = document.querySelector('meta[name="viewport"]');
       const regoleBloccoZoom = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover";
       if (metaViewport) {
@@ -38,7 +39,6 @@ export default function RootLayout() {
         document.head.appendChild(nuovoMeta);
       }
 
-      // 2. 🚫 Blocca il Pinch-to-Zoom (allargamento con due dita) su iOS
       const bloccaPinchZoom = (evento: TouchEvent) => {
         if (evento.touches.length > 1) {
           evento.preventDefault();
@@ -46,7 +46,6 @@ export default function RootLayout() {
       };
       document.addEventListener('touchstart', bloccaPinchZoom, { passive: false });
 
-      // 3. 🚫 Blocca il Doppio Tocco (Double-Tap Zoom) su iOS
       let ultimoTocco = 0;
       const bloccaDoppioTocco = (evento: TouchEvent) => {
         const tempoAttuale = new Date().getTime();
@@ -58,7 +57,6 @@ export default function RootLayout() {
       };
       document.addEventListener('touchend', bloccaDoppioTocco, { passive: false });
 
-      // Pulizia dei listener se il componente si smonta
       return () => {
         document.removeEventListener('touchstart', bloccaPinchZoom);
         document.removeEventListener('touchend', bloccaDoppioTocco);
@@ -77,7 +75,10 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <QueryClientProvider client={queryClient}>
             <KeyboardProvider>
-              <Stack screenOptions={{ headerShown: false }} />
+              {/* 🌟 GABBIA STRUTTURALE DEL TEMA INSERITA INTORNO ALLA NAVIGAZIONE STACK */}
+              <ThemeProvider>
+                <Stack screenOptions={{ headerShown: false }} />
+              </ThemeProvider>
             </KeyboardProvider>
           </QueryClientProvider>
         </SafeAreaProvider>
