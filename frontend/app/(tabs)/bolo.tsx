@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const COLORS = {
@@ -21,14 +21,15 @@ export default function CalcolatoreBoloScreen() {
   const [carboidratiPasto, setCarboidratiPasto] = useState('');
 
   // Parametri Personali Terapeutici (Impostati con valori di default standard modificabili)
-  const [rapportoCHO, setRapportoCHO] = useState('10'); // 1 UI ogni 10g CHO
-  const [sensibilitaISF, setSensibilitaISF] = useState('40'); // 1 UI abbassa di 40 mg/dL
-  const [targetGlicemico, setTargetGlicemico] = useState('100'); // Target ideale 100 mg/dL
+  const [rapportoCHO, setRapportoCHO] = useState('10'); 
+  const [sensibilitaISF, setSensibilitaISF] = useState('40'); 
+  const [targetGlicemico, setTargetGlicemico] = useState('100'); 
 
-  // Stati per il Risultato
+  // Stati per il Risultato e Pop-up Informativo
   const [risultatoBolo, setRisultatoBolo] = useState<number | null>(null);
   const [quotaPasto, setQuotaPasto] = useState<number>(0);
   const [quotaCorrezione, setQuotaCorrezione] = useState<number>(0);
+  const [mostraHelpParametri, setMostraHelpParametri] = useState(false);
 
   const calcolaBoloInsulinico = () => {
     const cho = parseFloat(carboidratiPasto) || 0;
@@ -42,19 +43,13 @@ export default function CalcolatoreBoloScreen() {
       return;
     }
 
-    // 1. Calcolo quota per i carboidrati del pasto
     const insulinaPasto = cho > 0 ? cho / r_cho : 0;
-
-    // 2. Calcolo quota di correzione per l'iperglicemia
     const insulinaCorrezione = glic > target ? (glic - target) / isf : 0;
-
-    // 3. Somma complessiva
     const totaleTeorico = insulinaPasto + insulinaCorrezione;
 
     setQuotaPasto(Math.round(insulinaPasto * 10) / 10);
     setQuotaCorrezione(Math.round(insulinaCorrezione * 10) / 10);
     
-    // Arrotondamento terapeutico standard al mezzo punto (0.5 UI)
     const totaleArrotondato = Math.round(totaleTeorico * 2) / 2;
     setRisultatoBolo(totaleArrotondato);
   };
@@ -92,38 +87,21 @@ export default function CalcolatoreBoloScreen() {
               <Text style={styles.valoreQuotaDettaglio}>{quotaCorrezione} UI</Text>
             </View>
           </View>
-          
           <Text style={styles.disclaimerBolo}>* Il calcolo è arrotondato alla mezza unità. Valuta sempre i fattori esterni prima di somministrare.</Text>
         </View>
       )}
 
       {/* INPUT CONTROLLI DINAMICI */}
-      <Text style={styles.sectionLabel}>Dati Attuali kontrol</Text>
+      <Text style={styles.sectionLabel}>Dati Attuali</Text>
       <View style={styles.rigaDatiPrincipali}>
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
           <Text style={styles.labelLeftHighlight}>Glicemia (mg/dL)</Text>
-          <TextInput
-            style={styles.glicemiaInput}
-            placeholder="100"
-            placeholderTextColor="#636366" 
-            keyboardType="numeric"
-            value={glicemiaAttuale}
-            onChangeText={setGlicemiaAttuale}
-            maxLength={3}
-          />
+          <TextInput style={styles.glicemiaInput} placeholder="100" placeholderTextColor="#636366" keyboardType="numeric" value={glicemiaAttuale} onChangeText={setGlicemiaAttuale} maxLength={3} />
         </View>
 
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
           <Text style={styles.labelLeftHighlight}>Carboidrati (g CHO)</Text>
-          <TextInput
-            style={styles.glicemiaInput}
-            placeholder="0"
-            placeholderTextColor="#636366" 
-            keyboardType="numeric"
-            value={carboidratiPasto}
-            onChangeText={setCarboidratiPasto}
-            maxLength={3}
-          />
+          <TextInput style={styles.glicemiaInput} placeholder="0" placeholderTextColor="#636366" keyboardType="numeric" value={carboidratiPasto} onChangeText={setCarboidratiPasto} maxLength={3} />
         </View>
       </View>
 
@@ -139,14 +117,20 @@ export default function CalcolatoreBoloScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* BOX IMPOSTAZIONI RATIO TERAPEUTICI MODIFICABILI */}
-      <Text style={styles.sectionLabel}>I tuoi Rapporti Personali</Text>
+      {/* BOX IMPOSTAZIONI RATIO TERAPEUTICI MODIFICABILI CON PULSANTE "i" */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, marginBottom: 10 }}>
+        <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>I tuoi Rapporti Personali</Text>
+        <TouchableOpacity onPress={() => setMostraHelpParametri(true)} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} style={{ justifyContent: 'center', alignItems: 'center', marginTop: 1 }}>
+          <Ionicons name="information-circle-outline" size={18} color={COLORS.brandPrimary} />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.cardParametriFissi}>
         <View style={styles.rigaRapportoParametro}>
           <View style={styles.sinistraInfoParametro}>
             <Ionicons name="pizza-outline" size={18} color={COLORS.brandSecondary} />
             <View style={{marginLeft: 8}}>
-              <Text style={styles.titoloParametro}>Rapporto I:CHO</Text>
+              <Text style={styles.titleParametro}>Rapporto I:CHO</Text>
               <Text style={styles.descParametro}>Quanti grammi di carboidrati copre 1 UI</Text>
             </View>
           </View>
@@ -159,7 +143,7 @@ export default function CalcolatoreBoloScreen() {
           <View style={styles.sinistraInfoParametro}>
             <Ionicons name="pulse-outline" size={18} color={COLORS.brandSecondary} />
             <View style={{marginLeft: 8}}>
-              <Text style={styles.titoloParametro}>Sensibilità (ISF)</Text>
+              <Text style={styles.titleParametro}>Sensibilità (ISF)</Text>
               <Text style={styles.descParametro}>Di quanto mg/dL scende con 1 UI</Text>
             </View>
           </View>
@@ -172,13 +156,41 @@ export default function CalcolatoreBoloScreen() {
           <View style={styles.sinistraInfoParametro}>
             <Ionicons name="locate-outline" size={18} color={COLORS.brandSecondary} />
             <View style={{marginLeft: 8}}>
-              <Text style={styles.titoloParametro}>Target Glicemico</Text>
+              <Text style={styles.titleParametro}>Target Glicemico</Text>
               <Text style={styles.descParametro}>Il tuo valore ideale di riferimento</Text>
             </View>
           </View>
           <TextInput style={styles.inputParametroFisso} keyboardType="numeric" value={targetGlicemico} onChangeText={setTargetGlicemico} maxLength={3} />
         </View>
       </View>
+
+      {/* 🎪 POP-UP INFORMATIVO SPIEGAZIONE PARAMETRI TERAPEUTICI */}
+      <Modal visible={mostraHelpParametri} animationType="fade" transparent={true} onRequestClose={() => setMostraHelpParametri(false)}>
+        <View style={styles.modalOverlayCentrato}>
+          <View style={styles.modalContentHelp}>
+            <Text style={styles.modalTitleHelp}>Parametri Personali</Text>
+            <ScrollView style={styles.modalScrollInfo} showsVerticalScrollIndicator={false}>
+              <View style={styles.infoBlockPremium}>
+                <Text style={styles.infoBlockTitle}>🍕 Rapporto I:CHO (Insulina/Carboidrati)</Text>
+                <Text style={styles.infoBlockText}>Indica quanti grammi di zuccheri/carboidrati vengono coperti da una sola unità di insulina. Ad esempio, un rapporto di 10 significa che 1 unità di insulina compensa 10 grammi di carboidrati che mangi.</Text>
+              </View>
+
+              <View style={styles.infoBlockPremium}>
+                <Text style={styles.infoBlockTitle}>⚡ Sensibilità ISF (Fattore di Correzione)</Text>
+                <Text style={styles.infoBlockText}>Indica di quanti punti (mg/dL) scende la tua glicemia nel sangue grazie a una singola unità di insulina. Ad esempio, un ISF di 40 significa che 1 unità farà calare la tua glicemia di 40 punti.</Text>
+              </View>
+
+              <View style={styles.infoBlockPremium}>
+                <Text style={styles.infoBlockTitle}>🎯 Target Glicemico</Text>
+                <Text style={styles.infoBlockText}>È il valore di glicemia ideale che desideri raggiungere (di solito impostato a 100 mg/dL). Il calcolatore lo usa per capire quanta insulina extra serve per far scendere la tua glicemia alta fino all'obiettivo.</Text>
+              </View>
+            </ScrollView>
+            <TouchableOpacity style={styles.btnChiudiHelp} onPress={() => setMostraHelpParametri(false)}>
+              <Text style={styles.btnChiudiHelpText}>Ho capito</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
     </ScrollView>
   );
@@ -203,9 +215,9 @@ const styles = StyleSheet.create({
   resetButton: { backgroundColor: COLORS.surfaceSecondary, borderWidth: 1, borderColor: COLORS.borderGlass, width: 50, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
 
   cardParametriFissi: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', paddingHorizontal: 14 },
-  rigaRapportoParametro: { flexDirection: 'row', justifyBetween: 'space-between', alignItems: 'center', paddingVertical: 14, width: '100%', justifyContent: 'space-between' },
+  rigaRapportoParametro: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, width: '100%', justifyContent: 'space-between' },
   sinistraInfoParametro: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  titoloParametro: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
+  titleParametro: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
   descParametro: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: COLORS.muted, marginTop: 1 },
   inputParametroFisso: { backgroundColor: '#1A1A24', borderHorizontalWidth: 1, borderColor: COLORS.borderGlass, borderRadius: 10, width: 55, height: 36, textAlign: 'center', color: COLORS.brandPrimary, fontFamily: 'Space Grotesk', fontSize: 15, fontWeight: '700', borderWidth: 1 },
   dividerParametri: { height: 1, backgroundColor: COLORS.borderGlass, width: '100%' },
@@ -219,5 +231,19 @@ const styles = StyleSheet.create({
   labelQuotaDettaglio: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600', color: COLORS.muted },
   valoreQuotaDettaglio: { fontFamily: 'Space Grotesk', fontSize: 15, fontWeight: '700', color: COLORS.onSurface, marginTop: 2 },
   dividerDettaglioVerticale: { width: 1, backgroundColor: 'rgba(0, 229, 255, 0.15)', height: '100%' },
-  disclaimerBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, color: COLORS.muted, textAlign: 'center', marginTop: 14, fontStyle: 'italic' }
+  disclaimerBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, color: COLORS.muted, textAlign: 'center', marginTop: 14, fontStyle: 'italic' },
+
+  // GEOMETRIA MODALE UNIFORMATA AL 100% ALLO STORICO E ALLA HOME
+  modalOverlayCentrato: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalContentHelp: { backgroundColor: '#111116', borderRadius: 24, padding: 24, width: '100%', maxWidth: 360, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
+  modalTitleHelp: { fontFamily: 'Space Grotesk', fontSize: 20, fontWeight: '800', color: '#FFFFFF', marginBottom: 24, alignSelf: 'flex-start', letterSpacing: -0.3 },
+  modalScrollInfo: { marginBottom: 16, width: '100%', maxHeight: 320 },
+  infoBlockPremium: { marginBottom: 16, backgroundColor: '#020204', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)', width: '100%' },
+  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF', marginBottom: 6, textAlign: 'left' },
+  
+  // SOTTOTESTO FISSATO STABILMENTE A 14 CON LUNGHEZZA INTERLINEA AD ALTA LEGGIBILITÀ
+  infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: '#7E7E86', lineHeight: 22, textAlign: 'left' },
+  
+  btnChiudiHelp: { marginTop: 10, backgroundColor: '#1A1A24', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)', paddingVertical: 12, borderRadius: 12, width: '100%', alignItems: 'center' },
+  btnChiudiHelpText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF' }
 });
