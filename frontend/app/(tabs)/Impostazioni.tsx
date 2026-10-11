@@ -12,11 +12,18 @@ const COLORS = {
   onSurface: "#FFFFFF",         
   muted: "#7E7E86",             
   success: "#00E676",           
+  warning: "#FF9100",           
   error: "#FF5252",             
   borderGlass: "rgba(255, 255, 255, 0.08)",
   bgUtility: "#1A1A24",         
   borderUtility: "#3A3A4A"      
 };
+
+const MOMENTI_COLONNE = [
+  "Prima Colazione", "Dopo Colazione", "Spuntino", 
+  "Prima Pranzo", "Dopo Pranzo", "Merenda", 
+  "Prima Cena", "Dopo Cena", "Notte"
+];
 export default function StrumentiScreen() {
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
   const [filtroPdfSelezionato, setFiltroPdfSelezionato] = useState<string>('30 GG');
@@ -67,7 +74,7 @@ export default function StrumentiScreen() {
     lettore.onload = async (e: any) => {
       try {
         const contenutoTesto = e.target.result;
-        const datiVerificati = JSON.parse(contenutoTesto);
+        const datiVerificati = JSON.parse(contenidoTesto);
         
         if (Array.isArray(datiVerificati)) {
           const conferma = window.confirm("ATTENZIONE: L'importazione sovrascriverà tutti i dati attuali. Vuoi procedere?");
@@ -82,10 +89,10 @@ export default function StrumentiScreen() {
         alert("Impossibile leggere il file JSON.");
       }
     };
-    lettore.readAsText(file);
+    navigate_file: lettore.readAsText(file);
   };
 
-  // 📄 LOGICA DI ESPORTAZIONE DIARIO PDF CLINICO (IDENTICA AL 100% ALLA SCHEDA STORICO)
+  // 📄 ALGORITMO ESTRATTO INTEGRALMENTE DALLO STORICO (MATRICE 11 COLONNE - BLOCCHI DA 4 GIORNI)
   const esportaDiarioPDF = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -96,17 +103,19 @@ export default function StrumentiScreen() {
         return;
       }
 
+      // 📅 Filtro Temporale Coordinato con la Pulsantiera
       if (filtroPdfSelezionato !== 'Tutti') {
         const giorniFiltro = parseInt(filtroPdfSelezionato);
         const oggi = new Date();
-        const limiteSogliaMs = giorniFiltro * 24 * 60 * 60 * 1000;
+        const dataInizioOggi = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate()).getTime();
         
         dati = dati.filter((item: any) => {
           if (!item.dataTesto || !item.dataTesto.includes('/')) return false;
           const [g, m, a] = item.dataTesto.split('/');
           const annoCompleto = parseInt(a) < 50 ? 2000 + parseInt(a) : 1900 + parseInt(a);
-          const timestampItem = new Date(annoCompleto, parseInt(m) - 1, parseInt(g)).getTime();
-          return (oggi.getTime() - timestampItem) <= limiteSogliaMs;
+          const tsItem = new Date(annoCompleto, parseInt(m) - 1, parseInt(g)).getTime();
+          const diff = (dataInizioOggi - tsItem) / (1000 * 60 * 60 * 24);
+          return diff <= giorniFiltro && diff >= -1;
         });
       }
 
@@ -115,90 +124,140 @@ export default function StrumentiScreen() {
         return;
       }
 
-      const datiOrdinatiPDF = dati.sort((a: any, b: any) => {
-        const [gA, mA, anA] = a.dataTesto.split('/');
-        const [gB, mB, anB] = b.dataTesto.split('/');
-        const dataA = new Date(parseInt(anA) < 50 ? 2000 + parseInt(anA) : 1900 + parseInt(anA), parseInt(mA) - 1, parseInt(gA)).getTime();
-        const dataB = new Date(parseInt(anB) < 50 ? 2000 + parseInt(anB) : 1900 + parseInt(anB), parseInt(mB) - 1, parseInt(gB)).getTime();
-        if (dataB !== dataA) return dataB - dataA;
-        return b.ora.localeCompare(a.ora);
+      // Raggruppamento per data (Identico alla logica del report nativo)
+      const sezioni: Record<string, any[]> = {};
+      dati.forEach((item: any) => {
+        const dataChiave = item.dataTesto || "Oggi";
+        if (!sezioni[dataChiave]) sezioni[dataChiave] = [];
+        sezioni[dataChiave].push(item);
       });
 
-      let stringaRigheTabellaHTML = "";
-      datiOrdinatiPDF.forEach((item: any) => {
-        let colereValoreGlicemia = "#1c1c1e";
-        if (item.glicemia) {
-          const gNum = parseInt(item.glicemia);
-          if (gNum < 70) colereValoreGlicemia = "#d35400";
-          else if (gNum > 180) colereValoreGlicemia = "#c0392b";
-          else colereValoreGlicemia = "#27ae60";
-        }
+      const sezioniOrdinate = Object.keys(sezioni)
+        .sort((a, b) => {
+          const [gA, mA, anA] = a.split('/');
+          const [gB, mB, anB] = b.split('/');
+          return new Date(parseInt(anB) < 50 ? 2000+parseInt(anB) : 1900+parseInt(anB), parseInt(mB)-1, parseInt(gB)).getTime() - 
+                 new Date(parseInt(anA) < 50 ? 2000+parseInt(anA) : 1900+parseInt(anA), parseInt(mA)-1, parseInt(gA)).getTime();
+        })
+        .map(chiave => {
+          const elementiOrdinati = sezioni[chiave].sort((itemA, itemB) => itemB.ora.localeCompare(itemA.ora));
+          return { title: chiave, data: elementiOrdinati };
+        });
 
-        const notePulite = item.note && item.note.trim() ? item.note : "-";
-        const unitaInsulina = item.insulina && item.insulina !== "-" && !item.insulina.includes("UI") ? `${item.insulina} UI` : item.insulina;
+      let corpoHtmlCompleto = "";
+      const dimensioneBloccoGiorni = 4;
 
-        stringaRigheTabellaHTML += `
-          <tr style="font-size:11px;">
-            <td style="border:1px solid #d3d3d3; padding:8px; font-weight:600; background:#fafafa;">${item.dataTesto}</td>
-            <td style="border:1px solid #d3d3d3; padding:8px; color:#555555;">${item.ora}</td>
-            <td style="border:1px solid #d3d3d3; padding:8px; font-weight:bold; color:${colereValoreGlicemia};">${item.glicemia || "-"}</td>
-            <td style="border:1px solid #d3d3d3; padding:8px; font-weight:600; color:#7d52ff;">${unitaInsulina || "-"}</td>
-            <td style="border:1px solid #d3d3d3; padding:8px; color:#1c1c1e; font-weight:500;">${item.tipo || "-"}</td>
-            <td style="border:1px solid #d3d3d3; padding:8px; text-align:left; color:#555555; max-width:240px; word-wrap:break-word;">${notePulite}</td>
-          </tr>
-        `;
-      });
+      for (let i = 0; i < sezioniOrdinate.length; i += dimensioneBloccoGiorni) {
+        const bloccoQuattroGiorni = sezioniOrdinate.slice(i, i + dimensioneBloccoGiorni);
+        let righeTabellaBlocco = "";
 
-      const htmlFronteEndCompleto = `
+        bloccoQuattroGiorni.forEach(sezione => {
+          const rigaGlicemie: Record<string, string> = {};
+          const rigaInsuline: Record<string, string> = {};
+          const rigaNote: Record<string, string> = {};
+
+          MOMENTI_COLONNE.forEach(m => {
+            rigaGlicemie[m] = "-"; rigaInsuline[m] = "-"; rigaNote[m] = "-";
+          });
+
+          sezione.data.forEach(item => {
+            if (MOMENTI_COLONNE.includes(item.tipo)) {
+              let colore = '#34C759';
+              if (item.glicemia > 180) colore = '#FF3B30';
+              if (item.glicemia < 70) colore = '#FF9F0A';
+
+              rigaGlicemie[item.tipo] = `<span style="color: ${colore}; font-weight: bold;">${item.glicemia} mg/dL</span>`;
+              rigaInsuline[item.tipo] = item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : "-";
+              rigaNote[item.tipo] = item.note ? `<span style="font-style: italic; color: #555;">${item.note}</span>` : "-";
+            }
+          });
+
+          let trGlicemieHtml = ""; let trInsulineHtml = ""; let trNoteHtml = "";
+          MOMENTI_COLONNE.forEach(m => {
+            trGlicemieHtml += `<td>${rigaGlicemie[m]}</td>`;
+            trInsulineHtml += `<td>${rigaInsuline[m]}</td>`;
+            trNoteHtml += `<td>${rigaNote[m]}</td>`;
+          });
+
+          righeTabellaBlocco += `
+            <tr>
+              <td class="cell-data" rowspan="3">${sezione.title}</td>
+              <td class="cell-label">Glicemia</td>
+              ${trGlicemieHtml}
+            </tr>
+            <tr>
+              <td class="cell-label">Insulina</td>
+              ${trInsulineHtml}
+            </tr>
+            <tr class="row-separator">
+              <td class="cell-label">Note</td>
+              ${trNoteHtml}
+            </tr>`;
+        });
+
+        const rigaInterruzionePagina = (i + 4 < sezioniOrdinate.length) ? 'style="page-break-after: always;"' : '';
+        const htmlTitoloIntestazione = (i === 0) 
+          ? `<h1>Diabety - Registro Storico Giornaliero</h1>` 
+          : `<div style="height: 10px;"></div>`;
+
+        corpoHtmlCompleto += `
+          <div class="pagina-pdf" ${rigaInterruzionePagina}>
+            ${htmlTitoloIntestazione}
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th><th>Parametro</th>
+                  <th>Prima Colazione</th><th>Dopo Colazione</th><th>Spuntino</th>
+                  <th>Prima Pranzo</th><th>Dopo Pranzo</th><th>Merenda</th>
+                  <th>Prima Cena</th><th>Dopo Cena</th><th>Notte</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${righeTabellaBlocco}
+              </tbody>
+            </table>
+          </div>`;
+      }
+
+      const htmlTemplateHTML = `
+        <!DOCTYPE html>
         <html>
-        <head>
-          <style>
-            @page { size: portrait; margin: 12mm; }
-            body { font-family: sans-serif; color: #1c1c1e; margin: 0; padding: 0; background: #ffffff; }
-            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-            th { background-color: #13131A; color: #ffffff; font-size: 11px; font-weight: bold; padding: 10px; border: 1px solid #d3d3d3; }
-            td { text-align: center; border: 1px solid #d3d3d3; }
-          </style>
-        </head>
-        <body>
-          <div style="width:100%; border-bottom:2px solid #00E5FF; padding-bottom:10px; margin-bottom:15px;">
-            <h2 style="margin:0; color:#13131A; font-size:20px;">DIARIO GLICEMICO COMPLETO</h2>
-            <p style="margin:4px 0 0 0; color:#636366; font-size:12px;">Filtro Report: <b>${filtroPdfSelezionato}</b> • Sincronizzato ed estratto localmente</p>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 85px;">Data</th>
-                <th style="width: 60px;">Ora</th>
-                <th style="width: 90px;">Glicemia (mg/dL)</th>
-                <th style="width: 90px;">Insulina (UI)</th>
-                <th style="width: 130px;">Momento della Giornata</th>
-                <th>Note e Contesto Alimentare</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${stringaRigheTabellaHTML}
-            </tbody>
-          </table>
-        </body>
-        </html>
-      `;
+          <head>
+            <meta charset="utf-8">
+            <style>
+              @page { size: landscape; margin: 10mm; }
+              body { font-family: sans-serif; color: #1c1c1e; padding: 0; margin: 0; background: #ffffff; }
+              .pagina-pdf { box-sizing: border-box; width: 100%; }
+              h1 { font-size: 18px; color: #0A66C2; margin: 0 0 10px 0; font-weight: bold; border-bottom: 2px solid #0A66C2; padding-bottom: 4px; }
+              table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 5px; }
+              th, td { border: 1px solid #c7c7cc; padding: 6px 4px; font-size: 10px; text-align: center; vertical-align: middle; word-wrap: break-word; }
+              th { background-color: #f2f2f7; font-weight: bold; font-size: 9px; text-transform: uppercase; }
+              .cell-data { font-weight: bold; background-color: #f0f5fa; color: #0A66C2; font-size: 10.5px; width: 75px; }
+              .cell-label { font-weight: 600; background-color: #f2f2f7; text-align: left; padding-left: 5px; width: 80px; }
+              .row-separator td { background-color: #ffffff; }
+            </style>
+          </head>
+          <body>
+            ${corpoHtmlCompleto}
+          </body>
+        </html>`;
 
+      // Trigger di salvataggio e download nativo o web
       if (Platform.OS === 'web') {
-        const { uri } = await Print.printToFileAsync({ html: htmlFronteEndCompleto });
+        const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
         const risposta = await fetch(uri);
         const blobFile = await risposta.blob();
         const urlDownload = URL.createObjectURL(blobFile);
         const tagAnchor = document.createElement('a');
         tagAnchor.href = urlDownload;
-        tagAnchor.download = `Registro_Diabety_${filtroPdfSelezionato.replace(" ", "_")}.pdf`;
+        tagAnchor.download = `Registro_Glicemico_Diabety_${filtroPdfSelezionato.replace(" ", "_")}.pdf`;
         document.body.appendChild(tagAnchor);
         tagAnchor.click();
         document.body.removeChild(tagAnchor);
         URL.revokeObjectURL(urlDownload);
         mostraMessaggioNotifica("✓ Report PDF scaricato!");
       } else {
-        const { uri } = await Print.printToFileAsync({ html: htmlFronteEndCompleto });
+        const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
         await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
       }
     } catch (error) {
@@ -268,7 +327,7 @@ export default function StrumentiScreen() {
           </TouchableOpacity>
         )}
 
-        {/* 3. Riga Esporta PDF Avanzata (Riquadro unico coeso e speculare allo Storico) */}
+        {/* 3. Riga Esporta PDF Avanzata (Matrice 11 colonne identica allo Storico) */}
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDiarioPDF}>
             <View style={styles.leftAzione}>
@@ -277,13 +336,13 @@ export default function StrumentiScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esporta Registro PDF</Text>
-                <Text style={styles.descAzione}>Genera un documento clinico strutturato per il medico</Text>
+                <Text style={styles.descAzione}>Genera il documento clinico a matrice identico allo storico</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.brandPrimary} />
           </TouchableOpacity>
 
-          {/* 📅 Pulsantiera Orizzontale Interna per la scelta dei giorni */}
+          {/* 📅 Pulsantiera Orizzontale Interna coesa nello stesso modulo */}
           <View style={styles.containerMiniFiltriPdf}>
             {['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'].map((intervallo) => {
               const attivo = filtroPdfSelezionato === intervallo;
