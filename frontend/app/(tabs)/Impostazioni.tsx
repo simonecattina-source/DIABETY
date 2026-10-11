@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
-// 🌟 FIX GEOMETRICO: Saliamo di 2 livelli esatti per uscire da "(tabs)" e "app" arrivando nella radice di frontend
+// 🌟 FIX PERCORSO GEOMETRICO: Risaliamo di 2 livelli esatti per uscire da (tabs) e app
 import { useTheme } from '../../context/ThemeContext';
 
 const MOMENTI_COLONNE = [
@@ -13,7 +13,6 @@ const MOMENTI_COLONNE = [
   "Prima Pranzo", "Dopo Pranzo", "Merenda", 
   "Prima Cena", "Dopo Cena", "Notte"
 ];
-
 export default function StrumentiScreen() {
   const { colors, isDarkMode, toggleTheme } = useTheme();
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
@@ -83,7 +82,7 @@ export default function StrumentiScreen() {
     lettore.readAsText(file);
   };
 
-  // 📄 ALGORITMO PDF A MATRICE 11 COLONNE (IDENTICO AL 100% ALLO STORICO)
+  // 📄 ALGORITMO PDF A MATRICE 11 COLONNE
   const esportaDocumentoMatriceStoricoPDF = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -249,7 +248,7 @@ export default function StrumentiScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
-      {/* 🏷️ INTESTAZIONE SCHEDA DI REGOLAZIONE */}
+      {/* 🌟 TAG RIPARATO: INTESTAZIONE SCHEDA */}
       <View style={styles.headerForm}>
         <Text style={[styles.title, { color: colors.onSurface }]}>Centro Strumenti</Text>
         <Text style={[styles.subtitle, { color: colors.muted }]}>Gestione database e configurazione visiva dell'app</Text>
@@ -276,7 +275,7 @@ export default function StrumentiScreen() {
           </View>
         </View>
         
-        {/* Interruttore Selettore Ad Incastro */}
+        {/* Griglia Switcher Ad Incastro Bilanciata e Chiusa Correttamente */}
         <View style={styles.containerToggleTema}>
           <TouchableOpacity 
             style={[styles.btnTemaSelector, { backgroundColor: colors.bgUtility }, !isDarkMode && styles.btnTemaSelectorAttivoLight]} 
@@ -344,7 +343,6 @@ export default function StrumentiScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Linea Divisoria Simmetrica */}
         <View style={[styles.dividerAzione, { backgroundColor: colors.borderGlass }]} />
 
         {/* 3. Esporta PDF Avanzato */}
@@ -381,7 +379,7 @@ export default function StrumentiScreen() {
         </View>
       </View>
 
-      {/* 📚 SEZIONE: MANUALE INFORMATIVO */}
+      {/* 📚 SEZIONE: MANUALE INFORMATIVO (CON BLOCCHI CHIUSI) */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manuale & Linee Guida</Text>
       
       <View style={[styles.infoBlockPremium, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
@@ -434,6 +432,8 @@ const styles = StyleSheet.create({
   btnTemaSelectorAttivoLight: { backgroundColor: 'rgba(0, 180, 216, 0.08)', borderColor: '#00B4D8' },
   btnTemaSelectorAttivoDark: { backgroundColor: 'rgba(0, 229, 255, 0.08)', borderColor: '#00E5FF' },
   textBtnTema: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600' },
+  textBtnTemaAttivoLight: { color: '#00B4D8', fontWeight: '700' },
+  textBtnTemaAttivoDark: { color: '#00E5FF', fontWeight: '700' },
 
   dividerAzione: { height: 1, width: '100%' },
 
