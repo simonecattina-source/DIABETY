@@ -12,7 +12,8 @@ const COLORS = {
   brandSecondary: "#7D52FF",    // Viola tech
   onSurface: "#FFFFFF",         
   muted: "#7E7E86",             
-  success: "#00E676",           // Verde smeraldo Oled per il totale CHO
+  success: "#00E676",           // Verde smeraldo Oled per il totale CHO cumulativo
+  error: "#FF5252",             // Rosso per eliminare i cibi dal piatto
   borderGlass: "rgba(255, 255, 255, 0.08)"
 };
 
@@ -21,31 +22,60 @@ const DATABASE_ALIMENTI = DATABASE_ALIMENTI_ESTERNO.sort((a, b) => a.nome.locale
 export default function AlimentiScreen() {
   const [ricerca, setCerca] = useState('');
   const [categoriaSelezionata, setCategoriaSelezionata] = useState('Tutti');
-  
-  // Memorizziamo le grammature degli alimenti salvandole come stringhe per permettere la digitazione fluida
   const [grammature, setGrammature] = useState<Record<string, string>>({});
+  
+  // 🍽️ STATO DEL PIATTO VIRTUALE: Array di elementi selezionati accumulati
+  const [piattoSelezionato, setPiattoSelezionato] = useState<any[]>([]);
 
   const CATEGORIE = ['Tutti', 'Primi', 'Pane e Forno', 'Frutta', 'Colazione', 'Pizze e Fast Food', 'Bevande', 'Verdure e Piatti Unici'];
 
-  // 🔒 ALGORITMO DI CONTROLLO RIGIDO: Blocca l'input se supera i 500g o se non è un numero
   const gestisciCambioTestoGrammi = (id: string, testo: string) => {
-    // Rimuove caratteri non numerici o spazi involontari
     const testoPulito = testo.replace(/[^0-9]/g, '');
-    
     if (testoPulito === '') {
       setGrammature(prev => ({ ...prev, [id]: '' }));
       return;
     }
-
     const valoreNumerico = parseInt(testoPulito, 10);
-    
     if (valoreNumerico > 500) {
-      // Forza il blocco stringente al limite massimo strutturale impostato a 500g
       setGrammature(prev => ({ ...prev, [id]: '500' }));
     } else {
       setGrammature(prev => ({ ...prev, [id]: valoreNumerico.toString() }));
     }
   };
+
+  // ➕ FUNZIONE PER AGGIUNGERE UN ALIMENTO E I SUOI CHO AL PIATTO COMPLESSIVO
+  const aggiungiAlPiatto = (alimento: any) => {
+    const stringaGrammi = grammature[alimento.id] || '';
+    const grammi = parseInt(stringaGrammi, 10) || 0;
+    if (grammi <= 0) return;
+
+    const choCalcolati = parseFloat(((grammi * alimento.cho100g) / 100).toFixed(1));
+    
+    const nuovoElementoPiatto = {
+      idUnico: Date.now().toString() + alimento.id, // ID univoco per evitare conflitti se inserito più volte
+      alimentoId: alimento.id,
+      nome: alimento.nome,
+      grammi: grammi,
+      choTotali: choCalcolati
+    };
+
+    setPiattoSelezionato(prev => [...prev, nuovoElementoPiatto]);
+    // Resetta il campo di testo dei grammi dell'alimento appena inserito nel piatto
+    setGrammature(prev => ({ ...prev, [alimento.id]: '' }));
+  };
+
+  // ✕ FUNZIONE PER RIMUOVERE UN SINGOLO CIBO DAL PIATTO VIRTUALE
+  const rimuoviDalPiatto = (idUnico: string) => {
+    setPiattoSelezionato(prev => prev.filter(item => item.idUnico !== idUnico));
+  };
+
+  // 🧼 FUNZIONE PER SVUOTARE COMPLETAMENTE IL PIATTO
+  const svuotaPiattoCompleto = () => {
+    setPiattoSelezionato([]);
+  };
+
+  // 🧮 CALCOLO MATEMATICO DEL TOTALE DEI CARBOIDRATI CUMULATIVI DEL PIATTO LIVE
+  const totaleChoPiatto = piattoSelezionato.reduce((acc, item) => acc + item.choTotali, 0).toFixed(1);
 
   const alimentiFiltrati = DATABASE_ALIMENTI.filter(alimento => {
     const corrispondeRicerca = alimento.nome.toLowerCase().includes(ricerca.toLowerCase());
@@ -58,7 +88,7 @@ export default function AlimentiScreen() {
       {/* 🔍 BARRA DI RICERCA FISSA IN ALTO */}
       <View style={styles.containerRicercaFissa}>
         <Text style={styles.title}>Dizionario Carboidrati</Text>
-        <Text style={styles.subtitle}>Calcola i carboidrati complessivi pesando gli alimenti</Text>
+        <Text style={styles.subtitle}>Componi il tuo piatto e calcola il totale dei carboidrati</Text>
         
         <View style={styles.boxInputRicerca}>
           <Ionicons name="search-outline" size={18} color={COLORS.muted} style={{ marginRight: 8 }} />
@@ -84,48 +114,37 @@ export default function AlimentiScreen() {
           {CATEGORIE.map((cat) => {
             const attiva = categoriaSelezionata === cat;
             return (
-              <TouchableOpacity
-                key={cat}
-                style={[styles.chipCategoria, attiva && styles.chipCategoriaAttiva]}
-                onPress={() => setCategoriaSelezionata(cat)}
-              >
-                <Text style={[styles.textChipCategoria, attiva && styles.textChipCategoriaAttivo]}>
-                  {cat}
-                </Text>
+              <TouchableOpacity key={cat} style={[styles.chipCategoria, attiva && styles.chipCategoriaAttiva]} onPress={() => setCategoriaSelezionata(cat)}>
+                <Text style={[styles.textChipCategoria, attiva && styles.textChipCategoriaAttivo]}>{cat}</Text>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
       </View>
 
-      {/* 📦 LISTA FLUIDA ALIMENTI CON INTERFACCIA NUMERICA LATERALE COMPACT UX */}
+      {/* 📦 LISTA FLUIDA ALIMENTI CON INSERIMENTO E TASTO "+" DI AGGIUNTA AL PIATTO */}
       <FlatList
         data={alimentiFiltrati}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        initialNumToRender={10}
-        maxToRenderPerBatch={12}
-        windowSize={5}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        windowSize={4}
         removeClippedSubviews={true} 
         renderItem={({ item }) => {
           const stringaGrammi = grammature[item.id] !== undefined ? grammature[item.id] : '';
           const grammiValore = parseInt(stringaGrammi, 10) || 0;
-          
-          // Formula di calcolo clinico CHO istantaneo basata sulla grammatura digitata
           const choCalcolati = ((grammiValore * item.cho100g) / 100).toFixed(1);
 
           return (
             <View style={styles.cardAlimentoPremium}>
               <View style={styles.rigaInfoSuperiore}>
-                
-                {/* Dettagli Alimento a Sinistra */}
                 <View style={styles.boxTestiSinistra}>
                   <Text style={styles.nomeAlimento} numberOfLines={1}>{item.nome}</Text>
                   <Text style={styles.etichettaValoreBase}>Valore base: {item.cho100g}g CHO / 100g</Text>
                 </View>
 
-                {/* 🔢 Riquadro Input Numerico sulla Destra con segnaposto di default "00" */}
                 <View style={styles.boxRiquadroInputDestra}>
                   <TextInput
                     style={[styles.inputGrammiRiquadro, stringaGrammi !== '' && styles.inputGrammiRiquadroAttivo]}
@@ -135,21 +154,27 @@ export default function AlimentiScreen() {
                     value={stringaGrammi}
                     onChangeText={(t) => gestisciCambioTestoGrammi(item.id, t)}
                     maxLength={3}
-                    selectTextOnFocus={true} // Seleziona tutto il testo al clic per una correzione istantanea
+                    selectTextOnFocus={true}
                   />
                   <Text style={styles.etichettaUnitaGg}>g</Text>
+                  
+                  {/* ➕ TASTO AGGIUNGI AL PIATTO: Compare dinamicamente solo se i grammi sono impostati */}
+                  <TouchableOpacity 
+                    style={[styles.btnAggiungiPiattoClick, grammiValore <= 0 && { opacity: 0.3 }]} 
+                    onPress={() => aggiungiAlPiatto(item)}
+                    disabled={grammiValore <= 0}
+                  >
+                    <Ionicons name="add" size={18} color="#0A0A0C" />
+                  </TouchableOpacity>
                 </View>
-
               </View>
 
-              {/* Riga Inferiore Risultato Carboidrati Complessivi */}
               <View style={styles.rigaDettaglioValore}>
-                <Text style={styles.etichettaRisultatoCHO}>Totale stimato pasto:</Text>
+                <Text style={styles.etichettaRisultatoCHO}>CHO parziali per questo peso:</Text>
                 <Text style={[styles.valoreCalcolatoCho, grammiValore > 0 && { color: COLORS.brandPrimary }]}>
                   {choCalcolati} <Text style={styles.unitaChoSub}>g CHO</Text>
                 </Text>
               </View>
-
             </View>
           );
         }}
@@ -157,11 +182,41 @@ export default function AlimentiScreen() {
           <View style={{ padding: 40, alignItems: 'center' }}>
             <Ionicons name="fast-food-outline" size={32} color={COLORS.muted} style={{ marginBottom: 8 }} />
             <Text style={{ color: COLORS.muted, fontFamily: 'Plus Jakarta Sans', textAlign: 'center' }}>
-              Nessun alimento trovato corrispondente alla ricerca in questa categoria.
+              Nessun alimento trovato corrispondente alla ricerca.
             </Text>
           </View>
         }
       />
+      {/* 🍽️ SEZIONE COMPOSIZIONE MEAL: Visualizzata dinamicamente solo se contiene cibi */}
+      {piattoSelezionato.length > 0 && (
+        <View style={styles.footerPiattoCumulativo}>
+          <View style={styles.headerPiattoRiepilogo}>
+            <Text style={styles.titoloPiattoSezione}>Il tuo Piatto ({piattoSelezionato.length})</Text>
+            <TouchableOpacity onPress={svuotaPiattoCompleto}>
+              <Text style={styles.testoSvuotaPiatto}>Svuota</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Orizzontale Mini Chips dei cibi bloccati nel piatto */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollCibiPiatto} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
+            {piattoSelezionato.map((item) => (
+              <View key={item.idUnico} style={styles.chipCiboInserito}>
+                <Text style={styles.testoChipCiboInserito}>{item.nome} ({item.grammi}g)</Text>
+                <TouchableOpacity style={styles.btnRimuoviCiboSingolo} onPress={() => rimuoviDalPiatto(item.idUnico)}>
+                  <Ionicons name="close" size={12} color={COLORS.error} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* 🧮 BLOCCO TOTALE MATEMATICO DEL PASTO COMPLESSIVO */}
+          <View style={styles.rigaTotaleCumulativoFinale}>
+            <Text style={styles.etichettaTotalePiatto}>Totale Carboidrati Piatto:</Text>
+            <Text style={styles.valoreTotalePiatto}>{totaleChoPiatto} <Text style={styles.unitaTotalePiatto}>g CHO</Text></Text>
+          </View>
+        </View>
+      )}
+
     </View>
   );
 }
@@ -181,21 +236,36 @@ const styles = StyleSheet.create({
   textChipCategoria: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600', color: COLORS.muted },
   textChipCategoriaAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
 
-  listContent: { padding: 16, paddingBottom: 40 },
-  cardAlimentoPremium: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: COLORS.borderGlass, marginBottom: 12, width: '100%', flexDirection: 'column' },
+  listContent: { padding: 16, paddingBottom: 160 }, // Spazio extra in coda per non coprire l'ultimo cibo dal pannello del piatto
+  cardAlimentoPremium: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: COLORS.borderGlass, marginBottom: 12, width: '100%' },
   rigaInfoSuperiore: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottomWidth: 1, borderBottomColor: "rgba(255, 255, 255, 0.04)", paddingBottom: 10 },
-  boxTestiSinistra: { flex: 1, marginRight: 16, alignItems: 'flex-start' },
+  boxTestiSinistra: { flex: 1, marginRight: 10, alignItems: 'flex-start' },
   nomeAlimento: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: COLORS.onSurface, marginBottom: 4 },
   etichettaValoreBase: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: COLORS.muted },
   
-  // 📐 CSS DEL NUOVO RIQUADRO INPUT INTERATTIVO DEI GRAMMI FIANCHEGGIATO SULLA DESTRA
   boxRiquadroInputDestra: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  inputGrammiRiquadro: { backgroundColor: '#1A1A24', borderHorizontalWidth: 1, borderColor: COLORS.borderGlass, borderWidth: 1, borderRadius: 10, width: 68, height: 42, textAlign: 'center', color: COLORS.muted, fontFamily: 'Space Grotesk', fontSize: 16, fontWeight: '700' },
+  inputGrammiRiquadro: { backgroundColor: '#1A1A24', borderHorizontalWidth: 1, borderColor: COLORS.borderGlass, borderWidth: 1, borderRadius: 10, width: 60, height: 38, textAlign: 'center', color: COLORS.muted, fontFamily: 'Space Grotesk', fontSize: 15, fontWeight: '700' },
   inputGrammiRiquadroAttivo: { borderColor: COLORS.brandPrimary, color: COLORS.brandPrimary, backgroundColor: 'rgba(0, 229, 255, 0.02)' },
-  etichettaUnitaGg: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '600', color: COLORS.muted, width: 12 },
+  etichettaUnitaGg: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '600', color: COLORS.muted, marginRight: 2 },
+  
+  btnAggiungiPiattoClick: { backgroundColor: COLORS.brandPrimary, width: 28, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
 
   rigaDettaglioValore: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: 10 },
   etichettaRisultatoCHO: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, fontWeight: '500' },
-  valoreCalcolatoCho: { fontFamily: 'Space Grotesk', fontSize: 19, fontWeight: '800', color: COLORS.muted },
-  unitaChoSub: { fontSize: 11, color: COLORS.muted, fontWeight: '500' }
+  valoreCalcolatoCho: { fontFamily: 'Space Grotesk', fontSize: 18, fontWeight: '800', color: COLORS.muted },
+  unitaChoSub: { fontSize: 11, color: COLORS.muted, fontWeight: '500' },
+
+  // 📐 CSS PANNELLO DINAMICO IN CODA "IL TUO PIATTO" AD ALTO CONTRASTO
+  footerPiattoCumulativo: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: "#111116", borderTopWidth: 1, borderTopColor: COLORS.borderGlass, padding: 16, borderTopLeftRadius: 20, borderTopRightRadius: 20, shadowColor: "#000", shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 15 },
+  headerPiattoRiepilogo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, width: '100%' },
+  titoloPiattoSezione: { fontFamily: 'Space Grotesk', fontSize: 16, fontWeight: '700', color: COLORS.onSurface },
+  testoSvuotaPiatto: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.error, fontWeight: '600' },
+  scrollCibiPiatto: { width: '100%', maxHeight: 36, marginBottom: 4 },
+  chipCiboInserito: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A24', borderWidth: 1, borderColor: COLORS.borderGlass, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, gap: 6 },
+  testoChipCiboInserito: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.onSurface, fontWeight: '500' },
+  btnRimuoviCiboSingolo: { justifyContent: 'center', alignItems: 'center', paddingLeft: 2 },
+  rigaTotaleCumulativoFinale: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.06)", paddingTop: 12, marginTop: 8 },
+  etichettaTotalePiatto: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
+  valoreTotalePiatto: { fontFamily: 'Space Grotesk', fontSize: 24, fontWeight: '900', color: COLORS.success },
+  unitaTotalePiatto: { fontSize: 13, color: COLORS.muted, fontWeight: '600' }
 });
