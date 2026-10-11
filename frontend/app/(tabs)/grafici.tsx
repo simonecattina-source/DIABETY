@@ -72,7 +72,7 @@ export default function GraficiScreen() {
       setModalTesto("Questo grafico mostra il trend macro della tua media glicemica includendo tutti i 90 giorni del trimestre.\n\nLa fascia entre le due linee tratteggiate evidenzia il range ideale (70 - 180 mg/dL). Le linee tratteggiate indicano i limiti di sicurezza.");
     } else if (tipo === 'momenti') {
       setModalTitolo("Medie per Momento");
-      setModalTesto("Questo grafico analizza lo storico trimestrale (90 giorni) diviso per i 7 momenti della giornata.\n\nOgni colonna mostra la media calcolata in quello specifico orario. Lo stato indica: Verde (a target), Arancione (basso/ipo) o Rosso (alto/iper). Il trattino (-) indica assenza di dati.");
+      setModalTesto("Questo grafico analizza lo storico trimestrale (90 giorni) diviso per i 7 moments della giornata.\n\nOgni colonna mostra la media calcolata in quello specifico orario. Lo stato indica: Verde (a target), Arancione (basso/ipo) o Rosso (alto/iper). Il trattino (-) indica assenza di dati.");
     } else if (tipo === 'glicata') {
       setModalTitolo("Stima Emoglobina Glicata (HbA1c)");
       setModalTesto("Questo modulo esegue una stima matematica predittiva della tua Emoglobina Glicata (HbA1c) basandosi sulla formula internazionale ADA (eAG) applicata a tutti i test degli ultimi 90 giorni.\n\nI binari indicano il livello di controllo metabolico:\n• Verde (< 7.0%): Ottimo controllo\n• Arancione (7.0% - 8.0%): Controllo moderato\n• Rosso (> 8.0%): Controllo insufficiente\n\nAttenzione: questo valore è puramente indicativo e matematico. Non sostituisce in alcun modo l'esame del sangue effettuato in laboratorio medico.");
@@ -86,6 +86,7 @@ export default function GraficiScreen() {
     const annoCompleto = parseInt(a) < 50 ? 2000 + parseInt(a) : 1900 + parseInt(a);
     return new Date(annoCompleto, parseInt(m) - 1, parseInt(g));
   };
+
   const caricaDatiECalcola = async () => {
     try {
       const datiSalvati = await AsyncStorage.getItem('glicotrack_data');
@@ -210,8 +211,8 @@ export default function GraficiScreen() {
   const calcolaCoordinateLineaX = (valoreGlicemia: number, altezzaGrafico: number) => {
     const GLICEMIA_MIN = 40;
     const GLICEMIA_MAX = 240;
-    const valoreProtetto = Math.max(GLICEMIA_MIN, Math.min(GLICEMIA_MAX, valoreGlicemia));
-    const percentuale = (valoreProtetto - GLICEMIA_MIN) / (GLICEMIA_MAX - GLICEMIA_MIN);
+    const valoreProtect = Math.max(GLICEMIA_MIN, Math.min(GLICEMIA_MAX, valoreGlicemia));
+    const percentuale = (valoreProtect - GLICEMIA_MIN) / (GLICEMIA_MAX - GLICEMIA_MIN);
     return altezzaGrafico - (percentuale * altezzaGrafico);
   };
 
@@ -446,7 +447,7 @@ export default function GraficiScreen() {
           </View>
         </View>
 
-        {/* 🌟 COLONNA DESTRA: NUOVA CARD MEDIA DI OGGI (PRENDE 1/3 DELLO SPAZIO) */}
+        {/* 🌟 COLONNA DESTRA: CARD MEDIA DI OGGI (PRENDE 1/3 DELLO SPAZIO) */}
         <View style={styles.cardSuperioreUnTerzo}>
           <View style={styles.rigaTitoloGrafico}>
             <Text style={styles.sectionLabel} numberOfLines={1}>Media Oggi</Text>
@@ -567,10 +568,10 @@ const styles = StyleSheet.create({
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, letterSpacing: -0.2 },
   subLabelSpiegazione: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, marginTop: 4, marginBottom: 16 },
   rigaCardSuperioriContainer: { flexDirection: 'row', width: '100%', gap: 10, marginBottom: 16 },
-  cardSuperioreDueTerzi: { flex: 2, backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: COLORS.borderGlass, justifyBetween: 'space-between' },
+  cardSuperioreDueTerzi: { flex: 2, backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: COLORS.borderGlass, justifyContent: 'space-between' },
   rigaBoxInterniTrimestre: { flexDirection: 'row', gap: 6, marginTop: 10, width: '100%' },
   infoBoxStatMini: { flex: 1, backgroundColor: '#020204', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.borderGlass, borderLeftWidth: 3, alignItems: 'flex-start', minHeight: 65 },
-  cardSuperioreUnTerzo: { flex: 1, backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: COLORS.borderGlass, justifyBetween: 'space-between' },
+  cardSuperioreUnTerzo: { flex: 1, backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: COLORS.borderGlass, justifyContent: 'space-between' },
   containerBoxInternoOggi: { marginTop: 10, width: '100%' },
   infoBoxStatOggiCompatto: { backgroundColor: '#020204', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.borderGlass, borderLeftWidth: 3, alignItems: 'flex-start', minHeight: 65 },
   statLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: '700', color: COLORS.muted, marginBottom: 2 },
@@ -578,17 +579,21 @@ const styles = StyleSheet.create({
   unitaMisuraSub: { fontSize: 9, color: COLORS.muted, fontWeight: '400' },
   statValueOggiCentrale: { fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: '900' },
   cardGraficoContenitore: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 16, width: '100%', alignItems: 'flex-start', borderWidth: 1, borderColor: COLORS.borderGlass },
-  rigaTitoloGrafico: { flexDirection: 'row', justifyBetween: 'space-between', width: '100%', alignItems: 'center' },
-  pulsanteInfoTocco: { padding: 4, justifyCenter: 'center', alignItems: 'center', opacity: 0.85 },
+  rigaTitoloGrafico: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' },
+  pulsanteInfoTocco: { padding: 4, justifyContent: 'center', alignItems: 'center', opacity: 0.85 },
   containerGraficoSvg: { width: '100%', marginTop: 6, position: 'relative' },
-  rigaEtichetteDate: { flexDirection: 'row', justifyBetween: 'space-between', width: '100%', marginTop: 8, paddingHorizontal: 2 },
+  
+  // 📐 INTERVENTO: Corretto justifyContent per distanziare simmetricamente l'asse orizzontale delle ore 24h
+  rigaEtichetteDate: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8, paddingHorizontal: 2 },
   dataTestoLabel: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '700', color: COLORS.muted },
-  rigaColonneContainer: { flexDirection: 'row', justifyBetween: 'space-between', width: '100%', minHeight: 140, paddingTop: 15, alignItems: 'flex-end' },
+  
+  // 📐 INTERVENTO: Corretto justifyContent per allineare gli istogrammi dei momenti della giornata
+  rigaColonneContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', minHeight: 140, paddingTop: 15, alignItems: 'flex-end' },
   singolaColonnaWrapper: { flex: 1, alignItems: 'center', gap: 6 },
   valoreColonnaTesto: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '800' },
   colonnaRettangolo: { width: 16, borderRadius: 4, minHeight: 4 },
   etichettaColonnaMomento: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: '700', color: COLORS.muted, marginTop: 2 },
-  sfondoModalCentrato: { flex: 1, justifyCenter: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.85)', padding: 20 },
+  sfondoModalCentrato: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.85)', padding: 20 },
   corpoSchedaModal: { backgroundColor: '#111116', borderRadius: 16, padding: 22, width: '100%', maxWidth: 340, borderWidth: 1, borderColor: '#22222E', alignItems: 'flex-start' },
   titoloModal: { fontFamily: 'Space Grotesk', fontSize: 18, fontWeight: '800', color: COLORS.onSurface, marginBottom: 12 },
   testoDescrizioneModal: { fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, color: COLORS.muted, lineHeight: 22, textAlign: 'left' },
@@ -600,6 +605,8 @@ const styles = StyleSheet.create({
   etichettaMmolSecondaria: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, fontWeight: '700' },
   binarioGrigioBarraSfondo: { width: '100%', height: 10, backgroundColor: '#171721', borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.borderGlass },
   riempimentoAttivoBarra: { height: '100%', borderRadius: 6 },
-  rigaLegendaGlicataLimiti: { flexDirection: 'row', justifyBetween: 'space-between', width: '100%', marginTop: 8 },
+  
+  // 📐 INTERVENTO: Corretto justifyContent per l'interfaccia della barra glicata HbA1c
+  rigaLegendaGlicataLimiti: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8 },
   testoLegendaMarcatore: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '700', color: COLORS.muted }
 });
