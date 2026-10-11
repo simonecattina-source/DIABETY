@@ -5,8 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
-// 🌟 FIX PERCORSO: Risaliamo di 3 livelli esatti da app/(tabs)/ per raggiungere context/ senza errori
-import { useTheme } from '../../../context/ThemeContext';
+// 🌟 FIX COMPILATORE VERCEL: Elimina i punti relativi e intercetta il file con l'alias sorgente dell'app
+import { useTheme } from "@/src/context/ThemeContext";
 
 const MOMENTI_COLONNE = [
   "Prima Colazione", "Dopo Colazione", "Spuntino", 
