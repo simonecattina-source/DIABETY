@@ -170,5 +170,24 @@
   { "id": "169", "categoria": "Pane e Forno", "nome": "Tramezzino classico farcito da bar (Maionese + Prosciutto/Tonno)", "cho100g": 26.5 },
   { "id": "170", "categoria": "Verdure e Piatti Unici", "nome": "Minestra di legumi misti (Fagioli/Ceci/Lenticchie - porzione cotta)", "cho100g": 11.8 },
   { "id": "171", "categoria": "Verdure e Piatti Unici", "nome": "Verdure alla griglia miste condite (Zucchine/Melanzane/Peperoni)", "cho100g": 4.2 },
-  { "id": "172", "categoria": "Verdure e Piatti Unici", "nome": "Cotoletta alla milanese / impanata (Carne di vitello o pollo)", "cho100g": 14.5 }
+  { "id": "172", "categoria": "Verdure e Piatti Unici", "nome": "Cotoletta alla milanese / impanata (Carne di vitello o pollo)", "cho100g": 14.5 },
+  { "id": "173", "categoria": "Primi", "nome": "Spaghetti di semola (pesati cotti al dente)", "cho100g": 25.0 },
+  { "id": "174", "categoria": "Primi", "nome": "Pasta Barilla Classica di Semola (cruda - Penne/Fusilli/Spaghetti)", "cho100g": 71.7 },
+  { "id": "175", "categoria": "Primi", "nome": "Pasta Barilla Integrale (cruda - 100% grano duro)", "cho100g": 65.0 },
+  { "id": "176", "categoria": "Primi", "nome": "Pasta Barilla Senza Glutine (cruda - Riso e Mais)", "cho100g": 78.4 },
+  { "id": "177", "categoria": "Primi", "nome": "Pasta Barilla Al Bronzo (cruda - Trafilata premium)", "cho100g": 70.0 },
+  { "id": "178", "categoria": "Primi", "nome": "Pastina / Piccolini Barilla (cruda - Formati piccoli/infanzia)", "cho100g": 72.2 },
+  { "id": "179", "categoria": "Primi", "nome": "Pasta Barilla Emiliane all'Uovo (cruda - Tagliatelle/Fettuccine)", "cho100g": 66.0 },
+  { "id": "180", "categoria": "Primi", "nome": "Tortellini Barilla Emiliane con Prosciutto Crudo (secchi)", "cho100g": 52.0 },
+  { "id": "181", "categoria": "Primi", "nome": "Spaghetti n.5 Barilla (crudi)", "cho100g": 71.7 },
+  { "id": "182", "categoria": "Primi", "nome": "Penne Rigate n.73 Barilla (crude)", "cho100g": 71.7 },
+  { "id": "183", "categoria": "Primi", "nome": "Mezze Maniche Rigate n.84 Barilla (crude)", "cho100g": 71.7 },
+  { "id": "184", "categoria": "Primi", "nome": "Tortiglioni n.83 Barilla (crudi)", "cho100g": 71.7 },
+  { "id": "185", "categoria": "Primi", "nome": "Fusilli n.98 Barilla (crudi)", "cho100g": 71.7 },
+  { "id": "186", "categoria": "Primi", "nome": "Farfalle n.65 Barilla (crude)", "cho100g": 71.7 },
+  { "id": "187", "categoria": "Primi", "nome": "Spaghettini n.3 Barilla (crudi)", "cho100g": 71.7 },
+  { "id": "188", "categoria": "Primi", "nome": "Rigatoni n.89 Barilla (crudi)", "cho100g": 71.7 }
 ]
+
+
+
