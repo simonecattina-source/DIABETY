@@ -92,7 +92,7 @@ export default function StrumentiScreen() {
     lettore.readAsText(file);
   };
 
-  // 📄 FUNZIONE INTEGRALE A MATRICE ESTRATTA DALLO STORICO (PROTETTA CONTRO I CONFLITTI DI CAPTURE)
+  // 📄 GENERAZIONE DEL DOCUMENTO CLINICO IN ORIZZONTALE IDENTICO ALLO STORICO
   const esportaDocumentoMatriceStoricoPDF = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -329,7 +329,10 @@ export default function StrumentiScreen() {
           </TouchableOpacity>
         )}
 
-        {/* 3. Riga Esporta PDF Avanzata (Mappata sulla Nuova Funzione Indipendente) */}
+        {/* 🌟 LINEA DI SEPARAZIONE COMPLETA AGGIUNTA TRA IMPORTA E REGISTRO PDF */}
+        <View style={styles.dividerAzione} />
+
+        {/* 3. Riga Esporta PDF Avanzata */}
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDocumentoMatriceStoricoPDF}>
             <View style={styles.leftAzione}>
@@ -344,7 +347,7 @@ export default function StrumentiScreen() {
             <Ionicons name="chevron-forward" size={18} color={COLORS.brandPrimary} />
           </TouchableOpacity>
 
-          {/* 📅 Pulsantiera Orizzontale Interna coesa nello stesso modulo */}
+          {/* 📅 Pulsantiera Orizzontale Interna */}
           <View style={styles.containerMiniFiltriPdf}>
             {['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'].map((intervallo) => {
               const attivo = filtroPdfSelezionato === intervallo;
@@ -371,7 +374,7 @@ export default function StrumentiScreen() {
       <View style={styles.infoBlockPremium}>
         <Text style={styles.infoBlockTitle}>🛡️ Logica dell'Archivio Trimestrale</Text>
         <Text style={styles.infoBlockText}>
-          L'applicazione memorizza localmente le misurazioni calcolando i trend su una finestra mobile di **90 giorni**. I log antecedenti vengono archiviati o rimossi in modo intelligente per salvaguardare lo spazio e mantenere l'app scattante. Prima della scadenza, si consiglia di usare la function "Esporta Backup".
+          L'applicazione memorizza localmente le misurazioni calcolando i trend su una finestra mobile di **90 giorni**. I log antecedenti vengono archiviati o rimossi in modo intelligente per salvaguardare lo spazio e mantenere l'app scattante. Prima della scadenza, si consiglia di usare la funzione "Esporta Backup".
         </Text>
       </View>
 
@@ -405,7 +408,7 @@ const styles = StyleSheet.create({
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 22, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
   
   cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', overflow: 'hidden' },
-  rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
+  rowAzione: { flexDirection: 'row', alignItems: 'center', justifyBetween: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
   rowAzioneLabel: { 
     display: 'flex', 
     flexDirection: 'row', 
@@ -413,12 +416,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between', 
     padding: 14, 
     height: 68, 
-    borderBottomWidth: 1, 
-    borderBottomColor: COLORS.borderGlass, 
     cursor: 'pointer', 
     width: '100%', 
     boxSizing: 'border-box' 
   },
+  
+  // 🌟 STYLE DELLA LINEA DI SEPARAZIONE COMPATIBILE AL 100% SU TUTTE LE PIATTAFORME
+  dividerAzione: {
+    height: 1,
+    backgroundColor: COLORS.borderGlass,
+    width: '100%'
+  },
+
   leftAzione: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
   titoloAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
