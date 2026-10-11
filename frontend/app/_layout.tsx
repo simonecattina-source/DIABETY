@@ -11,28 +11,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { queryClient } from "@/src/query-client";
 
-// 🌟 FIX GEOMETRICO: Saliamo di 1 livello per uscire da "app" ed entrare in "context" nella radice di frontend
+// 🌟 FIX PERCORSO: Importiamo il provider del tema globale uscendo di un solo livello da app/
 import { ThemeProvider } from "../context/ThemeContext";
-
-LogBox.ignoreAllLogs(true);
-
-SplashScreen.preventAutoHideAsync().catch(() => {});
-
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
-import { useFonts } from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
-import { LogBox, Platform } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-
-import { ErrorBoundary } from "@/src/components/error-boundary";
-import { queryClient } from "@/src/query-client";
-
-// 🌟 FIX COMPILATORE VERCEL: Puntiamo alla cartella context interna a src tramite alias assoluto coordinato
-import { ThemeProvider } from "@/src/context/ThemeContext";
 
 LogBox.ignoreAllLogs(true);
 
