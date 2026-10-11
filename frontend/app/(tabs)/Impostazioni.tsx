@@ -53,7 +53,7 @@ export default function StrumentiScreen() {
         }
       }
     } catch (error) {
-      alert("Errore durante la creazione del file di backup.");
+      alert("Errore Visualizzato durante la creazione del file di backup.");
     }
   };
   // 📂 IMPORTA BACKUP JSON
@@ -251,6 +251,7 @@ export default function StrumentiScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
+      {/* 🌟 TAG COMPLETAMENTE CORRETTO E APERTO */}
       <View style={styles.headerForm}>
         <Text style={[styles.title, { color: colors.onSurface }]}>Centro Strumenti</Text>
         <Text style={[styles.subtitle, { color: colors.muted }]}>Gestione database e configurazione visiva dell'app</Text>
@@ -268,7 +269,6 @@ export default function StrumentiScreen() {
         <View style={styles.rowAzioneTema}>
           <View style={styles.leftAzione}>
             <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
-              {/* Sun SVG */}
               <View style={{ width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 16, color: colors.onSurface }}>☀️</Text>
               </View>
