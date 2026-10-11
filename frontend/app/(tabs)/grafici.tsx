@@ -40,7 +40,7 @@ export default function GraficiScreen() {
   const [totaleMisurazioni, setTotaleMisurazioni] = useState<number>(0);
   const [timeInRange, setTimeInRange] = useState<number>(0);
   
-  // 🛠️ FIX COMPILATORE: setPJMutiGraficoLinea sanato con il nome corretto puntiGraficoLinea
+  // 🛠️ COSTRUTTORE SANATO: Eliminato definitivamente il vecchio errore di battitura setPJMutiGraficoLinea
   const [puntiGraficoLinea, setPuntiGraficoLinea] = useState<any[]>([]);
   const [medieMomenti, setMedieMomenti] = useState<any[]>([]);
   const [puntiGrafico24Ore, setPuntiGrafico24Ore] = useState<any[]>([]);
@@ -53,7 +53,7 @@ export default function GraficiScreen() {
   const [modalTesto, setModalTesto] = useState<string>("");
 
   useFocusEffect(
-    React.reactCounselor ? React.reactCounselor(() => { caricaDatiECalcola(); }, []) : React.useCallback(() => {
+    React.useCallback(() => {
       caricaDatiECalcola();
     }, [])
   );
@@ -151,7 +151,7 @@ export default function GraficiScreen() {
                 oreMinuti = parseInt(m);
               }
               return { minutiAssoluti: (ore * 60) + oreMinuti, glicemia: item.glicemia };
-            }).sort((a: any, b: any) => a.minutiAssoluti - b.minutiAssoluti);
+            }).sort((a: any, b: any) => a.minutiAssoluti - b.minutiAssolutes);
 
             const ultimoControlloIeriSera = logDiIeriOrdinati[logDiIeriOrdinati.length - 1];
             puntiOggi.unshift({ minutiAssoluti: 0, glicemia: ultimoControlloIeriSera.glicemia });
@@ -219,8 +219,8 @@ export default function GraficiScreen() {
 
   const generaPercorsoCurvoBezier = (punti: any[]) => {
     if (!punti || punti.length === 0) return "";
-    if (punti.length === 1) return `M ${punti[0].x} ${punti[0].y}`;
-    let d = `M ${punti[0].x} ${punti[0].y}`;
+    if (punti.length === 1) return `M ${punti.x} ${punti.y}`;
+    let d = `M ${punti.x} ${punti.y}`;
     for (let i = 0; i < punti.length - 1; i++) {
       const cpX1 = punti[i].x + (punti[i + 1].x - punti[i].x) / 3;
       const cpY1 = punti[i].y;
@@ -236,7 +236,7 @@ export default function GraficiScreen() {
     const larghezzaGrafico = Dimensions.get('window').width - (Platform.OS === 'web' ? 32 : 64);
     const altezzaGrafico = 150;
     const margineSinistro = 25;
-    const margineDestroProtetto = 35; // 🛠️ MARGINE DI SICUREZZA: Allontana i numeri delle soglie dal bordo
+    const margineDestroProtetto = 35; 
     const spazioUtileX = larghezzaGrafico - margineSinistro - margineDestroProtetto;
 
     const rigaSoglia180Y = calcolaCoordinateLineaX(180, altezzaGrafico);
@@ -254,7 +254,7 @@ export default function GraficiScreen() {
     if (coordinataPunti.length > 0) {
       percorsoGradienteStr = percorsoCurvaStr + 
         ` L ${coordinataPunti[coordinataPunti.length - 1].x} ${altezzaGrafico}` + 
-        ` L ${coordinataPunti[0].x} ${altezzaGrafico} Z`;
+        ` L ${coordinataPunti.x} ${altezzaGrafico} Z`;
     }
 
     return (
@@ -268,11 +268,13 @@ export default function GraficiScreen() {
           </defs>
           
           <rect x={margineSinistro} y={rigaSoglia180Y} width={spazioUtileX} height={rigaSoglia70Y - rigaSoglia180Y} fill="rgba(0, 230, 118, 0.04)" />
+          
+          {/* 🛠️ SPOSTATI A SINISTRA: Testi delle soglie riposizionati sopra l'inizio della linea tratteggiata per liberare la destra */}
           <line x1={margineSinistro} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1" strokeDasharray="3 3" opacity={0.6} />
-          <text x={larghezzaGrafico - (margineDestroProtetto - 6)} y={rigaSoglia180Y + 3} fill={COLORS.error} fontSize="9" fontWeight="bold" textAnchor="start">180</text>
+          <text x={margineSinistro + 6} y={rigaSoglia180Y - 6} fill={COLORS.error} fontSize="9" fontWeight="bold" textAnchor="start">180 mg/dL</text>
           
           <line x1={margineSinistro} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1" strokeDasharray="3 3" opacity={0.6} />
-          <text x={larghezzaGrafico - (margineDestroProtetto - 6)} y={rigaSoglia70Y + 3} fill={COLORS.warning} fontSize="9" fontWeight="bold" textAnchor="start">70</text>
+          <text x={margineSinistro + 6} y={rigaSoglia70Y - 6} fill={COLORS.warning} fontSize="9" fontWeight="bold" textAnchor="start">70 mg/dL</text>
           
           {percorsoGradienteStr !== "" && <path d={percorsoGradienteStr} fill="url(#neonCyanGrad)" />}
           {percorsoCurvaStr !== "" && <path d={percorsoCurvaStr} fill="none" stroke={COLORS.brandPrimary} strokeWidth="3" strokeLinecap="round" />}
@@ -318,18 +320,20 @@ export default function GraficiScreen() {
     if (coordinataPunti.length > 0) {
       percorsoGradienteStr = percorsoCurvaStr + 
         ` L ${coordinataPunti[coordinataPunti.length - 1].x} ${altezzaGrafico}` + 
-        ` L ${coordinataPunti[0].x} ${altezzaGrafico} Z`;
+        ` L ${coordinataPunti.x} ${altezzaGrafico} Z`;
     }
 
     return (
       <View style={styles.containerGraficoSvg}>
         <svg width={larghezzaGrafico} height="175" style={{ display: 'block', overflow: 'visible' }}>
           <rect x={margineSinistro} y={rigaSoglia180Y} width={spazioUtileX} height={rigaSoglia70Y - rigaSoglia180Y} fill="rgba(0, 230, 118, 0.03)" />
+          
+          {/* 🛠️ SPOSTATI A SINISTRA: Testi macro-soglie del trimestre posizionati sopra ad inizio riga */}
           <line x1={margineSinistro} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1" strokeDasharray="3 3" opacity={0.5} />
-          <text x={larghezzaGrafico - (margineDestroProtetto - 6)} y={rigaSoglia180Y + 3} fill={COLORS.error} fontSize="9" fontWeight="bold" textAnchor="start">180</text>
+          <text x={margineSinistro + 6} y={rigaSoglia180Y - 6} fill={COLORS.error} fontSize="9" fontWeight="bold" textAnchor="start">180 mg/dL</text>
           
           <line x1={margineSinistro} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1" strokeDasharray="3 3" opacity={0.5} />
-          <text x={larghezzaGrafico - (margineDestroProtetto - 6)} y={rigaSoglia70Y + 3} fill={COLORS.warning} fontSize="9" fontWeight="bold" textAnchor="start">70</text>
+          <text x={margineSinistro + 6} y={rigaSoglia70Y - 6} fill={COLORS.warning} fontSize="9" fontWeight="bold" textAnchor="start">70 mg/dL</text>
           
           {percorsoGradienteStr !== "" && <path d={percorsoGradienteStr} fill="url(#neonPurpleGrad)" />}
           {percorsoCurvaStr !== "" && <path d={percorsoCurvaStr} fill="none" stroke={COLORS.brandSecondary} strokeWidth="3" strokeLinecap="round" />}
@@ -568,7 +572,6 @@ const styles = StyleSheet.create({
   pulsanteInfoTocco: { padding: 4, justifyContent: 'center', alignItems: 'center', opacity: 0.85 },
   containerGraficoSvg: { width: '100%', marginTop: 6, position: 'relative' },
   
-  // 📐 RISOLTO: Allineato l'asse orizzontale in modo flessibile ed equidistante esatto
   rigaEtichetteDate: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingHorizontal: 2 },
   dataTestoLabel: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '700', color: COLORS.muted },
   
