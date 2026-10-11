@@ -5,8 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
-// 🌟 AGGANCIO AL CONTESTO DEL TEMA GLOBALE SPOSTATO FUORI DA APP
-import { useTheme } from '../../context/ThemeContext';
+// 🌟 FIX PERCORSO ASSOLUTO: Risaliamo di 3 livelli da app/(tabs)/ per raggiungere la cartella context/
+import { useTheme } from '../../../context/ThemeContext';
 
 const MOMENTI_COLONNE = [
   "Prima Colazione", "Dopo Colazione", "Spuntino", 
