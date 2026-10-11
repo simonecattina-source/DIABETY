@@ -4,14 +4,23 @@ import type { PropsWithChildren } from "react";
 
 export default function Root({ children }: PropsWithChildren) {
   return (
-    <html lang="en" style={{ height: "100%" }}>
+    <html lang="it" style={{ height: "100%", backgroundColor: "#0A0A0C" }}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+        
+        {/* 📐 ADATTAMENTO GEOMETRICO: Forza l'app a riempire le Safe Area del Notch dell'iPhone */}
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, shrink-to-fit=no"
+          content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover, user-scalable=no"
         />
+
+        {/* 🛠️ DISATTIVA INTERFACCIA: Dice a Safari di nascondere le barre e agire come app nativa */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+
+        {/* 🎨 TRASPARENZA OLED: Estende il nero dell'app dietro l'orario e la batteria del Notch eliminando il bordo bianco */}
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
         {/*
           Disable body scrolling on web to make ScrollView components work correctly.
           If you want to enable scrolling, remove `ScrollViewStyleReset` and
@@ -21,6 +30,7 @@ export default function Root({ children }: PropsWithChildren) {
         <style
           dangerouslySetInnerHTML={{
             __html: `
+              html, body { background-color: #0A0A0C !important; }
               body > div:first-child { position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; }
               [role="tablist"] [role="tab"] * { overflow: visible !important; }
               [role="heading"], [role="heading"] * { overflow: visible !important; }
@@ -35,6 +45,7 @@ export default function Root({ children }: PropsWithChildren) {
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
+          backgroundColor: "#0A0A0C",
         }}
       >
         {children}
