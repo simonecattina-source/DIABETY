@@ -30,6 +30,12 @@ export default function TabsLayout() {
           <NativeTabs.Trigger.Icon sf="calculator.circle.fill" />
           <NativeTabs.Trigger.Label>Bolo</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
+
+        {/* 🍏 SCHEDA ALIMENTI REGISTRATA IN TERZA POSIZIONE (MODALITÀ APPLE NATIVA) */}
+        <NativeTabs.Trigger name="alimenti">
+          <NativeTabs.Trigger.Icon sf="fork.knife.circle.fill" />
+          <NativeTabs.Trigger.Label>Alimenti</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
         
         <NativeTabs.Trigger name="storico">
           <NativeTabs.Trigger.Icon sf="list.bullet.rectangle" />
@@ -80,13 +86,23 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* 🧠 SCHEDA BOLO IN SECONDA POSIZIONE SOTTO STRUTTURA STANDARD CROSS-PLATFORM */}
       <Tabs.Screen
         name="bolo"
         options={{
           title: "Bolo",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calculator" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* 🍏 SCHEDA ALIMENTI IN TERZA POSIZIONE CON ICONA FAST-FOOD TECH */}
+      <Tabs.Screen
+        name="alimenti"
+        options={{
+          title: "Alimenti",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="fast-food" size={size} color={color} />
           ),
         }}
       />
