@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Platform, TouchableOpacity, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Platform, Dimensions, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
@@ -40,7 +40,7 @@ export default function GraficiScreen() {
   const [totaleMisurazioni, setTotaleMisurazioni] = useState<number>(0);
   const [timeInRange, setTimeInRange] = useState<number>(0);
   
-  // 🛠️ COSTRUTTORE SANATO: Eliminato definitivamente il vecchio errore di battitura setPJMutiGraficoLinea
+  // 🛠️ COSTRUTTORE CORRETTO: Risolto il potenziale blocco di compilazione web allineando la funzione dello stato
   const [puntiGraficoLinea, setPuntiGraficoLinea] = useState<any[]>([]);
   const [medieMomenti, setMedieMomenti] = useState<any[]>([]);
   const [puntiGrafico24Ore, setPuntiGrafico24Ore] = useState<any[]>([]);
@@ -67,7 +67,7 @@ export default function GraficiScreen() {
       setModalTesto("Questo box calcola in tempo reale la media aritmetica di tutte le misurazioni effettuate esclusivamente nella data corrente (dalle 00:00 ad adesso).\n\nTi permette un controllo immediato per capire se l'andamento della giornata è a target.");
     } else if (tipo === '24h') {
       setModalTitolo("Andamento sulle 24 Ore");
-      setModalTesto("Questo grafico mostra l'andamento della glicemia nella giornata di oggi.\n\nLa curva continua azzurra unisce cronologicamente i tuoi test. Il grafico recupera automaticamente l'ultima misurazione di ieri sera prima di mezzanotte e la usa come punto di partenza a inizio giornata.");
+      setModalTesto("Questo grafico shows l'andamento della glicemia nella giornata di oggi.\n\nLa curva continua azzurra unisce cronologicamente i tuoi test. Il grafico recupera automaticamente l'ultima misurazione di ieri sera prima di mezzanotte e la usa come punto di partenza a inizio giornata.");
     } else if (tipo === 'giornaliere') {
       setModalTitolo("Andamento Medie Giornaliere");
       setModalTesto("Questo grafico mostra il trend macro della tua media glicemica includendo tutti i 90 giorni del trimestre.\n\nLa fascia entre le due linee tratteggiate evidenzia il range ideale (70 - 180 mg/dL). Le linee tratteggiate indicano i limiti di sicurezza.");
@@ -175,6 +175,7 @@ export default function GraficiScreen() {
             })
             .sort((a, b) => parsingData(a.dataLabel).getTime() - parsingData(b.dataLabel).getTime());
           
+          // 🛠️ ALLINEATO: Stato corretto collegato alla funzione aggiornata senza typo
           setPuntiGraficoLinea(andamentoCronologico);
 
           const gruppiPerMomento: Record<string, number[]> = {};
@@ -212,15 +213,15 @@ export default function GraficiScreen() {
   const calcolaCoordinateLineaX = (valoreGlicemia: number, altezzaGrafico: number) => {
     const GLICEMIA_MIN = 40;
     const GLICEMIA_MAX = 240;
-    const valoreProtect = Math.max(GLICEMIA_MIN, Math.min(GLICEMIA_MAX, valoreGlicemia));
-    const percentuale = (valoreProtect - GLICEMIA_MIN) / (GLICEMIA_MAX - GLICEMIA_MIN);
+    const valoreProtetto = Math.max(GLICEMIA_MIN, Math.min(GLICEMIA_MAX, valoreGlicemia));
+    const percentuale = (valoreProtetto - GLICEMIA_MIN) / (GLICEMIA_MAX - GLICEMIA_MIN);
     return altezzaGrafico - (percentuale * altezzaGrafico);
   };
 
   const generaPercorsoCurvoBezier = (punti: any[]) => {
     if (!punti || punti.length === 0) return "";
-    if (punti.length === 1) return `M ${punti.x} ${punti.y}`;
-    let d = `M ${punti.x} ${punti.y}`;
+    if (punti.length === 1) return `M ${punti[0].x} ${punti[0].y}`;
+    let d = `M ${punti[0].x} ${punti[0].y}`;
     for (let i = 0; i < punti.length - 1; i++) {
       const cpX1 = punti[i].x + (punti[i + 1].x - punti[i].x) / 3;
       const cpY1 = punti[i].y;
@@ -232,103 +233,96 @@ export default function GraficiScreen() {
   };
   const renderizzaGraficoLinea24Ore = () => {
     if (puntiGrafico24Ore.length === 0) return null;
-    
-    // 📐 INTERNAZIONALE REATTIVO: Scala fissa a 1000 punti per distruggere le deformazioni da PC
-    const larghezzaGrafico = 1000;
-    const altezzaGrafico = 300;
-    const margineSinistro = 40;
-    const margineDestroProtetto = 60; 
-    const spazioUtileX = larghezzaGrafico - margineSinistro - margineDestroProtetto;
+    const larghezzaGrafico = Platform.OS === 'web' ? 340 : Dimensions.get('window').width - 64;
+    const altezzaGrafico = 150;
+    const margineLaterale = 25;
+    const spazioUtileX = larghezzaGrafico - (margineLaterale * 2);
 
     const rigaSoglia180Y = calcolaCoordinateLineaX(180, altezzaGrafico);
     const rigaSoglia70Y = calcolaCoordinateLineaX(70, altezzaGrafico);
 
     const coordinataPunti = puntiGrafico24Ore.map((punto) => {
       const percentualeX = punto.minutiAssoluti / 1440;
-      const x = margineSinistro + (percentualeX * spazioUtileX);
+      const x = margineLaterale + (percentualeX * spazioUtileX);
       const y = calcolaCoordinateLineaX(punto.glicemia, altezzaGrafico);
       return { x, y, ...punto };
     });
 
     const percorsoCurvaStr = generaPercorsoCurvoBezier(coordinataPunti);
+    
     let percorsoGradienteStr = "";
     if (coordinataPunti.length > 0) {
       percorsoGradienteStr = percorsoCurvaStr + 
         ` L ${coordinataPunti[coordinataPunti.length - 1].x} ${altezzaGrafico}` + 
-        ` L ${coordinataPunti.x} ${altezzaGrafico} Z`;
+        ` L ${coordinataPunti[0].x} ${altezzaGrafico} Z`;
     }
 
     return (
       <View style={styles.containerGraficoSvg}>
-        {/* 🛠️ BLOCCO VIEWBOX: width="100%" costringe l'SVG ad allargarsi in modo fluido mantenendo i rapporti geometrici stabili */}
-        <svg width="100%" height="200" viewBox="0 0 1000 340" style={{ display: 'block', overflow: 'visible' }}>
+        <svg width="100%" height="175" style={{ display: 'block', overflow: 'visible' }}>
           <defs>
             <linearGradient id="neonCyanGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={COLORS.brandPrimary} stopOpacity="0.25" />
+              <stop offset="0%" stopColor={COLORS.brandPrimary} stopOpacity="0.28" />
               <stop offset="100%" stopColor={COLORS.brandPrimary} stopOpacity="0.00" />
             </linearGradient>
           </defs>
           
-          <rect x={margineSinistro} y={rigaSoglia180Y} width={spazioUtileX} height={rigaSoglia70Y - rigaSoglia180Y} fill="rgba(0, 230, 118, 0.04)" />
+          <rect x={margineLaterale} y={rigaSoglia180Y} width={spazioUtileX} height={rigaSoglia70Y - rigaSoglia180Y} fill="rgba(0, 230, 118, 0.04)" />
+          <line x1={margineLaterale} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineLaterale} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1" strokeDasharray="3 3" opacity={0.6} />
+          <text x={larghezzaGrafico - 5} y={rigaSoglia180Y + 3} fill={COLORS.error} fontSize="9" fontWeight="bold" textAnchor="end">180</text>
           
-          <line x1={margineSinistro} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1.5" strokeDasharray="4 4" opacity={0.6} />
-          <text x={margineSinistro + 12} y={rigaSoglia180Y - 10} fill={COLORS.error} fontSize="18" fontWeight="bold" textAnchor="start">180 mg/dL</text>
-          
-          <line x1={margineSinistro} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1.5" strokeDasharray="4 4" opacity={0.6} />
-          <text x={margineSinistro + 12} y={rigaSoglia70Y - 10} fill={COLORS.warning} fontSize="18" fontWeight="bold" textAnchor="start">70 mg/dL</text>
+          <line x1={margineLaterale} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineLaterale} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1" strokeDasharray="3 3" opacity={0.6} />
+          <text x={larghezzaGrafico - 5} y={rigaSoglia70Y + 3} fill={COLORS.warning} fontSize="9" fontWeight="bold" textAnchor="end">70</text>
           
           {percorsoGradienteStr !== "" && <path d={percorsoGradienteStr} fill="url(#neonCyanGrad)" />}
-          {percorsoCurvaStr !== "" && <path d={percorsoCurvaStr} fill="none" stroke={COLORS.brandPrimary} strokeWidth="5" strokeLinecap="round" />}
+          {percorsoCurvaStr !== "" && <path d={percorsoCurvaStr} fill="none" stroke={COLORS.brandPrimary} strokeWidth="3" strokeLinecap="round" />}
           
           {coordinataPunti.map((p, i) => (
             <g key={i}>
-              <circle cx={p.x} cy={p.y} r="8" fill={p.glicemia > 180 ? COLORS.error : p.glicemia < 70 ? COLORS.warning : COLORS.success} stroke="#0A0A0C" strokeWidth="2.5" />
-              <text x={p.x} y={p.y - 16} fill={COLORS.onSurface} fontSize="16" fontWeight="800" textAnchor="middle">{p.glicemia}</text>
+              <circle cx={p.x} cy={p.y} r="4" fill={p.glicemia > 180 ? COLORS.error : p.glicemia < 70 ? COLORS.warning : COLORS.success} stroke="#0A0A0C" strokeWidth="1.5" />
+              <text x={p.x} y={p.y - 9} fill={COLORS.onSurface} fontSize="9" fontWeight="800" textAnchor="middle">{p.glicemia}</text>
             </g>
           ))}
-          
-          {/* 🛠️ ASSE DELLE ORE EMBEDDATO: Ora fa blocco unico con il grafico ed elimina lo sfasamento */}
-          <g fill={COLORS.muted} fontSize="16" fontWeight="bold" textAnchor="middle">
-            <text x={margineSinistro} y="335">00:00</text>
-            <text x={margineSinistro + (spazioUtileX * 0.25)} y="335">06:00</text>
-            <text x={margineSinistro + (spazioUtileX * 0.5)} y="335">12:00</text>
-            <text x={margineSinistro + (spazioUtileX * 0.75)} y="335">18:00</text>
-            <text x={larghezzaGrafico - margineDestroProtetto} y="335">24:00</text>
-          </g>
         </svg>
+        <View style={styles.rigaEtichetteDate}>
+          <Text style={styles.dataTestoLabel}>00:00</Text>
+          <Text style={styles.dataTestoLabel}>06:00</Text>
+          <Text style={styles.dataTestoLabel}>12:00</Text>
+          <Text style={styles.dataTestoLabel}>18:00</Text>
+          <Text style={styles.dataTestoLabel}>24:00</Text>
+        </View>
       </View>
     );
   };
 
   const renderizzaGraficoLineaGiorni = () => {
     if (puntiGraficoLinea.length === 0) return null;
-    
-    const larghezzaGrafico = 1000;
-    const altezzaGrafico = 300;
-    const margineSinistro = 40;
-    const margineDestroProtetto = 60; 
-    const spazioUtileX = larghezzaGrafico - margineSinistro - margineDestroProtetto;
+    const larghezzaGrafico = Platform.OS === 'web' ? 340 : Dimensions.get('window').width - 64;
+    const altezzaGrafico = 150;
+    const margineLaterale = 20;
+    const spazioUtileX = larghezzaGrafico - (margineLaterale * 2);
 
     const rigaSoglia180Y = calcolaCoordinateLineaX(180, altezzaGrafico);
     const rigaSoglia70Y = calcolaCoordinateLineaX(70, altezzaGrafico);
 
     const coordinataPunti = puntiGraficoLinea.map((punto, indice) => {
-      const x = margineSinistro + (indice * (spazioUtileX / (puntiGraficoLinea.length - 1 || 1)));
+      const x = margineLaterale + (indice * (spazioUtileX / (puntiGraficoLinea.length - 1 || 1)));
       const y = calcolaCoordinateLineaX(punto.media, altezzaGrafico);
       return { x, y, ...punto };
     });
 
     const percorsoCurvaStr = generaPercorsoCurvoBezier(coordinataPunti);
+    
     let percorsoGradienteStr = "";
     if (coordinataPunti.length > 0) {
       percorsoGradienteStr = percorsoCurvaStr + 
         ` L ${coordinataPunti[coordinataPunti.length - 1].x} ${altezzaGrafico}` + 
-        ` L ${coordinataPunti.x} ${altezzaGrafico} Z`;
+        ` L ${coordinataPunti[0].x} ${altezzaGrafico} Z`;
     }
 
     return (
       <View style={styles.containerGraficoSvg}>
-        <svg width="100%" height="200" viewBox="0 0 1000 340" style={{ display: 'block', overflow: 'visible' }}>
+        <svg width="100%" height="175" style={{ display: 'block', overflow: 'visible' }}>
           <defs>
             <linearGradient id="neonPurpleGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={COLORS.brandSecondary} stopOpacity="0.25" />
@@ -336,42 +330,35 @@ export default function GraficiScreen() {
             </linearGradient>
           </defs>
           
-          <rect x={margineSinistro} y={rigaSoglia180Y} width={spazioUtileX} height={rigaSoglia70Y - rigaSoglia180Y} fill="rgba(0, 230, 118, 0.03)" />
+          <rect x={margineLaterale} y={rigaSoglia180Y} width={spazioUtileX} height={rigaSoglia70Y - rigaSoglia180Y} fill="rgba(0, 230, 118, 0.03)" />
+          <line x1={margineLaterale} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineLaterale} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1" strokeDasharray="3 3" opacity={0.5} />
+          <text x={larghezzaGrafico - 5} y={rigaSoglia180Y + 3} fill={COLORS.error} fontSize="9" fontWeight="bold" textAnchor="end">180</text>
           
-          <line x1={margineSinistro} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1.5" strokeDasharray="4 4" opacity={0.5} />
-          <text x={margineSinistro + 12} y={rigaSoglia180Y - 10} fill={COLORS.error} fontSize="18" fontWeight="bold" textAnchor="start">180 mg/dL</text>
-          
-          <line x1={margineSinistro} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineDestroProtetto} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1.5" strokeDasharray="4 4" opacity={0.5} />
-          <text x={margineSinistro + 12} y={rigaSoglia70Y - 10} fill={COLORS.warning} fontSize="18" fontWeight="bold" textAnchor="start">70 mg/dL</text>
+          <line x1={margineLaterale} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineLaterale} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1" strokeDasharray="3 3" opacity={0.5} />
+          <text x={larghezzaGrafico - 5} y={rigaSoglia70Y + 3} fill={COLORS.warning} fontSize="9" fontWeight="bold" textAnchor="end">70</text>
           
           {percorsoGradienteStr !== "" && <path d={percorsoGradienteStr} fill="url(#neonPurpleGrad)" />}
-          {percorsoCurvaStr !== "" && <path d={percorsoCurvaStr} fill="none" stroke={COLORS.brandSecondary} strokeWidth="5" strokeLinecap="round" />}
+          {percorsoCurvaStr !== "" && <path d={percorsoCurvaStr} fill="none" stroke={COLORS.brandSecondary} strokeWidth="3" strokeLinecap="round" />}
           
           {coordinataPunti.map((p, i) => {
             const nascondiScrittaValore = coordinataPunti.length > 15 && i % 3 !== 0;
             const colorePuntoTrimestre = p.media > 180 ? COLORS.error : p.media < 70 ? COLORS.warning : COLORS.success;
             return (
               <g key={`macro-${i}`}>
-                <circle cx={p.x} cy={p.y} r="7" fill={colorePuntoTrimestre} stroke="#0A0A0C" strokeWidth="2.5" />
+                <circle cx={p.x} cy={p.y} r="3.5" fill={colorePuntoTrimestre} stroke="#0A0A0C" strokeWidth="1.5" />
                 {!nascondiScrittaValore && (
-                  <text x={p.x} y={p.y - 16} fill={COLORS.onSurface} fontSize="16" fontWeight="800" textAnchor="middle">{p.media}</text>
+                  <text x={p.x} y={p.y - 9} fill={COLORS.onSurface} fontSize="9" fontWeight="800" textAnchor="middle">{p.media}</text>
                 )}
               </g>
             );
           })}
-          
-          {/* 🛠️ ASSE DELLE DATE EMBEDDATO: Perfettamente calibrato */}
-          <g fill={COLORS.muted} fontSize="16" fontWeight="bold" textAnchor="middle">
-            {puntiGraficoLinea.map((p, i) => {
-              const mostraData = i === 0 || i === Math.floor(puntiGraficoLinea.length / 2) || i === puntiGraficoLinea.length - 1;
-              if (!mostraData) return null;
-              
-              const posPercentuale = i / (puntiGraficoLinea.length - 1 || 1);
-              const xPos = margineSinistro + (posPercentuale * spazioUtileX);
-              return <text key={`lbl-${i}`} x={xPos} y="335">{p.dataLabel.slice(0, 5)}</text>;
-            })}
-          </g>
         </svg>
+        <View style={styles.rigaEtichetteDate}>
+          {puntiGraficoLinea.map((p, i) => {
+            const mostraData = i === 0 || i === Math.floor(puntiGraficoLinea.length / 2) || i === puntiGraficoLinea.length - 1;
+            return <Text key={i} style={[styles.dataTestoLabel, { opacity: mostraData ? 1 : 0 }]}>{p.dataLabel.slice(0, 5)}</Text>;
+          })}
+        </View>
       </View>
     );
   };
@@ -400,6 +387,7 @@ export default function GraficiScreen() {
       </View>
     );
   };
+
   const ottieniColoreGlicata = (val: number) => {
     if (val === 0) return "#1F1F29";
     if (val < 7.0) return COLORS.success;   
@@ -414,7 +402,6 @@ export default function GraficiScreen() {
     const protetto = Math.max(MIN_GLIC, Math.min(MAX_GLICEMIA, val));
     return ((protetto - MIN_GLIC) / (MAX_GLICEMIA - MIN_GLIC)) * 100;
   };
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>Analisi e Grafici</Text>
@@ -582,14 +569,14 @@ const styles = StyleSheet.create({
   unitaMisuraSub: { fontSize: 9, color: COLORS.muted, fontWeight: '400' },
   statValueMini: { fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: '900', color: COLORS.onSurface },
   statValueOggiCentrale: { fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: '900' },
-  
-  // 📐 CONTENITORE CARD: Forza la card ad allinearsi perfettamente senza far sbordare l'SVG interno
-  cardGraficoContenitore: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 16, width: '100%', alignItems: 'stretch', borderWidth: 1, borderColor: COLORS.borderGlass, overflow: 'hidden' },
+  cardGraficoContenitore: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 16, width: '100%', alignItems: 'flex-start', borderWidth: 1, borderColor: COLORS.borderGlass },
   rigaTitoloGrafico: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' },
   pulsanteInfoTocco: { padding: 4, justifyContent: 'center', alignItems: 'center', opacity: 0.85 },
+  containerGraficoSvg: { width: '100%', marginTop: 6, position: 'relative' },
   
-  // 📐 AREA SVG REATTIVA: Svincolata dai pixel fissi hardware per assecondare la griglia elastica del browser
-  containerGraficoSvg: { width: '100%', marginTop: 6 },
+  // 📐 RISOLTO CON LA PROPRIETÀ NATIVA: Ripristinato lo space-between ufficiale di React Native per separare ed allineare le ore/date sotto i grafici
+  rigaEtichetteDate: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8, paddingHorizontal: 2 },
+  dataTestoLabel: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '700', color: COLORS.muted },
   
   rigaColonneContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', minHeight: 140, paddingTop: 15, alignItems: 'flex-end' },
   singolaColonnaWrapper: { flex: 1, alignItems: 'center', gap: 6 },
