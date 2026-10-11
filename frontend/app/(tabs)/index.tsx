@@ -6,15 +6,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // 🎨 PALETTE COLORI ELEVATA PER MASSIMO STACCO IN DARK MODE
 const COLORS = {
   background: "#0A0A0C",        
-  surfaceSecondary: "#13131A",  
-  brandPrimary: "#00E5FF",      
-  onSurface: "#FFFFFF",         
+  surfaceSecondary: "#13131A",  // Nero profondo tech per i contenitori
+  brandPrimary: "#00E5FF",      // Azzurro Cyan elettrico neon coordinato
+  onSurface: "#FFFFFF",         // Bianco purissimo ultra-nitido
   muted: "#7E7E86",             
-  success: "#00E676",           
-  warning: "#FF9100",           
-  error: "#FF5252",             
+  success: "#00E676",           // Verde smeraldo Oled
+  warning: "#FF9100",           // Arancione vivo
+  error: "#FF5252",             // Rosso corallo neon
   borderGlass: "rgba(255, 255, 255, 0.08)",
-  borderGlassBright: "rgba(255, 255, 255, 0.15)"
+  borderGlassBright: "rgba(255, 255, 255, 0.15)", // Bordo ad alto contrasto per i box principali
+  bgUtility: "#1A1A24",         
+  borderUtility: "#3A3A4A"      
 };
 
 const MOMENTI = [
@@ -22,7 +24,6 @@ const MOMENTI = [
   "Prima Pranzo", "Dopo Pranzo", "Merenda", 
   "Prima Cena", "Dopo Cena", "Notte"
 ];
-
 export default function InserimentoScreen() {
   const ottieniDataOdiernaISO = () => {
     const oggi = new Date();
@@ -238,41 +239,42 @@ export default function InserimentoScreen() {
       <TouchableOpacity style={styles.saveButton} onPress={salvaMisurazione}>
         <Text style={styles.saveButtonText}>Salva Misurazione</Text>
       </TouchableOpacity>
-      <Modal visible={mostraModalInfo} animationType="fade" transparent={true} onRequestClose={() => setMostraModalInfo(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContentPremium}>
-            <View style={styles.modalHeaderInfo}>
-              <Text style={styles.modalTitleInfo}>Guida all'Uso</Text>
-              <TouchableOpacity onPress={() => setMostraModalInfo(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close-circle" size={24} color={COLORS.muted} />
-              </TouchableOpacity>
-            </View>
 
+      {/* 🎪 POP-UP INFORMATIVO DELLA HOME - CONFORMATO AL 100% ALLA SIZE DELLO STORICO */}
+      <Modal visible={mostraModalInfo} animationType="fade" transparent={true} onRequestClose={() => setMostraModalInfo(false)}>
+        <View style={styles.modalOverlayCentrato}>
+          <View style={styles.modalContentHelp}>
+            <Text style={styles.modalTitleHelp}>Guida all'Uso</Text>
+            
             <ScrollView style={styles.modalScrollInfo} showsVerticalScrollIndicator={false}>
               <View style={styles.infoBlockPremium}>
                 <Text style={styles.infoBlockTitle}>📅 Data e Ora del Test</Text>
-                <Text style={styles.infoBlockText}>L'applicazione imposta automaticamente il giorno corrente e l'orario attuale. Se hai dimenticato di registrare un test precedente, puoi modificarli liberamente per mantenere coerente il tuo diario.</Text>
+                <Text style={styles.infoBlockText}>L'applicazione imposta automaticamente il giorno corrente e l'orario attuale. Se hai dimenticato di registrare un test precedente, puoi modificarli liberamente.</Text>
               </View>
+
               <View style={styles.infoBlockPremium}>
                 <Text style={styles.infoBlockTitle}>🩸 Inserimento Glicemia</Text>
-                <Text style={styles.infoBlockText}>Digita il valore espresso in mg/dL rilevato dal tuo glucometro. Il testo cambierà colore in tempo reale seguendo le linee guida mediche standard: verde per i valori normali, arancione per l'ipoglicemia e rosso per l'iperglicemia.</Text>
+                <Text style={styles.infoBlockText}>Digita il valore espresso in mg/dL rilevato dal tuo glucometro. Il testo cambierà colore in tempo reale seguendo le linee guida mediche standard.</Text>
               </View>
+
               <View style={styles.infoBlockPremium}>
                 <Text style={styles.infoBlockTitle}>💉 Inserimento Insulina</Text>
-                <Text style={styles.infoBlockText}>Indica il numero di Unità (UI) di insulina rapida o lenta che hai somministrato. Se per questo controllo non hai assunto alcuna dose, lascia pure campo vuoto.</Text>
+                <Text style={styles.infoBlockText}>Indica il numero di Unità (UI) di insulina rapida o lenta somministrata. Se per questo controllo non hai assunto alcuna dose, lascia il campo vuoto.</Text>
               </View>
+
               <View style={styles.infoBlockPremium}>
                 <Text style={styles.infoBlockTitle}>⏰ Momenti della Giornata</Text>
-                <Text style={styles.infoBlockText}>Seleziona il bottone corrispondente al blocco temporale della misurazione. Questo parametro ripartisce i dati nel report clinico.</Text>
+                <Text style={styles.infoBlockText}>Seleziona il bottone corrispondente al blocco temporale. Questo parametro ripartisce i dati nella giusta colonna del report clinico.</Text>
               </View>
+
               <View style={styles.infoBlockPremium}>
                 <Text style={styles.infoBlockTitle}>📝 Note Alimentari e Sintomi</Text>
-                <Text style={styles.infoBlockText}>Usa questo spazio per annotare cosa hai mangiato o come ti senti. Salvando la misurazione, l'orario del test verrà fuso in automatico all'inizio del testo.</Text>
+                <Text style={styles.infoBlockText}>Usa questo spazio per annotare cibo o sintomi. L'orario del test verrà fuso in automatico tra parentesi quadre all'inizio del testo.</Text>
               </View>
             </ScrollView>
 
-            <TouchableOpacity style={styles.btnChiudiInfo} onPress={() => setMostraModalInfo(false)}>
-              <Text style={styles.btnChiudiInfoText}>Ho Capito</Text>
+            <TouchableOpacity style={styles.btnChiudiHelp} onPress={() => setMostraModalInfo(false)}>
+              <Text style={styles.btnChiudiHelpText}>Ho capito</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -317,14 +319,13 @@ const styles = StyleSheet.create({
   saveButtonText: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: '#0A0A0C' },
   notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12, alignItems: 'center', width: '100%' },
   notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 14 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 16 },
-  modalContentPremium: { backgroundColor: '#111116', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: COLORS.borderGlass, maxHeight: '85%' },
-  modalHeaderInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, paddingBottom: 10 },
-  modalTitleInfo: { fontFamily: 'Space Grotesk', fontSize: 20, fontWeight: '700', color: COLORS.onSurface },
-  modalScrollInfo: { marginBottom: 16 },
-  infoBlockPremium: { marginBottom: 16, backgroundColor: '#020204', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: COLORS.borderGlass },
-  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginBottom: 6, textAlign: 'left' },
-  infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, color: COLORS.muted, lineHeight: 22, textAlign: 'left' },
-  btnChiudiInfo: { backgroundColor: '#020204', padding: 12, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
-  btnChiudiInfoText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface }
+  modalOverlayCentrato: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalContentHelp: { backgroundColor: '#111116', borderRadius: 24, padding: 24, width: '100%', maxWidth: 360, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
+  modalTitleHelp: { fontFamily: 'Space Grotesk', fontSize: 20, fontWeight: '800', color: '#FFFFFF', marginBottom: 24, alignSelf: 'flex-start', letterSpacing: -0.3 },
+  modalScrollInfo: { marginBottom: 16, width: '100%', maxHeight: 300 },
+  infoBlockPremium: { marginBottom: 16, backgroundColor: '#020204', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)', width: '100%' },
+  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF', marginBottom: 6, textAlign: 'left' },
+  infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, color: '#7E7E86', lineHeight: 22, textAlign: 'left' },
+  btnChiudiHelp: { marginTop: 10, backgroundColor: '#1A1A24', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)', paddingVertical: 12, borderRadius: 12, width: '100%', alignItems: 'center' },
+  btnChiudiHelpText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF' }
 });
