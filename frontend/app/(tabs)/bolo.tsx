@@ -10,14 +10,14 @@ const COLORS = {
   brandSecondary: "#7D52FF",    // Viola tech per la sezione parametri
   onSurface: "#FFFFFF",         
   muted: "#7E7E86",             
-  success: "#00E676",           
-  warning: "#FF9100",           
-  error: "#FF5252",             
+  success: "#00E676",           // Verde smeraldo Oled
+  warning: "#FF9100",           // Arancione vivo
+  error: "#FF5252",             // Rosso corallo neon
   borderGlass: "rgba(255, 255, 255, 0.08)"
 };
 
 export default function CalcolatoreBoloScreen() {
-  // Input Utente per il calcolo estemporaneo
+  // Input Utente per il calcolo estemporaneo (Inizializzato vuoto con controllo placeholder)
   const [glicemiaAttuale, setGlicemiaAttuale] = useState('');
   const [carboidratiPasto, setCarboidratiPasto] = useState('');
 
@@ -72,6 +72,7 @@ export default function CalcolatoreBoloScreen() {
       setModificaAttiva(true);
     }
   };
+
   const calcolaBoloInsulinico = () => {
     const cho = parseFloat(carboidratiPasto) || 0;
     const glic = parseFloat(glicemiaAttuale) || 0;
@@ -101,6 +102,15 @@ export default function CalcolatoreBoloScreen() {
     setRisultatoBolo(null);
     setQuotaPasto(0);
     setQuotaCorrezione(0);
+  };
+
+  // 🎨 ALGORITMO CROMATICO OLED: Cambia colore in tempo reale in base alla soglia glicemica
+  const ottieniColoreGlicemiaDinamico = () => {
+    const valore = parseInt(glicemiaAttuale);
+    if (!valore || isNaN(valore)) return COLORS.onSurface; 
+    if (valore < 70) return COLORS.warning;                
+    if (valore > 180) return COLORS.error;                 
+    return COLORS.success;                                 
   };
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -135,9 +145,18 @@ export default function CalcolatoreBoloScreen() {
       {/* INPUT CONTROLLI DINAMICI */}
       <Text style={styles.sectionLabel}>Dati Attuali</Text>
       <View style={styles.rigaDatiPrincipali}>
+        {/* INPUT GLICEMIA CON COLORE DINAMICO OLED NEON */}
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
           <Text style={styles.labelLeftHighlight}>Glicemia (mg/dL)</Text>
-          <TextInput style={styles.glicemiaInput} placeholder="00" placeholderTextColor="#636366" keyboardType="numeric" value={glicemiaAttuale} onChangeText={setGlicemiaAttuale} maxLength={3} />
+          <TextInput 
+            style={[styles.glicemiaInput, { color: ottieniColoreGlicemiaDinamico() }]} 
+            placeholder="00" 
+            placeholderTextColor="#636366" 
+            keyboardType="numeric" 
+            value={glicemiaAttuale} 
+            onChangeText={setGlicemiaAttuale} 
+            maxLength={3} 
+          />
         </View>
 
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
@@ -273,7 +292,7 @@ const styles = StyleSheet.create({
   
   cardInputHighlight: { backgroundColor: "#15151F", borderRadius: 16, padding: 16, alignItems: 'flex-start', borderWidth: 1, borderColor: COLORS.borderGlass, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 4 },
   labelLeftHighlight: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '700', color: "#A4A4AA", marginBottom: 4, textAlign: 'left' },
-  glicemiaInput: { fontFamily: 'Space Grotesk', fontSize: 34, fontWeight: '700', color: COLORS.onSurface, textAlign: 'left', width: '100%', paddingVertical: 2 },
+  glicemiaInput: { fontFamily: 'Space Grotesk', fontSize: 34, fontWeight: '700', textAlign: 'left', width: '100%', paddingVertical: 2 },
   
   saveButton: { flex: 1, backgroundColor: COLORS.brandPrimary, paddingVertical: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   saveButtonText: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: '#0A0A0C' },
