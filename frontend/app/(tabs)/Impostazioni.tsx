@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Print from 'expo-print';
 
 const Sharing = Platform.OS !== 'web' ? require('expo-sharing') : null;
 import { useTheme } from '../../context/ThemeContext';
@@ -241,7 +240,9 @@ export default function StrumentiScreen() {
           finestraStampa.onload = () => { finestraStampa.focus(); finestraStampa.print(); };
         }
       } else {
-        const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
+        // 🌟 FIX STRUTTURALE: Carichiamo expo-print solo dentro la chiamata nativa
+        const PrintMod = require('expo-print');
+        const { uri } = await PrintMod.printToFileAsync({ html: htmlTemplateHTML });
         if (Sharing && await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
         }
@@ -286,7 +287,7 @@ export default function StrumentiScreen() {
         </View>
       </View>
 
-      {/* 📊 SEZIONE DATABASE & EXPORT */}
+      {/* 📊 SEZIONE MANUTENZIONE */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manutenzione e Report</Text>
       <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         
@@ -326,7 +327,6 @@ export default function StrumentiScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Esporta Report Clinico PDF con filtri temporali di intervallo */}
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDocumentoMatriceStoricoPDF}>
             <View style={styles.leftAzione}>
@@ -358,27 +358,20 @@ export default function StrumentiScreen() {
         </View>
       </View>
 
-      {/* 📚 MANUALE E LINEE GUIDA INFORMATIVE */}
+      {/* 📚 MANUALE */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manuale & Linee Guida</Text>
       
       <View style={[styles.infoBlockPremium, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         <Text style={[styles.infoBlockTitle, { color: colors.onSurface }]}>🛡️ Logica dell'Archivio Trimestrale</Text>
         <Text style={[styles.infoBlockText, { color: colors.muted }]}>
-          L'applicazione memorizza localmente le misurazioni calcolando i trend su una finestra mobile di **90 giorni**. I log antecedenti vengono protetti o archiviati in modo intelligente. Prima della scadenza, si consiglia di usare la funzione "Esporta Backup".
-        </Text>
-      </View>
-
-      <View style={[styles.infoBlockPremium, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
-        <Text style={[styles.infoBlockTitle, { color: colors.onSurface }]}>⏰ Tracciamento Orario Intraday</Text>
-        <Text style={[styles.infoBlockText, { color: colors.muted }]}>
-          L'orario inserito viene impiegato dall'algoritmo per ordinare cronologicamente la timeline. Quando aggiungi delle note personalizzate, l'orario effettivo viene registrato in automatico all'inizio racchiuso tra parentesi quadre.
+          L'applicazione memorizza localmente le misurazioni calcolando i trend su una finestra mobile di **90 giorni**. Prima della scadenza, si consiglia di usare la funzione "Esporta Backup".
         </Text>
       </View>
 
       <View style={[styles.infoBlockPremium, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         <Text style={[styles.infoBlockTitle, { color: colors.onSurface }]}>📊 Soglie Glicemiche e Codici Colore</Text>
         <Text style={[styles.infoBlockText, { color: colors.muted }]}>
-          Il diario applica tre gradazioni cromatiche in base ai parametri medici standard di riferimento:{"\n"}
+          Il diario applica tre gradazioni cromatiche in base ai parametri medici standard:{"\n"}
           • <Text style={{ color: colors.success, fontWeight: '700' }}>Verde (Normale):</Text> Valori compresi tra 70 e 180 mg/dL.{"\n"}
           • <Text style={{ color: colors.warning, fontWeight: '700' }}>Arancione (Ipoglicemia):</Text> Sotto i 70 mg/dL.{"\n"}
           • <Text style={{ color: colors.error, fontWeight: '700' }}>Rosso (Iperglicemia):</Text> Sopra i 180 mg/dL.
@@ -408,7 +401,6 @@ const styles = StyleSheet.create({
   textBtnTema: { fontSize: 12, fontWeight: '600' },
   textBtnTemaAttivoLight: { color: '#00B4D8', fontWeight: '700' },
   textBtnTemaAttivoDark: { color: '#00E5FF', fontWeight: '700' },
-  dividerAzione: { height: 1, width: '100%' },
   rowAzionePdfComplessa: { width: '100%', padding: 14, paddingTop: 12, paddingBottom: 14, flexDirection: 'column' },
   rowPdfClickArea: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 12 },
   containerMiniFiltriPdf: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', gap: 6, paddingLeft: 2 },
