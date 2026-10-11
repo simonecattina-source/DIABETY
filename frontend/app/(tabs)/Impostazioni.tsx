@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
+
+// 🌟 FIX COMPILATORE: Importiamo Sharing solo se non siamo su Web per evitare crash distruttivi
+const Sharing = Platform.OS !== 'web' ? require('expo-sharing') : null;
 
 // 🌟 FIX PERCORSO GEOMETRICO: Risaliamo di 2 livelli esatti per uscire da (tabs) e app
 import { useTheme } from '../../context/ThemeContext';
@@ -23,7 +25,7 @@ export default function StrumentiScreen() {
     setTimeout(() => setStatoNotifica(null), 3500);
   };
 
-  // 💾 ESPORTA BACKUP JSON
+  // 💾 ESPORTA BACKUP JSON PROTEGGI-PIATTAFORMA
   const esportaBackupJSON = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -45,7 +47,7 @@ export default function StrumentiScreen() {
         mostraMessaggioNotifica("✓ Backup scaricato correttamente");
       } else {
         const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(storicoEsistente)}`;
-        if (await Sharing.isAvailableAsync()) {
+        if (Sharing && await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(dataUri, { dialogTitle: 'Salva il tuo Backup Diabety' });
         } else {
           alert("La condivisione non è supportata su questo dispositivo.");
@@ -239,7 +241,9 @@ export default function StrumentiScreen() {
         }
       } else {
         const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
-        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
+        if (Sharing && await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
+        }
       }
     } catch (error) {
       alert("Impossibile completare la stampa del documento.");
@@ -248,7 +252,6 @@ export default function StrumentiScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
-      {/* 🌟 TAG RIPARATO: INTESTAZIONE SCHEDA */}
       <View style={styles.headerForm}>
         <Text style={[styles.title, { color: colors.onSurface }]}>Centro Strumenti</Text>
         <Text style={[styles.subtitle, { color: colors.muted }]}>Gestione database e configurazione visiva dell'app</Text>
@@ -260,7 +263,6 @@ export default function StrumentiScreen() {
         </View>
       )}
 
-      {/* 🎨 SEZIONE: CONTROLLO INTERFACCIA TEMA LIGHT / DARK */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Interfaccia Visiva</Text>
       <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         <View style={styles.rowAzioneTema}>
@@ -275,7 +277,6 @@ export default function StrumentiScreen() {
           </View>
         </View>
         
-        {/* Griglia Switcher Ad Incastro Bilanciata e Chiusa Correttamente */}
         <View style={styles.containerToggleTema}>
           <TouchableOpacity 
             style={[styles.btnTemaSelector, { backgroundColor: colors.bgUtility }, !isDarkMode && styles.btnTemaSelectorAttivoLight]} 
@@ -295,11 +296,9 @@ export default function StrumentiScreen() {
         </View>
       </View>
 
-      {/* 📊 SEZIONE: AZIONI E BACKUP DATABASE */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manutenzione e Report</Text>
       <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         
-        {/* 1. Esporta Backup */}
         <TouchableOpacity style={[styles.rowAzione, { borderBottomColor: colors.borderGlass }]} onPress={esportaBackupJSON}>
           <View style={styles.leftAzione}>
             <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
@@ -313,7 +312,6 @@ export default function StrumentiScreen() {
           <Ionicons name="chevron-forward" size={18} color={colors.muted} />
         </TouchableOpacity>
 
-        {/* 2. Importa Backup */}
         {Platform.OS === 'web' ? (
           <label style={[styles.rowAzioneLabel, { borderBottomColor: colors.borderGlass }]}>
             <View style={styles.leftAzione}>
@@ -345,7 +343,6 @@ export default function StrumentiScreen() {
 
         <View style={[styles.dividerAzione, { backgroundColor: colors.borderGlass }]} />
 
-        {/* 3. Esporta PDF Avanzato */}
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDocumentoMatriceStoricoPDF}>
             <View style={styles.leftAzione}>
@@ -379,7 +376,6 @@ export default function StrumentiScreen() {
         </View>
       </View>
 
-      {/* 📚 SEZIONE: MANUALE INFORMATIVO (CON BLOCCHI CHIUSI) */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manuale & Linee Guida</Text>
       
       <View style={[styles.infoBlockPremium, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
