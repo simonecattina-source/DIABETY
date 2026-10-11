@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const Sharing = Platform.OS !== 'web' ? require('expo-sharing') : null;
 import { useTheme } from '../../context/ThemeContext';
 
 const MOMENTI_COLONNE = [
@@ -46,12 +45,7 @@ export default function StrumentiScreen() {
         URL.revokeObjectURL(url);
         mostraMessaggioNotifica("✓ Backup scaricato correttamente");
       } else {
-        const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(storicoEsistente)}`;
-        if (Sharing && await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(dataUri, { dialogTitle: 'Salva il tuo Backup Diabety' });
-        } else {
-          alert("La condivisione non è supportata su questo dispositivo.");
-        }
+        alert("La condivisione è supportata solo sul browser Web corrente.");
       }
     } catch (error) {
       alert("Errore durante la creazione del file.");
@@ -232,20 +226,13 @@ export default function StrumentiScreen() {
           </body>
         </html>`;
 
-      if (Platform.OS === 'web') {
-        const finestraStampa = window.open('', '_blank');
-        if (finestraStampa) {
-          finestraStampa.document.write(htmlTemplateHTML);
-          finestraStampa.document.close();
-          finestraStampa.onload = () => { finestraStampa.focus(); finestraStampa.print(); };
-        }
+      const finestraStampa = window.open('', '_blank');
+      if (finestraStampa) {
+        finestraStampa.document.write(htmlTemplateHTML);
+        finestraStampa.document.close();
+        finestraStampa.onload = () => { finestraStampa.focus(); finestraStampa.print(); };
       } else {
-        // 🌟 FIX STRUTTURALE: Carichiamo expo-print solo dentro la chiamata nativa
-        const PrintMod = require('expo-print');
-        const { uri } = await PrintMod.printToFileAsync({ html: htmlTemplateHTML });
-        if (Sharing && await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
-        }
+        alert("Consenti i pop-up per scaricare il PDF.");
       }
     } catch (error) {
       alert("Impossibile completare la stampa del documento.");
@@ -302,30 +289,17 @@ export default function StrumentiScreen() {
           <Text style={{ color: colors.muted, fontSize: 14 }}>➔</Text>
         </TouchableOpacity>
 
-        {Platform.OS === 'web' ? (
-          <label style={[styles.rowAzioneLabel, { borderBottomColor: colors.borderGlass }]}>
-            <View style={styles.leftAzione}>
-              <Text style={{ fontSize: 18 }}>📤</Text>
-              <View>
-                <Text style={[styles.titoloAzione, { color: colors.onSurface }]}>Importa Backup</Text>
-                <Text style={[styles.descAzione, { color: colors.muted }]}>Ripristina il database caricando un file JSON</Text>
-              </View>
+        <label style={[styles.rowAzioneLabel, { borderBottomColor: colors.borderGlass }]}>
+          <View style={styles.leftAzione}>
+            <Text style={{ fontSize: 18 }}>📤</Text>
+            <View>
+              <Text style={[styles.titoloAzione, { color: colors.onSurface }]}>Importa Backup</Text>
+              <Text style={[styles.descAzione, { color: colors.muted }]}>Ripristina il database caricando un file JSON</Text>
             </View>
-            <Text style={{ color: colors.muted, fontSize: 14 }}>➔</Text>
-            <input type="file" accept=".json" onChange={gestisciImportazioneWeb} style={{ display: 'none' }} />
-          </label>
-        ) : (
-          <TouchableOpacity style={[styles.rowAzione, { borderBottomColor: colors.borderGlass }]} onPress={() => alert("Funzione disponibile su ambiente Web")}>
-            <View style={styles.leftAzione}>
-              <Text style={{ fontSize: 18 }}>📤</Text>
-              <View>
-                <Text style={[styles.titoloAzione, { color: colors.onSurface }]}>Importa Backup</Text>
-                <Text style={[styles.descAzione, { color: colors.muted }]}>Ripristina il database caricando un file JSON</Text>
-              </View>
-            </View>
-            <Text style={{ color: colors.muted, fontSize: 14 }}>➔</Text>
-          </TouchableOpacity>
-        )}
+          </View>
+          <Text style={{ color: colors.muted, fontSize: 14 }}>➔</Text>
+          <input type="file" accept=".json" onChange={gestisciImportazioneWeb} style={{ display: 'none' }} />
+        </label>
 
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDocumentoMatriceStoricoPDF}>
@@ -358,7 +332,7 @@ export default function StrumentiScreen() {
         </View>
       </View>
 
-      {/* 📚 MANUALE */}
+      {/* 📚 MANUALE INFORMATIVO */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manuale & Linee Guida</Text>
       
       <View style={[styles.infoBlockPremium, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
@@ -390,7 +364,7 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 14, fontWeight: '700', marginTop: 22, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   cardAzioni: { borderRadius: 16, borderWidth: 1, width: '100%', overflow: 'hidden' },
   rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, width: '100%' },
-  rowAzioneLabel: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, cursor: 'pointer', width: '100%', boxSizing: 'border-box' },
+  rowAzioneLabel: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, cursor: 'pointer', width: '100%', boxSizing: 'border-box', borderBottomWidth: 1 },
   leftAzione: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   titoloAzione: { fontSize: 14, fontWeight: '700' },
   descAzione: { fontSize: 11, marginTop: 2 },
