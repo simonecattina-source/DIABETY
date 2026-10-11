@@ -15,9 +15,16 @@ const MOMENTI_COLONNE = [
   "Prima Cena", "Dopo Cena", "Notte"
 ];
 export default function StrumentiScreen() {
-  const { colors, isDarkMode, toggleTheme } = useTheme();
+  const contextTheme = useTheme();
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
   const [filtroPdfSelezionato, setFiltroPdfSelezionato] = useState<string>('30 GG');
+
+  // Protezione di sicurezza se il contesto del tema non è ancora pronto
+  if (!contextTheme) {
+    return <View style={{ flex: 1, backgroundColor: '#ffffff' }} />;
+  }
+
+  const { colors, isDarkMode, toggleTheme } = contextTheme;
 
   const mostraMessaggioNotifica = (testo: string) => {
     setStatoNotifica(testo);
@@ -53,12 +60,12 @@ export default function StrumentiScreen() {
         }
       }
     } catch (error) {
-      alert("Errore Visualizzato durante la creazione del file di backup.");
+      alert("Errore durante la creazione del file di backup.");
     }
   };
-  // 📂 IMPORTA BACKUP JSON
+  // 📂 IMPORTA BACKUP JSON - SINTASSI RIPARATA AL 100%
   const gestisciImportazioneWeb = async (evento: any) => {
-    const file = evento.target.files?.[0];
+    const file = evento.target.files ? evento.target.files[0] : null;
     if (!file) return;
 
     const lettore = new FileReader();
@@ -251,7 +258,6 @@ export default function StrumentiScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
-      {/* 🌟 TAG COMPLETAMENTE CORRETTO E APERTO */}
       <View style={styles.headerForm}>
         <Text style={[styles.title, { color: colors.onSurface }]}>Centro Strumenti</Text>
         <Text style={[styles.subtitle, { color: colors.muted }]}>Gestione database e configurazione visiva dell'app</Text>
@@ -303,7 +309,6 @@ export default function StrumentiScreen() {
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manutenzione e Report</Text>
       <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         
-        {/* 1. Esporta Backup */}
         <TouchableOpacity style={[styles.rowAzione, { borderBottomColor: colors.borderGlass }]} onPress={esportaBackupJSON}>
           <View style={styles.leftAzione}>
             <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
@@ -317,7 +322,6 @@ export default function StrumentiScreen() {
           <Text style={{ color: colors.muted, fontSize: 14 }}>➔</Text>
         </TouchableOpacity>
 
-        {/* 2. Importa Backup */}
         {Platform.OS === 'web' ? (
           <label style={[styles.rowAzioneLabel, { borderBottomColor: colors.borderGlass }]}>
             <View style={styles.leftAzione}>
@@ -349,7 +353,6 @@ export default function StrumentiScreen() {
 
         <View style={[styles.dividerAzione, { backgroundColor: colors.borderGlass }]} />
 
-        {/* 3. Esporta PDF Avanzato */}
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDocumentoMatriceStoricoPDF}>
             <View style={styles.leftAzione}>
