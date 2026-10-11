@@ -186,8 +186,35 @@
   { "id": "185", "categoria": "Primi", "nome": "Fusilli n.98 Barilla (crudi)", "cho100g": 71.7 },
   { "id": "186", "categoria": "Primi", "nome": "Farfalle n.65 Barilla (crude)", "cho100g": 71.7 },
   { "id": "187", "categoria": "Primi", "nome": "Spaghettini n.3 Barilla (crudi)", "cho100g": 71.7 },
-  { "id": "188", "categoria": "Primi", "nome": "Rigatoni n.89 Barilla (crudi)", "cho100g": 71.7 }
+  { "id": "188", "categoria": "Primi", "nome": "Rigatoni n.89 Barilla (crudi)", "cho100g": 71.7 },
+  { "id": "189", "categoria": "Primi", "nome": "Spaghetti Integrali Barilla (crudi)", "cho100g": 65.0 },
+  { "id": "190", "categoria": "Primi", "nome": "Penne Rigate Integrali Barilla (crude)", "cho100g": 65.0 },
+  { "id": "191", "categoria": "Primi", "nome": "Fusilli Integrali Barilla (crudi)", "cho100g": 65.0 },
+  { "id": "192", "categoria": "Primi", "nome": "Mezze Maniche Rigate Integrali Barilla (crude)", "cho100g": 65.0 },
+  { "id": "193", "categoria": "Bevande", "nome": "Succo di frutta in brik (Gusto pesca/pera/albicocca)", "cho100g": 13.5 },
+  { "id": "194", "categoria": "Bevande", "nome": "Coca-Cola / Aranciata Classica (Zuccherata - lattina)", "cho100g": 10.6 },
+  { "id": "195", "categoria": "Colazione", "nome": "Zucchero bianco da cucina (Saccarosio puro)", "cho100g": 100.0 },
+  { "id": "196", "categoria": "Colazione", "nome": "Miele millefiori / d'api", "cho100g": 80.0 },
+  { "id": "197", "categoria": "Primi", "nome": "Riso Arborio / Carnaroli (crudo - per risotti)", "cho100g": 80.4 },
+  { "id": "198", "categoria": "Primi", "nome": "Riso Basmati (crudo)", "cho100g": 78.0 },
+  { "id": "199", "categoria": "Primi", "nome": "Gnocchi di patate freschi (crudi)", "cho100g": 36.0 },
+  { "id": "200", "categoria": "Primi", "nome": "Cous Cous di semola (pesato secco)", "cho100g": 76.2 },
+  { "id": "201", "categoria": "Pane e Forno", "nome": "Grissini comuni torinesi", "cho100g": 77.0 },
+  { "id": "202", "categoria": "Pane e Forno", "nome": "Crackers salati in superficie (Mulino Bianco)", "cho100g": 67.5 },
+  { "id": "203", "categoria": "Pane e Forno", "nome": "Tarallini classici pugliesi all'olio", "cho100g": 61.0 },
+  { "id": "204", "categoria": "Pane e Forno", "nome": "Piadina romagnola all'olio (singola)", "cho100g": 48.5 },
+  { "id": "205", "categoria": "Pizze e Fast Food", "nome": "Patatine fritte (snack in sacchetto -es. San Carlo)", "cho100g": 53.0 },
+  { "id": "206", "categoria": "Colazione", "nome": "Nutella Ferrero (crema spalmabile alle nocciole)", "cho100g": 57.5 },
+  { "id": "207", "categoria": "Colazione", "nome": "Confettura / Marmellata di frutta comune", "cho100g": 59.0 },
+  { "id": "208", "categoria": "Colazione", "nome": "Cornetto / Brioche vuota da bar", "cho100g": 44.0 },
+  { "id": "209", "categoria": "Colazione", "nome": "Fette Biscottate Classiche (Mulino Bianco / Barilla)", "cho100g": 72.3 },
+  { "id": "210", "categoria": "Colazione", "nome": "Fette Biscottate Integrali (Mulino Bianco / Barilla)", "cho100g": 63.5 },
+  { "id": "211", "categoria": "Pane e Forno", "nome": "Crackers Integrali (Mulino Bianco)", "cho100g": 62.0 },
+  { "id": "212", "categoria": "Pane e Forno", "nome": "Panini per Hamburger (Bun con sesamo)", "cho100g": 49.0 }
 ]
+
+
+
 
 
 
