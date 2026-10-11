@@ -306,10 +306,10 @@ export default function StrumentiScreen() {
           <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.08)' }]}>
             <Ionicons name="document-text-outline" size={16} color={COLORS.brandPrimary} />
           </View>
-          <Text style={styles.infoBlockTitle}>4. Reportistica Compliant</Text>
+          <Text style={styles.infoBlockTitle}>4. Esportazione dei File</Text>
         </View>
         <Text style={styles.infoBlockText}>
-          Genera esportazioni mediche ufficiali in formato PDF con layout panoramico a matrice, speculare al tuo registro clinico. Puoi selezionare un periodo specifico di <Text style={{color: COLORS.brandPrimary, fontWeight: '600'}}>7, 14, 30 o 90 giorni</Text> (oppure includere l'intero storico) per personalizzare l'intervallo del documento, ottimizzando la visualizzazione dei parametri per la tua prossima consultazione specialistica.
+          Genera esportazioni del tuo Diario in formato PDF con layout panoramico a matrice, speculare al tuo registro clinico. Puoi selezionare un periodo specifico di <Text style={{color: COLORS.brandPrimary, fontWeight: '600'}}>7, 14, 30 o 90 giorni</Text> (oppure includere l'intero storico) per personalizzare l'intervallo del documento, ottimizzando la visualizzazione dei parametri per la tua prossima consultazione specialistica.
         </Text>
       </View>
 
@@ -335,7 +335,7 @@ export default function StrumentiScreen() {
           <Text style={styles.infoBlockTitle}>6. Analisi Avanzata e Grafici</Text>
         </View>
         <Text style={styles.infoBlockText}>
-          Controlla l'andamento della tua salute in tempo reale. Questa sezione mostra grafici chiari con l'andamento della tua glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito se sei a target.
+          Controlla l'andamento della tua Glicemia. Questa sezione mostra grafici chiari con l'andamento della tua glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito se sei a target.
         </Text>
       </View>
 
@@ -349,6 +349,19 @@ export default function StrumentiScreen() {
         </View>
         <Text style={styles.infoBlockText}>
           Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro.
+        </Text>
+      </View>
+
+    {/* CARD 8: DATABASE ALIMENTI E CARBOIDRATI */}
+      <View style={styles.infoBlockPremium}>
+        <View style={styles.rigaTitoloManuale}>
+          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 230, 118, 0.08)' }]}>
+            <Ionicons name="nutrition-outline" size={16} color={COLORS.success} />
+          </View>
+          <Text style={styles.infoBlockTitle}>8. Database Alimenti e Carboidrati</Text>
+        </View>
+        <Text style={styles.infoBlockText}>
+          Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente.
         </Text>
       </View>
 
