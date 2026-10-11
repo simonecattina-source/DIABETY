@@ -255,7 +255,21 @@
   { "id": "254", "categoria": "Bevande", "nome": "Birra Analcolica", "cho100g": 5.4 },
   { "id": "255", "categoria": "Bevande", "nome": "Birra Rossa / Doppio Malto / Artigianale", "cho100g": 4.8 },
   { "id": "256", "categoria": "Bevande", "nome": "Limoncello / Liquori dolci alla frutta", "cho100g": 30.0 },
-  { "id": "257", "categoria": "Bevande", "nome": "Superalcolici Puri al naturale (Gin / Vodka / Rum / Whisky / Grappa)", "cho100g": 0.0 }
+  { "id": "257", "categoria": "Bevande", "nome": "Superalcolici Puri al naturale (Gin / Vodka / Rum / Whisky / Grappa)", "cho100g": 0.0 },
+  { "id": "258", "categoria": "Primi", "nome": "Pasta Tre Mulini Eurospin (cruda - Formati classici semola)", "cho100g": 72.5 },
+  { "id": "259", "categoria": "Primi", "nome": "Pasta Amo Essere Biologica Eurospin (cruda - 100% Grano duro italiano)", "cho100g": 72.0 },
+  { "id": "260", "categoria": "Primi", "nome": "Pasta Amo Essere Senza Glutine Eurospin (cruda - Riso e Mais)", "cho100g": 78.7 },
+  { "id": "261", "categoria": "Primi", "nome": "Tortelloni Amo Essere Eccellenti Eurospin (con Ricotta e Spinaci)", "cho100g": 41.0 },
+  { "id": "262", "categoria": "Primi", "nome": "Gnocchi di patate Tre Mulini Eurospin (freschi)", "cho100g": 36.5 },
+  { "id": "263", "categoria": "Pane e Forno", "nome": "Pane Bauletto ai 3 Cereali Tre Mulini Eurospin", "cho100g": 44.0 },
+  { "id": "264", "categoria": "Pane e Forno", "nome": "Crackers Salati Tre Mulini Eurospin", "cho100g": 67.0 },
+  { "id": "265", "categoria": "Pane e Forno", "nome": "Tarallini classici Tre Mulini Eurospin", "cho100g": 61.0 },
+  { "id": "266", "categoria": "Colazione", "nome": "Biscotti Frollini con Gocce di Cioccolato Dolciando Eurospin", "cho100g": 68.0 },
+  { "id": "267", "categoria": "Colazione", "nome": "Biscotti Novellini Dolciando Eurospin", "cho100g": 74.0 },
+  { "id": "268", "categoria": "Colazione", "nome": "Merendine Crostatine all'Albicocca Dolciando Eurospin", "cho100g": 61.5 },
+  { "id": "269", "categoria": "Colazione", "nome": "Plumcake allo Yogurt Dolciando Eurospin", "cho100g": 52.0 },
+  { "id": "270", "categoria": "Colazione", "nome": "Crema spalmabile alle nocciole Dolciando Eurospin", "cho100g": 57.0 }
 ]
+
 
 
