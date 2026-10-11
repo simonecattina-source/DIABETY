@@ -85,7 +85,7 @@ export default function StrumentiScreen() {
     lettore.readAsText(file);
   };
 
-  // 📄 RENDERING REALE DEL REPORT PDF CLINICO LANDSCAPE A 11 COLONNE (FIX METRO EXPO)
+  // 📄 LOGICA DI ESPORTAZIONE DIARIO PDF CLINICO (IDENTICA AL 100% ALLA SCHEDA STORICO)
   const esportaDiarioPDF = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -115,114 +115,71 @@ export default function StrumentiScreen() {
         return;
       }
 
-      const righeRaggruppate: { [key: string]: any } = {};
-      dati.forEach((item: any) => {
-        const dataKey = item.dataTesto;
-        if (!righeRaggruppate[dataKey]) {
-          righeRaggruppate[dataKey] = {
-            data: dataKey,
-            "Prima Colazione": { g: "-", i: "-" }, "Dopo Colazione": { g: "-", i: "-" }, "Spuntino": { g: "-", i: "-" },
-            "Prima Pranzo": { g: "-", i: "-" }, "Dopo Pranzo": { g: "-", i: "-" }, "Merenda": { g: "-", i: "-" },
-            "Prima Cena": { g: "-", i: "-" }, "Dopo Cena": { g: "-", i: "-" }, "Notte": { g: "-", i: "-" },
-            noteLista: []
-          };
-        }
-        
-        const m = item.tipo;
-        if (righeRaggruppate[dataKey][m]) {
-          righeRaggruppate[dataKey][m].g = item.glicemia ? `${item.glicemia}` : "-";
-          righeRaggruppate[dataKey][m].i = item.insulina && item.insulina !== "-" ? item.insulina.replace(" UI", "") : "-";
-        }
-        if (item.note && item.note.trim() && item.note !== `[${item.ora}]`) {
-          righeRaggruppate[dataKey].noteLista.push(item.note);
-        }
+      const datiOrdinatiPDF = dati.sort((a: any, b: any) => {
+        const [gA, mA, anA] = a.dataTesto.split('/');
+        const [gB, mB, anB] = b.dataTesto.split('/');
+        const dataA = new Date(parseInt(anA) < 50 ? 2000 + parseInt(anA) : 1900 + parseInt(anA), parseInt(mA) - 1, parseInt(gA)).getTime();
+        const dataB = new Date(parseInt(anB) < 50 ? 2000 + parseInt(anB) : 1900 + parseInt(anB), parseInt(mB) - 1, parseInt(gB)).getTime();
+        if (dataB !== dataA) return dataB - dataA;
+        return b.ora.localeCompare(a.ora);
       });
 
-      const elencoDateOrdinate = Object.values(righeRaggruppate).sort((a: any, b: any) => {
-        const [gA, mA, anA] = a.data.split('/');
-        const [gB, mB, anB] = b.data.split('/');
-        return new Date(parseInt(anA) < 50 ? 2000+parseInt(anA) : 1900+parseInt(anA), parseInt(mA)-1, parseInt(gA)).getTime() - 
-               new Date(parseInt(anB) < 50 ? 2000+parseInt(anB) : 1900+parseInt(anB), parseInt(mB)-1, parseInt(gB)).getTime();
-      });
+      let stringaRigheTabellaHTML = "";
+      datiOrdinatiPDF.forEach((item: any) => {
+        let colereValoreGlicemia = "#1c1c1e";
+        if (item.glicemia) {
+          const gNum = parseInt(item.glicemia);
+          if (gNum < 70) colereValoreGlicemia = "#d35400";
+          else if (gNum > 180) colereValoreGlicemia = "#c0392b";
+          else colereValoreGlicemia = "#27ae60";
+        }
 
-      const COLONNE_MOMENTI = [
-        "Prima Colazione", "Dopo Colazione", "Spuntino", 
-        "Prima Pranzo", "Dopo Pranzo", "Merenda", 
-        "Prima Cena", "Dopo Cena", "Notte"
-      ];
+        const notePulite = item.note && item.note.trim() ? item.note : "-";
+        const unitaInsulina = item.insulina && item.insulina !== "-" && !item.insulina.includes("UI") ? `${item.insulina} UI` : item.insulina;
 
-      let htmlContenutoTabelle = "";
-      const dimensioneBloccoGiorni = 4;
-
-      for (let i = 0; i < elencoDateOrdinate.length; i += dimensioneBloccoGiorni) {
-        const bloccoCorrente = elencoDateOrdinate.slice(i, i + dimensioneBloccoGiorni);
-        
-        htmlContenutoTabelle += `
-          <div class="page-block" style="page-break-after: always; margin-bottom: 30px;">
-            <table style="width:100%; border-collapse:collapse; margin-top:15px; background:#ffffff;">
-              <thead>
-                <tr style="background-color:#13131A; color:#ffffff; font-size:11px;">
-                  <th style="border:1px solid #d3d3d3; padding:8px; width:70px;">Data</th>
-                  <th style="border:1px solid #d3d3d3; padding:8px; width:45px;">Param.</th>
-                  \${COLONNE_MOMENTI.map(m => \`<th style="border:1px solid #d3d3d3; padding:6px; font-size:10px;">\${m}</th>\`).join('')}
-                </tr>
-              </thead>
-              <tbody>
+        stringaRigheTabellaHTML += `
+          <tr style="font-size:11px;">
+            <td style="border:1px solid #d3d3d3; padding:8px; font-weight:600; background:#fafafa;">${item.dataTesto}</td>
+            <td style="border:1px solid #d3d3d3; padding:8px; color:#555555;">${item.ora}</td>
+            <td style="border:1px solid #d3d3d3; padding:8px; font-weight:bold; color:${colereValoreGlicemia};">${item.glicemia || "-"}</td>
+            <td style="border:1px solid #d3d3d3; padding:8px; font-weight:600; color:#7d52ff;">${unitaInsulina || "-"}</td>
+            <td style="border:1px solid #d3d3d3; padding:8px; color:#1c1c1e; font-weight:500;">${item.tipo || "-"}</td>
+            <td style="border:1px solid #d3d3d3; padding:8px; text-align:left; color:#555555; max-width:240px; word-wrap:break-word;">${notePulite}</td>
+          </tr>
         `;
-
-        bloccoCorrente.forEach((rigaDay: any) => {
-          htmlContenutoTabelle += `
-            <tr style="font-size:11px; background:#fdfdfd;">
-              <td rowspan="3" style="border:1px solid #d3d3d3; text-align:center; font-weight:bold; background:#f4f4f6; padding:4px;">\${rigaDay.data}</td>
-              <td style="border:1px solid #d3d3d3; text-align:center; font-weight:bold; color:#0288d1; padding:5px; background:#f9f9fa;">GLI</td>
-              \${COLONNE_MOMENTI.map(m => {
-                const val = rigaDay[m].g;
-                let coloreTesto = "#1c1c1e";
-                if (val !== "-") {
-                  const num = parseInt(val);
-                  if (num < 70) coloreTesto = "#d35400";
-                  else if (num > 180) coloreTesto = "#c0392b";
-                  else coloreTesto = "#27ae60";
-                }
-                return \`<td style="border:1px solid #d3d3d3; text-align:center; font-weight:bold; color:\${coloreTesto}; padding:5px;">\${val}</td>\`;
-              }).join('')}
-            </tr>
-          `;
-
-          htmlContenutoTabelle += `
-            <tr style="font-size:11px; background:#ffffff;">
-              <td style="border:1px solid #d3d3d3; text-align:center; font-weight:bold; color:#7d52ff; padding:5px; background:#f9f9fa;">INS</td>
-              \${COLONNE_MOMENTI.map(m => \`<td style="border:1px solid #d3d3d3; text-align:center; color:#2c3e50; padding:5px;">\${rigaDay[m].i}</td>\`).join('')}
-            </tr>
-          `;
-
-          const stringaNoteUnite = rigaDay.noteLista.length > 0 ? rigaDay.noteLista.join(" | ") : "-";
-          htmlContenutoTabelle += `
-            <tr style="font-size:10px; background:#fafafa;">
-              <td style="border:1px solid #d3d3d3; text-align:center; color:#7e7e86; font-style:italic; padding:4px; background:#f9f9fa;">NOTE</td>
-              <td colspan="9" style="border:1px solid #d3d3d3; text-align:left; color:#555555; padding:5px; font-family:sans-serif;">\${stringaNoteUnite}</td>
-            </tr>
-          `;
-        });
-
-        htmlContenutoTabelle += `</tbody></table></div>`;
-      }
+      });
 
       const htmlFronteEndCompleto = `
         <html>
         <head>
           <style>
-            @page { size: landscape; margin: 10mm; }
+            @page { size: portrait; margin: 12mm; }
             body { font-family: sans-serif; color: #1c1c1e; margin: 0; padding: 0; background: #ffffff; }
-            th, td { border: 1px solid #d3d3d3; text-align: center; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th { background-color: #13131A; color: #ffffff; font-size: 11px; font-weight: bold; padding: 10px; border: 1px solid #d3d3d3; }
+            td { text-align: center; border: 1px solid #d3d3d3; }
           </style>
         </head>
         <body>
           <div style="width:100%; border-bottom:2px solid #00E5FF; padding-bottom:10px; margin-bottom:15px;">
-            <h2 style="margin:0; color:#13131A; font-size:20px;">REPORT CLINICO DIABETOLOGICO</h2>
-            <p style="margin:4px 0 0 0; color:#636366; font-size:12px;">Intervallo Estrazione: <b>\${filtroPdfSelezionato}</b> • Generato in modalità protetta offline</p>
+            <h2 style="margin:0; color:#13131A; font-size:20px;">DIARIO GLICEMICO COMPLETO</h2>
+            <p style="margin:4px 0 0 0; color:#636366; font-size:12px;">Filtro Report: <b>${filtroPdfSelezionato}</b> • Sincronizzato ed estratto localmente</p>
           </div>
-          \${htmlContenutoTabelle}
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 85px;">Data</th>
+                <th style="width: 60px;">Ora</th>
+                <th style="width: 90px;">Glicemia (mg/dL)</th>
+                <th style="width: 90px;">Insulina (UI)</th>
+                <th style="width: 130px;">Momento della Giornata</th>
+                <th>Note e Contesto Alimentare</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${stringaRigheTabellaHTML}
+            </tbody>
+          </table>
         </body>
         </html>
       `;
@@ -234,7 +191,7 @@ export default function StrumentiScreen() {
         const urlDownload = URL.createObjectURL(blobFile);
         const tagAnchor = document.createElement('a');
         tagAnchor.href = urlDownload;
-        tagAnchor.download = `Report_Diabety_\${filtroPdfSelezionato.replace(" ", "_")}.pdf`;
+        tagAnchor.download = `Registro_Diabety_${filtroPdfSelezionato.replace(" ", "_")}.pdf`;
         document.body.appendChild(tagAnchor);
         tagAnchor.click();
         document.body.removeChild(tagAnchor);
@@ -311,7 +268,7 @@ export default function StrumentiScreen() {
           </TouchableOpacity>
         )}
 
-        {/* 3. Riga Esporta PDF Avanzata (Riquadro unico flessibile con selettore ad incastro sotto) */}
+        {/* 3. Riga Esporta PDF Avanzata (Riquadro unico coeso e speculare allo Storico) */}
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDiarioPDF}>
             <View style={styles.leftAzione}>
@@ -326,7 +283,7 @@ export default function StrumentiScreen() {
             <Ionicons name="chevron-forward" size={18} color={COLORS.brandPrimary} />
           </TouchableOpacity>
 
-          {/* 📅 Pulsantiera Orizzontale Interna coesa nello stesso modulo */}
+          {/* 📅 Pulsantiera Orizzontale Interna per la scelta dei giorni */}
           <View style={styles.containerMiniFiltriPdf}>
             {['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'].map((intervallo) => {
               const attivo = filtroPdfSelezionato === intervallo;
