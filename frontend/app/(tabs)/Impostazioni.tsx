@@ -5,14 +5,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
-// 🌟 FIX COMPILATORE VERCEL: Elimina i punti relativi e intercetta il file con l'alias sorgente dell'app
-import { useTheme } from "@/src/context/ThemeContext";
+// 🌟 FIX GEOMETRICO: Saliamo di 2 livelli esatti per uscire da "(tabs)" e "app" arrivando nella radice di frontend
+import { useTheme } from '../../context/ThemeContext';
 
 const MOMENTI_COLONNE = [
   "Prima Colazione", "Dopo Colazione", "Spuntino", 
   "Prima Pranzo", "Dopo Pranzo", "Merenda", 
   "Prima Cena", "Dopo Cena", "Notte"
 ];
+
 export default function StrumentiScreen() {
   const { colors, isDarkMode, toggleTheme } = useTheme();
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
