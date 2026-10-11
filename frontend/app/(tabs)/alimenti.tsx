@@ -54,7 +54,7 @@ export default function AlimentiScreen() {
     const choCalcolati = parseFloat(((grammi * alimento.cho100g) / 100).toFixed(1));
     
     const nuovoElementoPiatto = {
-      idUnico: Date.now().toString() + alimento.id, // ID univoco per evitare conflitti se inserito più volte
+      idUnico: Date.now().toString() + alimento.id,
       alimentoId: alimento.id,
       nome: alimento.nome,
       grammi: grammi,
@@ -62,18 +62,23 @@ export default function AlimentiScreen() {
     };
 
     setPiattoSelezionato(prev => [...prev, nuovoElementoPiatto]);
-    // Resetta il campo di testo dei grammi dell'alimento appena inserito nel piatto
-    setGrammature(prev => ({ ...prev, [alimento.id]: '' }));
   };
 
-  // ✕ FUNZIONE PER RIMUOVERE UN SINGOLO CIBO DAL PIATTO VIRTUALE
-  const rimuoviDalPiatto = (idUnico: string) => {
+  // ✕ FUNZIONE AGGIORNATA: Rimuove un singolo cibo e resetta istantaneamente il suo riquadro su 00
+  const rimuoviDalPiatto = (idUnico: string, alimentoId: string) => {
     setPiattoSelezionato(prev => prev.filter(item => item.idUnico !== idUnico));
+    
+    setGrammature(prev => {
+      const nuoveGrammature = { ...prev };
+      delete nuoveGrammature[alimentoId];
+      return nuoveGrammature;
+    });
   };
 
-  // 🧼 FUNZIONE PER SVUOTARE COMPLETAMENTE IL PIATTO
+  // 🧼 FUNZIONE AGGIORNATA: Svuota l'intero piatto e azzera TUTTI i riquadri numerici dell'app in un colpo solo
   const svuotaPiattoCompleto = () => {
     setPiattoSelezionato([]);
+    setGrammature({}); // 🔄 Ripristina istantaneamente tutti gli input a default (vuoti / 00)
   };
 
   // 🧮 CALCOLO MATEMATICO DEL TOTALE DEI CARBOIDRATI CUMULATIVI DEL PIATTO LIVE
@@ -124,7 +129,7 @@ export default function AlimentiScreen() {
         </ScrollView>
       </View>
 
-      {/* 📦 LISTA FLUIDA ALIMENTI CON INSERIMENTO E TASTO "+" DI AGGIUNTA AL PIATTO */}
+      {/* 📦 LISTA FLUIDA ALIMENTI (VIRTUALIZZAZIONE NATIVA AD ALTE PRESTAZIONI) */}
       <FlatList
         data={alimentiFiltrati}
         keyExtractor={item => item.id}
@@ -160,7 +165,6 @@ export default function AlimentiScreen() {
                   />
                   <Text style={styles.etichettaUnitaGg}>g</Text>
                   
-                  {/* ➕ TASTO AGGIUNGI AL PIATTO: Compare dinamicamente solo se i grammi sono impostati */}
                   <TouchableOpacity 
                     style={[styles.btnAggiungiPiattoClick, grammiValore <= 0 && { opacity: 0.3 }]} 
                     onPress={() => aggiungiAlPiatto(item)}
@@ -189,7 +193,7 @@ export default function AlimentiScreen() {
           </View>
         }
       />
-      {/* 🍽️ PANNELLO VISIVAMENTE ISOLATO DALLO SFONDO GRAZIE AL COLORE PIÙ CHIARO ED EFFETTO FLOATING */}
+      {/* 🍽️ PANNELLO VISIVAMENTE ISOLATO DALLO SFONDO GRAZIE ALLA TONALITÀ ZINCO TECH ED ELEVAZIONE BORDO CYAN */}
       {piattoSelezionato.length > 0 && (
         <View style={styles.footerPiattoCumulativo}>
           <View style={styles.headerPiattoRiepilogo}>
@@ -204,7 +208,10 @@ export default function AlimentiScreen() {
             {piattoSelezionato.map((item) => (
               <View key={item.idUnico} style={styles.chipCiboInserito}>
                 <Text style={styles.testoChipCiboInserito}>{item.nome} ({item.grammi}g)</Text>
-                <TouchableOpacity style={styles.btnRimuoviCiboSingolo} onPress={() => rimuoviDalPiatto(item.idUnico)}>
+                <TouchableOpacity 
+                  style={styles.btnRimuoviCiboSingolo} 
+                  onPress={() => rimuoviDalPiatto(item.idUnico, item.alimentoId)} // 🔄 Svuotamento combinato di riga
+                >
                   <Ionicons name="close" size={12} color={COLORS.error} />
                 </TouchableOpacity>
               </View>
@@ -238,7 +245,7 @@ const styles = StyleSheet.create({
   textChipCategoria: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600', color: COLORS.muted },
   textChipCategoriaAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
 
-  listContent: { padding: 16, paddingBottom: 180 }, // Spazio di sicurezza per lo scorrimento sopra il pannello floating
+  listContent: { padding: 16, paddingBottom: 180 }, 
   cardAlimentoPremium: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: COLORS.borderGlass, marginBottom: 12, width: '100%' },
   rigaInfoSuperiore: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottomWidth: 1, borderBottomColor: "rgba(255, 255, 255, 0.04)", paddingBottom: 10 },
   boxTestiSinistra: { flex: 1, marginRight: 10, alignItems: 'flex-start' },
@@ -257,13 +264,13 @@ const styles = StyleSheet.create({
   valoreCalcolatoCho: { fontFamily: 'Space Grotesk', fontSize: 18, fontWeight: '800', color: COLORS.muted },
   unitaChoSub: { fontSize: 11, color: COLORS.muted, fontWeight: '500' },
 
-  // 📐 CSS PANNELLO "IL TUO PIATTO" ULTRA-DISTINGUIBILE CON SFONDO ZINCO TECH E CONTORNO CYAN
+  // 📐 CSS PANNELLO "IL TUO PIATTO" IN TONALITÀ ZINCO TECH SCHIARITA AD HIGH CONTRAST TRIDIMENSIONAL FLOATING
   footerPiattoCumulativo: { 
     position: 'absolute', 
     bottom: 0, 
     left: 0, 
     right: 0, 
-    backgroundColor: "#22222C", // Schiarito significativamente per un distacco netto dallo sfondo OLED #0A0A0C
+    backgroundColor: "#22222C", // Schiarito significativamente per un distacco immediato dallo sfondo #0A0A0C
     borderTopWidth: 1.5, 
     borderTopColor: "#00E5FF",  // Filo Ciano Neon brillante per marcare visivamente l'elevazione
     borderLeftWidth: 1,
