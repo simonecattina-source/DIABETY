@@ -15,6 +15,9 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#0A0A0C" />
 
+        {/* 🛠️ RISOLUZIONE DEFINITIVA IPHONE: Collega il file manifest per sbloccare la modalità standalone immersiva */}
+        <link rel="manifest" href="/manifest.json" />
+
         <ScrollViewStyleReset />
         <style
           dangerouslySetInnerHTML={{
