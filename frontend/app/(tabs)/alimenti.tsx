@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Platform } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 
-// 📂 IMPORTAZIONE ASINCRONA DEL TUO DATABASE DI ALIMENTI ESTERNO JSON
+// 📂 IMPORTAZIONE ASINCRONA DEL TUO DATABASE DI ALIMENTI ESTERNO JSON CATEGORIZZATO
 import DATABASE_ALIMENTI_ESTERNO from '../../constants/alimenti_database.json';
 
 const COLORS = {
   background: "#0A0A0C",        
   surfaceSecondary: "#13131A",  
-  brandPrimary: "#00E5FF",      // Cyan neon
+  brandPrimary: "#00E5FF",      // Cyan neon active
   brandSecondary: "#7D52FF",    // Viola tech
   onSurface: "#FFFFFF",         
   muted: "#7E7E86",             
@@ -17,21 +17,26 @@ const COLORS = {
   borderGlass: "rgba(255, 255, 255, 0.08)"
 };
 
-// Ordiniamo alfabeticamente l'array importato per garantire una ricerca utente ottimale
+// Ordiniamo alfabeticamente l'array importato per una navigazione utente ottimale
 const DATABASE_ALIMENTI = DATABASE_ALIMENTI_ESTERNO.sort((a, b) => a.nome.localeCompare(b.nome));
 export default function AlimentiScreen() {
   const [ricerca, setCerca] = useState('');
+  const [categoriaSelezionata, setCategoriaSelezionata] = useState('Tutti');
   const [grammature, setGrammature] = useState<Record<string, number>>({});
+
+  // 🏷️ Elenco delle categorie uniche gestite simmetricamente nel database JSON
+  const CATEGORIE = ['Tutti', 'Primi', 'Pane e Forno', 'Frutta', 'Colazione', 'Pizze e Fast Food', 'Bevande', 'Verdure e Piatti Unici'];
 
   const gestisciCambioGrammi = (id: string, valore: number) => {
     setGrammature(prev => ({ ...prev, [id]: Math.round(valore) }));
   };
 
-  // Filtra in tempo reale gli alimenti estratti dal file JSON esterno
-  const alimentiFiltrati = DATABASE_ALIMENTI.filter(alimento =>
-    alimento.nome.toLowerCase().includes(ricerca.toLowerCase())
-  );
-
+  // 🧠 ALGORITMO DI FILTRAGGIO COMBINATO: Incrocia la digitazione del testo con la chip della categoria attiva
+  const alimentiFiltrati = DATABASE_ALIMENTI.filter(alimento => {
+    const corrispondeRicerca = alimento.nome.toLowerCase().includes(ricerca.toLowerCase());
+    const corrispondeCategoria = categoriaSelezionata === 'Tutti' || alimento.categoria === categoriaSelezionata;
+    return corrispondeRicerca && corrispondeCategoria;
+  });
   return (
     <View style={styles.container}>
       
@@ -44,7 +49,7 @@ export default function AlimentiScreen() {
           <Ionicons name="search-outline" size={18} color={COLORS.muted} style={{ marginRight: 8 }} />
           <TextInput
             style={styles.inputRicercaTesto}
-            placeholder="Cerca tra tutti gli alimenti nel database..."
+            placeholder="Cerca alimento o marca..."
             placeholderTextColor="#636366"
             value={ricerca}
             onChangeText={setCerca}
@@ -58,14 +63,33 @@ export default function AlimentiScreen() {
         </View>
       </View>
 
-      {/* 📦 LISTA FLUIDA ALIMENTI CON SLIDER INTEGRATO (OTTIMIZZATA COMPLIANT A 1000+ ELEMENTI) */}
+      {/* 🏷️ BARRA DELLE CATEGORIE ORIZZONTALE IN STILE CHIPS NEON */}
+      <View style={styles.containerFiltroCategorie}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollCategorieContent}>
+          {CATEGORIE.map((cat) => {
+            const attiva = categoriaSelezionata === cat;
+            return (
+              <TouchableOpacity
+                key={cat}
+                style={[styles.chipCategoria, attiva && styles.chipCategoriaAttiva]}
+                onPress={() => setCategoriaSelezionata(cat)}
+              >
+                <Text style={[styles.textChipCategoria, attiva && styles.textChipCategoriaAttivo]}>
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+      {/* 📦 LISTA FLUIDA ALIMENTI CON SLIDER INTEGRATO (VIRTUALIZZAZIONE NATIVA AD ALTE PRESTAZIONI) */}
       <FlatList
         data={alimentiFiltrati}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         
-        // ⚡ MOTORE DI VIRTUALIZZAZIONE AVANZATO: Protegge la memoria del dispositivo da crash o blocchi
+        // ⚡ MOTORE DI VIRTUALIZZAZIONE PROTETTO: Ottimizzato per reggere oltre 1000 elementi senza scatti o lag memory
         initialNumToRender={8}
         maxToRenderPerBatch={10}
         windowSize={4}
@@ -111,7 +135,7 @@ export default function AlimentiScreen() {
           <View style={{ padding: 40, alignItems: 'center' }}>
             <Ionicons name="fast-food-outline" size={32} color={COLORS.muted} style={{ marginBottom: 8 }} />
             <Text style={{ color: COLORS.muted, fontFamily: 'Plus Jakarta Sans', textAlign: 'center' }}>
-              Nessun alimento trovato corrispondente alla ricerca.
+              Nessun alimento trovato corrispondente alla ricerca in questa categoria.
             </Text>
           </View>
         }
@@ -128,6 +152,14 @@ const styles = StyleSheet.create({
   boxInputRicerca: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceSecondary, borderRadius: 12, paddingHorizontal: 12, height: 44, marginTop: 14, borderWidth: 1, borderColor: COLORS.borderGlass },
   inputRicercaTesto: { flex: 1, color: COLORS.onSurface, fontFamily: 'Plus Jakarta Sans', fontSize: 14, paddingVertical: 4 },
   
+  // 🎨 CHIPS CATEGORIE CSS AD ALTO CONTRASTO OLED EFFECT
+  containerFiltroCategorie: { backgroundColor: COLORS.background, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
+  scrollCategorieContent: { paddingHorizontal: 16, gap: 8 },
+  chipCategoria: { backgroundColor: COLORS.surfaceSecondary, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: COLORS.borderGlass },
+  chipCategoriaAttiva: { backgroundColor: "rgba(0, 229, 255, 0.08)", borderColor: COLORS.brandPrimary },
+  textChipCategoria: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600', color: COLORS.muted },
+  textChipCategoriaAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
+
   listContent: { padding: 16, paddingBottom: 40 },
   cardAlimentoPremium: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: COLORS.borderGlass, marginBottom: 12, width: '100%' },
   rigaInfoSuperiore: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' },
