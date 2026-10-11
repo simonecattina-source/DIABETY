@@ -1,0 +1,12 @@
+[
+  { "id": "1", "categoria": "Primi", "nome": "Pasta di semola comune (cruda)", "cho100g": 73.0 },
+  { "id": "2", "categoria": "Primi", "nome": "Pasta integrale (cruda)", "cho100g": 65.0 },
+  { "id": "3", "categoria": "Primi", "nome": "Riso brillato bianco (crudo)", "cho100g": 80.4 },
+  { "id": "4", "categoria": "Primi", "nome": "Gnocchi di patate freschi", "cho100g": 36.3 },
+  { "id": "5", "categoria": "Pane", "nome": "Pane comune / Rosetta / Ciabatta", "cho100g": 52.8 },
+  { "id": "6", "categoria": "Frutta", "nome": "Mela fresca con buccia", "cho100g": 13.8 },
+  { "id": "7", "categoria": "Frutta", "nome": "Banana fresca", "cho100g": 22.8 },
+  { "id": "8", "categoria": "Bevande", "nome": "Coca Cola / Pepsi Classica", "cho100g": 10.6 },
+  { "id": "9", "categoria": "Proteine", "nome": "Carne fresca (Pollo, Manzo, Maiale)", "cho100g": 0.0 },
+  { "id": "10", "categoria": "Proteine", "nome": "Pesce fresco (Salmone, Tonno, Merluzzo)", "cho100g": 0.0 }
+]
