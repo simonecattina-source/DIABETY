@@ -15,11 +15,11 @@ export default function Root({ children }: PropsWithChildren) {
           content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover, user-scalable=no"
         />
 
-        {/* 🛠️ DISATTIVA INTERFACCIA: Dice a Safari di nascondere le barre e agire come app nativa */}
+        {/* 🛠️ DISATTIVA INTERFACCIA BROWSER: Dice a Safari di nascondere le barre e agire come app nativa */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
 
-        {/* 🎨 TRASPARENZA OLED: Estende il nero dell'app dietro l'orario e la batteria del Notch eliminando il bordo bianco */}
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        {/* 🎨 RISOLTO: Impostato su "black" solido per eliminare definitivamente lo sfondo bianco o sfumato in cima sul Notch */}
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
 
         {/*
           Disable body scrolling on web to make ScrollView components work correctly.
