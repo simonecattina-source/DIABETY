@@ -163,5 +163,11 @@
   { "id": "125", "categoria": "Verdure e Piatti Unici", "nome": "Ragù alla bolognese tradizionali", "cho100g": 2.5 },
   { "id": "126", "categoria": "Verdure e Piatti Unici", "nome": "Pesto alla genovese classico con pinoli", "cho100g": 4.8 },
   { "id": "129", "categoria": "Verdure e Piatti Unici", "nome": "Polpette di carne al sugo di pomodoro", "cho100g": 6.2 },
-  { "id": "131", "categoria": "Verdure e Piatti Unici", "nome": "Frittata di maccheroni / pasta napoletana", "cho100g": 18.0 }
+  { "id": "131", "categoria": "Verdure e Piatti Unici", "nome": "Frittata di maccheroni / pasta napoletana", "cho100g": 18.0 },
+  { "id": "166", "categoria": "Colazione", "nome": "Biscotti Ringo alla Vaniglia (Barilla)", "cho100g": 69.0 },
+  { "id": "167", "categoria": "Colazione", "nome": "Biscotti Ringo al Cacao (Barilla)", "cho100g": 68.0 },
+  { "id": "168", "categoria": "Primi", "nome": "Pasta alla Carbonara tradizionale (porzione cotta)", "cho100g": 21.5 },
+  { "id": "169", "categoria": "Pane e Forno", "nome": "Tramezzino classico farcito da bar (Maionese + Prosciutto/Tonno)", "cho100g": 26.5 }
 ]
+
+
