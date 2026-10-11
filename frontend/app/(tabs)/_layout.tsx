@@ -64,13 +64,14 @@ export default function TabsLayout() {
           borderTopWidth: 1,
           elevation: 0,
           shadowOpacity: 0,
-          // 🛠️ RISOLTO: Calibrazione millimetrica delle altezze se l'app è salvata sulla Home di un iPhone
+          // 🛠️ RISOLTO: Blocco rigido dell'altezza per eliminare lo sfasamento elastico al cambio scheda su Safari Home Screen
           ...(Platform.OS === "web" ? { 
-            height: typeof window !== 'undefined' && ('standalone' in window.navigator && window.navigator.standalone) ? 84 : 64, 
-            paddingTop: typeof window !== 'undefined' && ('standalone' in window.navigator && window.navigator.standalone) ? 8 : 0,
-            paddingBottom: typeof window !== 'undefined' && ('standalone' in window.navigator && window.navigator.standalone) ? 24 : 0
+            height: typeof window !== 'undefined' && window.navigator.standalone ? 76 : 64, 
+            paddingTop: typeof window !== 'undefined' && window.navigator.standalone ? 6 : 0,
+            paddingBottom: typeof window !== 'undefined' && window.navigator.standalone ? 18 : 0 
           } : {}), 
         },
+
         tabBarItemStyle: { alignSelf: "center" }, 
         tabBarLabelStyle: { 
           fontFamily: 'Plus Jakarta Sans',
