@@ -64,13 +64,14 @@ export default function TabsLayout() {
           borderTopWidth: 1,
           elevation: 0,
           shadowOpacity: 0,
-          // 🛠️ RISOLTO: Blocco rigido dell'altezza per eliminare lo sfasamento elastico al cambio scheda su Safari Home Screen
+          // 🛠️ RISOLTO: Blocco rigido ad altezza fissa per azzerare lo scatto elastico inferiore dell'iPhone
           ...(Platform.OS === "web" ? { 
-            height: typeof window !== 'undefined' && window.navigator.standalone ? 76 : 64, 
-            paddingTop: typeof window !== 'undefined' && window.navigator.standalone ? 6 : 0,
-            paddingBottom: typeof window !== 'undefined' && window.navigator.standalone ? 18 : 0 
+            height: typeof window !== 'undefined' && window.navigator.standalone ? 78 : 64, 
+            paddingTop: typeof window !== 'undefined' && window.navigator.standalone ? 4 : 0,
+            paddingBottom: typeof window !== 'undefined' && window.navigator.standalone ? 20 : 0
           } : {}), 
         },
+
 
         tabBarItemStyle: { alignSelf: "center" }, 
         tabBarLabelStyle: { 
