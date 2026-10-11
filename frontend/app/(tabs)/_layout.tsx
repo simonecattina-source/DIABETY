@@ -25,13 +25,11 @@ export default function TabsLayout() {
           <NativeTabs.Trigger.Label>Inserisci</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         
-        {/* 🧠 SCHEDA BOLO IN SECONDA POSIZIONE SOTTO STRUTTURA NATIVA APPLE */}
         <NativeTabs.Trigger name="bolo">
           <NativeTabs.Trigger.Icon sf="calculator.circle.fill" />
           <NativeTabs.Trigger.Label>Bolo</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
 
-        {/* 🍏 SCHEDA ALIMENTI REGISTRATA IN TERZA POSIZIONE (MODALITÀ APPLE NATIVA) */}
         <NativeTabs.Trigger name="alimenti">
           <NativeTabs.Trigger.Icon sf="fork.knife.circle.fill" />
           <NativeTabs.Trigger.Label>Alimenti</NativeTabs.Trigger.Label>
@@ -66,7 +64,12 @@ export default function TabsLayout() {
           borderTopWidth: 1,
           elevation: 0,
           shadowOpacity: 0,
-          ...(Platform.OS === "web" ? { height: 64 } : {}), 
+          // 🛠️ RISOLTO: Calibrazione millimetrica delle altezze se l'app è salvata sulla Home di un iPhone
+          ...(Platform.OS === "web" ? { 
+            height: typeof window !== 'undefined' && ('standalone' in window.navigator && window.navigator.standalone) ? 84 : 64, 
+            paddingTop: typeof window !== 'undefined' && ('standalone' in window.navigator && window.navigator.standalone) ? 8 : 0,
+            paddingBottom: typeof window !== 'undefined' && ('standalone' in window.navigator && window.navigator.standalone) ? 24 : 0
+          } : {}), 
         },
         tabBarItemStyle: { alignSelf: "center" }, 
         tabBarLabelStyle: { 
@@ -96,7 +99,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* 🍏 SCHEDA ALIMENTI IN TERZA POSIZIONE CON ICONA FAST-FOOD TECH */}
       <Tabs.Screen
         name="alimenti"
         options={{
@@ -126,7 +128,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ⚙️ RISOLTO DEFINITIVAMENTE: Disegnato l'ingranaggio direttamente in codice per distruggere il bug di cache della freccia */}
       <Tabs.Screen
         name="impostazioni"
         options={{
