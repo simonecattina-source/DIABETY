@@ -137,7 +137,7 @@ export default function CalcolatoreBoloScreen() {
       <View style={styles.rigaDatiPrincipali}>
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
           <Text style={styles.labelLeftHighlight}>Glicemia (mg/dL)</Text>
-          <TextInput style={styles.glicemiaInput} placeholder="100" placeholderTextColor="#636366" keyboardType="numeric" value={glicemiaAttuale} onChangeText={setGlicemiaAttuale} maxLength={3} />
+          <TextInput style={styles.glicemiaInput} placeholder="00" placeholderTextColor="#636366" keyboardType="numeric" value={glicemiaAttuale} onChangeText={setGlicemiaAttuale} maxLength={3} />
         </View>
 
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
