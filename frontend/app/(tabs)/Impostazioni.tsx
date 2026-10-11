@@ -55,7 +55,7 @@ export default function StrumentiScreen() {
         }
       }
     } catch (error) {
-      alert("Errore Aegean durante il backup.");
+      alert("Errore durante la creazione del file di backup.");
     }
   };
   // 📂 IMPORTA BACKUP JSON
@@ -85,7 +85,7 @@ export default function StrumentiScreen() {
     lettore.readAsText(file);
   };
 
-  // 📄 GENERAZIONE REALE DEL REPORT PDF CLINICO LANDSCAPE A 11 COLONNE
+  // 📄 RENDERING REALE DEL REPORT PDF CLINICO LANDSCAPE A 11 COLONNE (FIX METRO EXPO)
   const esportaDiarioPDF = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -141,7 +141,7 @@ export default function StrumentiScreen() {
       const elencoDateOrdinate = Object.values(righeRaggruppate).sort((a: any, b: any) => {
         const [gA, mA, anA] = a.data.split('/');
         const [gB, mB, anB] = b.data.split('/');
-        return new Date(parseInt(anB) < 50 ? 2000+parseInt(anB) : 1900+parseInt(anB), parseInt(mA)-1, parseInt(gA)).getTime() - 
+        return new Date(parseInt(anA) < 50 ? 2000+parseInt(anA) : 1900+parseInt(anA), parseInt(mA)-1, parseInt(gA)).getTime() - 
                new Date(parseInt(anB) < 50 ? 2000+parseInt(anB) : 1900+parseInt(anB), parseInt(mB)-1, parseInt(gB)).getTime();
       });
 
@@ -164,7 +164,7 @@ export default function StrumentiScreen() {
                 <tr style="background-color:#13131A; color:#ffffff; font-size:11px;">
                   <th style="border:1px solid #d3d3d3; padding:8px; width:70px;">Data</th>
                   <th style="border:1px solid #d3d3d3; padding:8px; width:45px;">Param.</th>
-                  \${COLONNE_MOMENTI.map(m => `<th style="border:1px solid #d3d3d3; padding:6px; font-size:10px;">\${m}</th>`).join('')}
+                  \${COLONNE_MOMENTI.map(m => \`<th style="border:1px solid #d3d3d3; padding:6px; font-size:10px;">\${m}</th>\`).join('')}
                 </tr>
               </thead>
               <tbody>
@@ -184,7 +184,7 @@ export default function StrumentiScreen() {
                   else if (num > 180) coloreTesto = "#c0392b";
                   else coloreTesto = "#27ae60";
                 }
-                return `<td style="border:1px solid #d3d3d3; text-align:center; font-weight:bold; color:\${coloreTesto}; padding:5px;">\${val}</td>`;
+                return \`<td style="border:1px solid #d3d3d3; text-align:center; font-weight:bold; color:\${coloreTesto}; padding:5px;">\${val}</td>\`;
               }).join('')}
             </tr>
           `;
@@ -192,7 +192,7 @@ export default function StrumentiScreen() {
           htmlContenutoTabelle += `
             <tr style="font-size:11px; background:#ffffff;">
               <td style="border:1px solid #d3d3d3; text-align:center; font-weight:bold; color:#7d52ff; padding:5px; background:#f9f9fa;">INS</td>
-              \${COLONNE_MOMENTI.map(m => `<td style="border:1px solid #d3d3d3; text-align:center; color:#2c3e50; padding:5px;">\${rigaDay[m].i}</td>`).join('')}
+              \${COLONNE_MOMENTI.map(m => \`<td style="border:1px solid #d3d3d3; text-align:center; color:#2c3e50; padding:5px;">\${rigaDay[m].i}</td>\`).join('')}
             </tr>
           `;
 
