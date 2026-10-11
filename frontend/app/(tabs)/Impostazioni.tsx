@@ -5,19 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
-const COLORS = {
-  background: "#0A0A0C",        
-  surfaceSecondary: "#13131A",  
-  brandPrimary: "#00E5FF",      
-  onSurface: "#FFFFFF",         
-  muted: "#7E7E86",             
-  success: "#00E676",           
-  warning: "#FF9100",           
-  error: "#FF5252",             
-  borderGlass: "rgba(255, 255, 255, 0.08)",
-  bgUtility: "#1A1A24",         
-  borderUtility: "#3A3A4A"      
-};
+// 🌟 AGGANCIO AL CONTESTO DEL TEMA GLOBALE SPOSTATO FUORI DA APP
+import { useTheme } from '../../context/ThemeContext';
 
 const MOMENTI_COLONNE = [
   "Prima Colazione", "Dopo Colazione", "Spuntino", 
@@ -25,6 +14,7 @@ const MOMENTI_COLONNE = [
   "Prima Cena", "Dopo Cena", "Notte"
 ];
 export default function StrumentiScreen() {
+  const { colors, isDarkMode, toggleTheme } = useTheme();
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
   const [filtroPdfSelezionato, setFiltroPdfSelezionato] = useState<string>('30 GG');
 
@@ -92,7 +82,7 @@ export default function StrumentiScreen() {
     lettore.readAsText(file);
   };
 
-  // 📄 GENERAZIONE DEL DOCUMENTO CLINICO IN ORIZZONTALE IDENTICO ALLO STORICO
+  // 📄 ALGORITMO PDF A MATRICE 11 COLONNE (IDENTICO AL 100% ALLO STORICO)
   const esportaDocumentoMatriceStoricoPDF = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -246,17 +236,6 @@ export default function StrumentiScreen() {
           finestraStampa.document.write(htmlTemplateHTML);
           finestraStampa.document.close();
           finestraStampa.onload = () => { finestraStampa.focus(); finestraStampa.print(); };
-        } else {
-          const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
-          const risposta = await fetch(uri);
-          const blobFile = await risposta.blob();
-          const urlDownload = URL.createObjectURL(blobFile);
-          const tagAnchor = document.createElement('a');
-          tagAnchor.href = urlDownload;
-          tagAnchor.download = `Registro_Glicemico_Diabety_${filtroPdfSelezionato.replace(" ", "_")}.pdf`;
-          document.body.appendChild(tagAnchor);
-          tagAnchor.click();
-          document.body.removeChild(tagAnchor);
         }
       } else {
         const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
@@ -267,84 +246,119 @@ export default function StrumentiScreen() {
     }
   };
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
-      {/* 🏷️ INTESTAZIONE SCHEDA */}
+      {/* 🏷️ INTESTAZIONE SCHEDA DI REGOLAZIONE */}
       <View style={styles.headerForm}>
-        <Text style={styles.title}>Centro Strumenti</Text>
-        <Text style={styles.subtitle}>Gestione database e informazioni mediche dell'app</Text>
+        <Text style={[styles.title, { color: colors.onSurface }]}>Centro Strumenti</Text>
+        <Text style={[styles.subtitle, { color: colors.muted }]}>Gestione database e configurazione visiva dell'app</Text>
       </View>
 
       {statoNotifica && (
-        <View style={styles.notificaTendina}>
-          <Text style={styles.notificaTesto}>{statoNotifica}</Text>
+        <View style={[styles.notificaTendina, { backgroundColor: colors.bgUtility, borderColor: colors.success }]}>
+          <Text style={[styles.notificaTesto, { color: colors.success }]}>{statoNotifica}</Text>
         </View>
       )}
 
-      {/* 📊 SEZIONE 1: AZIONI E BACKUP */}
-      <Text style={styles.sectionLabel}>Manutenzione e Report</Text>
-      <View style={styles.cardAzioni}>
-        
-        {/* 1. Riga Esporta Backup */}
-        <TouchableOpacity style={styles.rowAzione} onPress={esportaBackupJSON}>
+      {/* 🎨 SEZIONE NUOVA: CONTROLLO INTERFACCIA TEMA LIGHT / DARK */}
+      <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Interfaccia Visiva</Text>
+      <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
+        <View style={styles.rowAzioneTema}>
           <View style={styles.leftAzione}>
-            <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
-              <Ionicons name="cloud-download-outline" size={20} color={COLORS.onSurface} />
+            <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
+              <Ionicons name="sunny-outline" size={20} color={colors.onSurface} />
             </View>
             <View>
-              <Text style={styles.titoloAzione}>Esporta Backup</Text>
-              <Text style={styles.descAzione}>Salva un file JSON con tutto lo storico dei log</Text>
+              <Text style={[styles.titoloAzione, { color: colors.onSurface }]}>Tema dell'applicazione</Text>
+              <Text style={[styles.descAzione, { color: colors.muted }]}>Personalizza contemporaneamente tutte le schede</Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+        </View>
+        
+        {/* Griglia Switcher Ad Incastro Bilanciata */}
+        <View style={styles.containerToggleTema}>
+          <TouchableOpacity 
+            style={[styles.btnTemaSelector, { backgroundColor: colors.bgUtility }, !isDarkMode && styles.btnTemaSelectorAttivoLight]} 
+            onPress={() => toggleTheme('light')}
+          >
+            <Ionicons name="sunny" size={16} color={!isDarkMode ? "#00B4D8" : colors.muted} />
+            <Text style={[styles.textBtnTema, { color: colors.muted }, !isDarkMode && styles.textBtnTemaAttivoLight]}>Light Mode</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.btnTemaSelector, { backgroundColor: colors.bgUtility }, isDarkMode && styles.btnTemaSelectorAttivoDark]} 
+            onPress={() => toggleTheme('dark')}
+          >
+            <Ionicons name="moon" size={16} color={isDarkMode ? colors.brandPrimary : colors.muted} />
+            <Text style={[styles.textBtnTema, { color: colors.muted }, isDarkMode && styles.textBtnTemaAttivoDark]}>Dark Mode</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* 📊 SEZIONE: AZIONI E BACKUP DATABASE */}
+      <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manutenzione e Report</Text>
+      <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
+        
+        {/* 1. Riga Esporta Backup */}
+        <TouchableOpacity style={[styles.rowAzione, { borderBottomColor: colors.borderGlass }]} onPress={esportaBackupJSON}>
+          <View style={styles.leftAzione}>
+            <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
+              <Ionicons name="cloud-download-outline" size={20} color={colors.onSurface} />
+            </View>
+            <View>
+              <Text style={[styles.titoloAzione, { color: colors.onSurface }]}>Esporta Backup</Text>
+              <Text style={[styles.descAzione, { color: colors.muted }]}>Salva un file JSON con tutto lo storico dei log</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
         </TouchableOpacity>
 
         {/* 2. Riga Importa Backup */}
         {Platform.OS === 'web' ? (
-          <label style={styles.rowAzioneLabel}>
+          <label style={[styles.rowAzioneLabel, { borderBottomColor: colors.borderGlass }]}>
             <View style={styles.leftAzione}>
-              <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
-                <Ionicons name="cloud-upload-outline" size={20} color={COLORS.onSurface} />
+              <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
+                <Ionicons name="cloud-upload-outline" size={20} color={colors.onSurface} />
               </View>
               <View>
-                <Text style={styles.titoloAzione}>Importa Backup</Text>
-                <Text style={styles.descAzione}>Ripristina il database caricando un file JSON</Text>
+                <Text style={[styles.titoloAzione, { color: colors.onSurface }]}>Importa Backup</Text>
+                <Text style={[styles.descAzione, { color: colors.muted }]}>Ripristina il database caricando un file JSON</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
             <input type="file" accept=".json" onChange={gestisciImportazioneWeb} style={{ display: 'none' }} />
           </label>
         ) : (
-          <TouchableOpacity style={styles.rowAzione}>
+          <TouchableOpacity style={[styles.rowAzione, { borderBottomColor: colors.borderGlass }]}>
             <View style={styles.leftAzione}>
-              <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
-                <Ionicons name="cloud-upload-outline" size={20} color={COLORS.onSurface} />
+              <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
+                <Ionicons name="cloud-upload-outline" size={20} color={colors.onSurface} />
               </View>
               <View>
-                <Text style={styles.titoloAzione}>Importa Backup</Text>
-                <Text style={styles.descAzione}>Ripristina il database caricando un file JSON</Text>
+                <Text style={[styles.titoloAzione, { color: colors.onSurface }]}>Importa Backup</Text>
+                <Text style={[styles.descAzione, { color: colors.muted }]}>Ripristina il database caricando un file JSON</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
           </TouchableOpacity>
         )}
 
-        {/* 🌟 LINEA DI SEPARAZIONE COMPLETA AGGIUNTA TRA IMPORTA E REGISTRO PDF */}
-        <View style={styles.dividerAzione} />
+        {/* LINEA DI SEPARAZIONE SIMMETRICA */}
+        <View style={[styles.dividerAzione, { backgroundColor: colors.borderGlass }]} />
 
         {/* 3. Riga Esporta PDF Avanzata */}
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDocumentoMatriceStoricoPDF}>
             <View style={styles.leftAzione}>
-              <View style={[styles.iconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.1)' }]}>
-                <Ionicons name="document-text-outline" size={20} color={COLORS.brandPrimary} />
+              <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
+                <Ionicons name="document-text-outline" size={20} color={colors.brandPrimary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esporta Registro PDF</Text>
-                <Text style={styles.descAzione}>Genera il documento clinico a matrice identico allo storico</Text>
+                <Text style={[styles.titoloAzione, { color: colors.brandPrimary }]}>Esporta Registro PDF</Text>
+                <Text style={[styles.descAzione, { color: colors.muted }]}>Genera il documento clinico a matrice identico allo storico</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.brandPrimary} />
+            <Ionicons name="chevron-forward" size={18} color={colors.brandPrimary} />
           </TouchableOpacity>
 
           {/* 📅 Pulsantiera Orizzontale Interna */}
@@ -354,10 +368,10 @@ export default function StrumentiScreen() {
               return (
                 <TouchableOpacity
                   key={intervallo}
-                  style={[styles.chipMiniPdf, attivo && styles.chipMiniPdfAttiva]}
+                  style={[styles.chipMiniPdf, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }, attivo && styles.chipMiniPdfAttiva]}
                   onPress={() => setFiltroPdfSelezionato(intervallo)}
                 >
-                  <Text style={[styles.textMiniChipPdf, attivo && styles.textMiniChipPdfAttivo]}>
+                  <Text style={[styles.textMiniChipPdf, { color: colors.muted }, attivo && { color: colors.brandPrimary, fontWeight: '700' }]}>
                     {intervallo}
                   </Text>
                 </TouchableOpacity>
@@ -368,30 +382,30 @@ export default function StrumentiScreen() {
 
       </View>
 
-      {/* 📚 SEZIONE 2: GUIDA ALL'USO DETTAGLIATA */}
-      <Text style={styles.sectionLabel}>Manuale & Linee Guida</Text>
+      {/* 📚 SEZIONE: MANUALE CLINICO */}
+      <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manuale & Linee Guida</Text>
       
-      <View style={styles.infoBlockPremium}>
-        <Text style={styles.infoBlockTitle}>🛡️ Logica dell'Archivio Trimestrale</Text>
-        <Text style={styles.infoBlockText}>
-          L'applicazione memorizza localmente le misurazioni calcolando i trend su una finestra mobile di **90 giorni**. I log antecedenti vengono archiviati o rimossi in modo intelligente per salvaguardare lo spazio e mantenere l'app scattante. Prima della scadenza, si consiglia di usare la funzione "Esporta Backup".
+      <View style={[styles.infoBlockPremium, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
+        <Text style={[styles.infoBlockTitle, { color: colors.onSurface }]}>🛡️ Logica dell'Archivio Trimestrale</Text>
+        <Text style={[styles.infoBlockText, { color: colors.muted }]}>
+          L'applicazione memorizza localmente le misurazioni calcolando i trend su una finestra mobile di **90 giorni**. I log antecedenti vengono protetti o archiviati in modo intelligente. Prima della scadenza, si consiglia di usare la funzione "Esporta Backup".
         </Text>
       </View>
 
-      <View style={styles.infoBlockPremium}>
-        <Text style={styles.infoBlockTitle}>⏰ Tracciamento Orario Intraday</Text>
-        <Text style={styles.infoBlockText}>
-          L'orario inserito viene impiegato dall'algoritmo per ordinare cronologicamente la timeline. Quando aggiungi delle note testuali personalizzate, l'orario effettivo viene registrato automaticamente all'inizio della stringa racchiuso tra parentesi quadre per una consultazione immediata dei pasti.
+      <View style={[styles.infoBlockPremium, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
+        <Text style={[styles.infoBlockTitle, { color: colors.onSurface }]}>⏰ Tracciamento Orario Intraday</Text>
+        <Text style={[styles.infoBlockText, { color: colors.muted }]}>
+          L'orario inserito viene impiegato dall'algoritmo per ordinare cronologicamente la timeline. Quando aggiungi delle note personalizzate, l'orario effettivo viene registrato in automatico all'inizio racchiuso tra parentesi quadre.
         </Text>
       </View>
 
-      <View style={styles.infoBlockPremium}>
-        <Text style={styles.infoBlockTitle}>📊 Soglie Glicemiche e Codici Colore</Text>
-        <Text style={styles.infoBlockText}>
-          Il diario applica tre gradazioni cromatiche OLED in base ai parametri impostati:{"\n"}
-          • <Text style={{ color: COLORS.success, fontWeight: '700' }}>Verde (Normale):</Text> Valori compresi tra 70 e 180 mg/dL.{"\n"}
-          • <Text style={{ color: '#FF9100', fontWeight: '700' }}>Arancione (Ipoglicemia):</Text> Sotto i 70 mg/dL.{"\n"}
-          • <Text style={{ color: '#FF5252', fontWeight: '700' }}>Rosso (Iperglicemia):</Text> Sopra i 180 mg/dL.
+      <View style={[styles.infoBlockPremium, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
+        <Text style={[styles.infoBlockTitle, { color: colors.onSurface }]}>📊 Soglie Glicemiche e Codici Colore</Text>
+        <Text style={[styles.infoBlockText, { color: colors.muted }]}>
+          Il diario applica tre gradazioni cromatiche in base ai parametri medici standard di riferimento:{"\n"}
+          • <Text style={{ color: colors.success, fontWeight: '700' }}>Verde (Normale):</Text> Valori compresi tra 70 e 180 mg/dL.{"\n"}
+          • <Text style={{ color: colors.warning, fontWeight: '700' }}>Arancione (Ipoglicemia):</Text> Sotto i 70 mg/dL.{"\n"}
+          • <Text style={{ color: colors.error, fontWeight: '700' }}>Rosso (Iperglicemia):</Text> Sopra i 180 mg/dL.
         </Text>
       </View>
 
@@ -399,53 +413,45 @@ export default function StrumentiScreen() {
   );
 }
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1 },
   content: { padding: 16, paddingTop: 20, paddingBottom: 40 },
   headerForm: { marginBottom: 20, width: '100%' },
-  title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700', color: COLORS.onSurface },
-  subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, marginTop: 4 },
+  title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700' },
+  subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, marginTop: 4 },
   
-  sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 22, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
+  sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', marginTop: 22, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
   
-  cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', overflow: 'hidden' },
-  rowAzione: { flexDirection: 'row', alignItems: 'center', justifyBetween: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
-  rowAzioneLabel: { 
-    display: 'flex', 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    padding: 14, 
-    height: 68, 
-    cursor: 'pointer', 
-    width: '100%', 
-    boxSizing: 'border-box' 
-  },
-  
-  // 🌟 STYLE DELLA LINEA DI SEPARAZIONE COMPATIBILE AL 100% SU TUTTE LE PIATTAFORME
-  dividerAzione: {
-    height: 1,
-    backgroundColor: COLORS.borderGlass,
-    width: '100%'
-  },
-
+  cardAzioni: { borderRadius: 16, borderWidth: 1, width: '100%', overflow: 'hidden' },
+  rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, width: '100%' },
+  rowAzioneLabel: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, cursor: 'pointer', width: '100%', boxSizing: 'border-box' },
   leftAzione: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
-  titoloAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
-  descAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: COLORS.muted, marginTop: 2 },
+  iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
+  titoloAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700' },
+  descAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, marginTop: 2 },
+
+  rowAzioneTema: { flexDirection: 'row', alignItems: 'center', padding: 14, width: '100%' },
+  containerToggleTema: { flexDirection: 'row', paddingHorizontal: 14, paddingBottom: 14, gap: 8, width: '100%' },
+  btnTemaSelector: { flex: 1, flexDirection: 'row', paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: 'transparent' },
+  btnTemaSelectorAttivoLight: { backgroundColor: 'rgba(0, 180, 216, 0.08)', borderColor: '#00B4D8' },
+  btnTemaSelectorAttivoDark: { backgroundColor: 'rgba(0, 229, 255, 0.08)', borderColor: '#00E5FF' },
+  textBtnTema: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600' },
+  textBtnTemaAttivoLight: { color: '#00B4D8', fontWeight: '700' },
+  textBtnTemaAttivoDark: { color: '#00E5FF', fontWeight: '700' },
+
+  dividerAzione: { height: 1, width: '100%' },
 
   rowAzionePdfComplessa: { width: '100%', padding: 14, paddingTop: 12, paddingBottom: 14, flexDirection: 'column' },
   rowPdfClickArea: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 12 },
   
   containerMiniFiltriPdf: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', gap: 6, paddingLeft: 2 },
-  chipMiniPdf: { flex: 1, backgroundColor: '#1A1A24', paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
-  chipMiniPdfAttiva: { backgroundColor: 'rgba(0, 229, 255, 0.08)', borderColor: COLORS.brandPrimary },
-  textMiniChipPdf: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600', color: COLORS.muted },
-  textMiniChipPdfAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
+  chipMiniPdf: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  chipMiniPdfAttiva: { backgroundColor: 'rgba(0, 229, 255, 0.08)', borderColor: '#00E5FF' },
+  textMiniChipPdf: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600' },
 
-  infoBlockPremium: { marginBottom: 12, backgroundColor: COLORS.surfaceSecondary, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%' },
-  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: '700', color: COLORS.onSurface, marginBottom: 6 },
-  infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, lineHeight: 18 },
+  infoBlockPremium: { marginBottom: 12, padding: 14, borderRadius: 16, borderWidth: 1, width: '100%' },
+  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: '700', marginBottom: 6 },
+  infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, lineHeight: 18 },
 
-  notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
-  notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 13 }
+  notificaTendina: { borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
+  notificaTesto: { fontFamily: 'Plus Jakarta Sans', fontWeight: '600', fontSize: 13 }
 });
