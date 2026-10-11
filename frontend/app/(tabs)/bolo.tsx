@@ -9,9 +9,9 @@ const COLORS = {
   brandSecondary: "#7D52FF",    // Viola tech per la sezione parametri
   onSurface: "#FFFFFF",         
   muted: "#7E7E86",             
-  success: "#00E676",           
-  warning: "#FF9100",           
-  error: "#FF5252",             
+  success: "#00E676",           // Verde smeraldo Oled
+  warning: "#FF9100",           // Arancione vivo
+  error: "#FF5252",             // Rosso corallo neon
   borderGlass: "rgba(255, 255, 255, 0.08)"
 };
 
@@ -116,13 +116,21 @@ export default function CalcolatoreBoloScreen() {
           <Text style={styles.saveButtonText}>Calcola Bolo</Text>
         </TouchableOpacity>
       </View>
-
-      {/* BOX IMPOSTAZIONI RATIO TERAPEUTICI MODIFICABILI CON PULSANTE "i" */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, marginBottom: 10 }}>
-        <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>I tuoi Rapporti Personali</Text>
-        <TouchableOpacity onPress={() => setMostraHelpParametri(true)} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} style={{ justifyContent: 'center', alignItems: 'center', marginTop: 1 }}>
-          <Ionicons name="information-circle-outline" size={18} color={COLORS.brandPrimary} />
-        </TouchableOpacity>
+      {/* BOX IMPOSTAZIONI RATIO TERAPEUTICI MODIFICABILI CON PULSANTE "i" E SOTTOTESTO MEDICO */}
+      <View style={{ marginTop: 14, marginBottom: 10, width: '100%' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          <Text style={styles.sectionLabelBolo}>I tuoi Rapporti Personali</Text>
+          <TouchableOpacity 
+            onPress={() => setMostraHelpParametri(true)} 
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            style={{ justifyContent: 'center', alignItems: 'center', marginTop: 1 }}
+          >
+            <Ionicons name="information-circle-outline" size={18} color={COLORS.brandPrimary} />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.subLabelSpiegazioneBolo}>
+          Pianifica e Studia i tuoi rapporti personali insieme al tuo medico e inseriscili nel riquadro specifico.
+        </Text>
       </View>
 
       <View style={styles.cardParametriFissi}>
@@ -203,6 +211,9 @@ const styles = StyleSheet.create({
   subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, marginTop: 4 },
   
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 14, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
+  sectionLabelBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, letterSpacing: -0.2 },
+  subLabelSpiegazioneBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, marginTop: 2, lineHeight: 18, textAlign: 'left' },
+  
   rigaDatiPrincipali: { flexDirection: 'row', gap: 12, marginBottom: 16, width: '100%' },
   metaLarghezza: { flex: 1 }, 
   
@@ -221,7 +232,6 @@ const styles = StyleSheet.create({
   descParametro: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: COLORS.muted, marginTop: 1 },
   inputParametroFisso: { backgroundColor: '#1A1A24', borderHorizontalWidth: 1, borderColor: COLORS.borderGlass, borderRadius: 10, width: 55, height: 36, textAlign: 'center', color: COLORS.brandPrimary, fontFamily: 'Space Grotesk', fontSize: 15, fontWeight: '700', borderWidth: 1 },
   dividerParametri: { height: 1, backgroundColor: COLORS.borderGlass, width: '100%' },
-
   cardRisultatoHighlight: { backgroundColor: 'rgba(0, 229, 255, 0.04)', borderRadius: 20, borderWidth: 1, borderColor: COLORS.brandPrimary, padding: 18, width: '100%', marginBottom: 16, alignItems: 'center' },
   labelRisultato: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: '700', color: COLORS.brandPrimary, uppercase: true, letterSpacing: 0.5 },
   valoreRisultato: { fontFamily: 'Space Grotesk', fontSize: 46, fontWeight: '900', color: COLORS.onSurface, marginTop: 4 },
@@ -233,17 +243,14 @@ const styles = StyleSheet.create({
   dividerDettaglioVerticale: { width: 1, backgroundColor: 'rgba(0, 229, 255, 0.15)', height: '100%' },
   disclaimerBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, color: COLORS.muted, textAlign: 'center', marginTop: 14, fontStyle: 'italic' },
 
-  // GEOMETRIA MODALE UNIFORMATA AL 100% ALLO STORICO E ALLA HOME
+  // CONFIGURAZIONI DEL POPUP COMPLETAMENTE ALLINEATE ALLO STORICO E ALLA HOME
   modalOverlayCentrato: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalContentHelp: { backgroundColor: '#111116', borderRadius: 24, padding: 24, width: '100%', maxWidth: 360, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
   modalTitleHelp: { fontFamily: 'Space Grotesk', fontSize: 20, fontWeight: '800', color: '#FFFFFF', marginBottom: 24, alignSelf: 'flex-start', letterSpacing: -0.3 },
   modalScrollInfo: { marginBottom: 16, width: '100%', maxHeight: 320 },
   infoBlockPremium: { marginBottom: 16, backgroundColor: '#020204', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)', width: '100%' },
   infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF', marginBottom: 6, textAlign: 'left' },
-  
-  // SOTTOTESTO FISSATO STABILMENTE A 14 CON LUNGHEZZA INTERLINEA AD ALTA LEGGIBILITÀ
   infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: '#7E7E86', lineHeight: 22, textAlign: 'left' },
-  
   btnChiudiHelp: { marginTop: 10, backgroundColor: '#1A1A24', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)', paddingVertical: 12, borderRadius: 12, width: '100%', alignItems: 'center' },
   btnChiudiHelpText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF' }
 });
