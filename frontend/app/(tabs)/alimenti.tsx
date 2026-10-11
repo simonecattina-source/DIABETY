@@ -1,37 +1,52 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Slider from '@react-native-community/slider';
 
-// 📂 IMPORTAZIONE ASINCRONA DEL TUO DATABASE DI ALIMENTI ESTERNO JSON CATEGORIZZATO
+// 📂 IMPORTAZIONE ASINCRONA DEL TUO DATABASE DI ALIMENTI ESTERNO JSON
 import DATABASE_ALIMENTI_ESTERNO from '../../constants/alimenti_database.json';
 
 const COLORS = {
   background: "#0A0A0C",        
   surfaceSecondary: "#13131A",  
-  brandPrimary: "#00E5FF",      // Cyan neon active
+  brandPrimary: "#00E5FF",      // Cyan neon attivo
   brandSecondary: "#7D52FF",    // Viola tech
   onSurface: "#FFFFFF",         
   muted: "#7E7E86",             
-  success: "#00E676",           // Verde smeraldo Oled
+  success: "#00E676",           // Verde smeraldo Oled per il totale CHO
   borderGlass: "rgba(255, 255, 255, 0.08)"
 };
 
-// Ordiniamo alfabeticamente l'array importato per una navigazione utente ottimale
+// Ordiniamo alfabeticamente l'array importato per garantire una ricerca utente ottimale
 const DATABASE_ALIMENTI = DATABASE_ALIMENTI_ESTERNO.sort((a, b) => a.nome.localeCompare(b.nome));
 export default function AlimentiScreen() {
   const [ricerca, setCerca] = useState('');
   const [categoriaSelezionata, setCategoriaSelezionata] = useState('Tutti');
-  const [grammature, setGrammature] = useState<Record<string, number>>({});
+  
+  // Memorizziamo le grammature degli alimenti salvandole come stringhe per permettere la digitazione fluida
+  const [grammature, setGrammature] = useState<Record<string, string>>({});
 
-  // 🏷️ Elenco delle categorie uniche gestite simmetricamente nel database JSON
   const CATEGORIE = ['Tutti', 'Primi', 'Pane e Forno', 'Frutta', 'Colazione', 'Pizze e Fast Food', 'Bevande', 'Verdure e Piatti Unici'];
 
-  const gestisciCambioGrammi = (id: string, valore: number) => {
-    setGrammature(prev => ({ ...prev, [id]: Math.round(valore) }));
+  // 🔒 ALGORITMO DI CONTROLLO RIGIDO: Blocca l'input se supera i 500g o se non è un numero
+  const gestisciCambioTestoGrammi = (id: string, testo: string) => {
+    // Rimuove caratteri non numerici o spazi involontari
+    const testoPulito = testo.replace(/[^0-9]/g, '');
+    
+    if (testoPulito === '') {
+      setGrammature(prev => ({ ...prev, [id]: '' }));
+      return;
+    }
+
+    const valoreNumerico = parseInt(testoPulito, 10);
+    
+    if (valoreNumerico > 500) {
+      // Forza il blocco stringente al limite massimo strutturale impostato a 500g
+      setGrammature(prev => ({ ...prev, [id]: '500' }));
+    } else {
+      setGrammature(prev => ({ ...prev, [id]: valoreNumerico.toString() }));
+    }
   };
 
-  // 🧠 ALGORITMO DI FILTRAGGIO COMBINATO: Incrocia la digitazione del testo con la chip della categoria attiva
   const alimentiFiltrati = DATABASE_ALIMENTI.filter(alimento => {
     const corrispondeRicerca = alimento.nome.toLowerCase().includes(ricerca.toLowerCase());
     const corrispondeCategoria = categoriaSelezionata === 'Tutti' || alimento.categoria === categoriaSelezionata;
@@ -82,52 +97,59 @@ export default function AlimentiScreen() {
           })}
         </ScrollView>
       </View>
-      {/* 📦 LISTA FLUIDA ALIMENTI CON SLIDER INTEGRATO (VIRTUALIZZAZIONE NATIVA AD ALTE PRESTAZIONI) */}
+
+      {/* 📦 LISTA FLUIDA ALIMENTI CON INTERFACCIA NUMERICA LATERALE COMPACT UX */}
       <FlatList
         data={alimentiFiltrati}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        
-        // ⚡ MOTORE DI VIRTUALIZZAZIONE PROTETTO: Ottimizzato per reggere oltre 1000 elementi senza scatti o lag memory
-        initialNumToRender={8}
-        maxToRenderPerBatch={10}
-        windowSize={4}
+        initialNumToRender={10}
+        maxToRenderPerBatch={12}
+        windowSize={5}
         removeClippedSubviews={true} 
-        
         renderItem={({ item }) => {
-          const grammiAttuali = grammature[item.id] || 0;
-          const choCalcolati = ((grammiAttuali * item.cho100g) / 100).toFixed(1);
+          const stringaGrammi = grammature[item.id] !== undefined ? grammature[item.id] : '';
+          const grammiValore = parseInt(stringaGrammi, 10) || 0;
+          
+          // Formula di calcolo clinico CHO istantaneo basata sulla grammatura digitata
+          const choCalcolati = ((grammiValore * item.cho100g) / 100).toFixed(1);
 
           return (
             <View style={styles.cardAlimentoPremium}>
               <View style={styles.rigaInfoSuperiore}>
-                <Text style={styles.nomeAlimento} numberOfLines={1}>{item.nome}</Text>
-                <View style={styles.badgeGrammi}>
-                  <Text style={styles.testoBadgeGrammi}>{grammiAttuali} g</Text>
+                
+                {/* Dettagli Alimento a Sinistra */}
+                <View style={styles.boxTestiSinistra}>
+                  <Text style={styles.nomeAlimento} numberOfLines={1}>{item.nome}</Text>
+                  <Text style={styles.etichettaValoreBase}>Valore base: {item.cho100g}g CHO / 100g</Text>
                 </View>
+
+                {/* 🔢 Riquadro Input Numerico sulla Destra con segnaposto di default "00" */}
+                <View style={styles.boxRiquadroInputDestra}>
+                  <TextInput
+                    style={[styles.inputGrammiRiquadro, stringaGrammi !== '' && styles.inputGrammiRiquadroAttivo]}
+                    placeholder="00"
+                    placeholderTextColor="#636366"
+                    keyboardType="numeric"
+                    value={stringaGrammi}
+                    onChangeText={(t) => gestisciCambioTestoGrammi(item.id, t)}
+                    maxLength={3}
+                    selectTextOnFocus={true} // Seleziona tutto il testo al clic per una correzione istantanea
+                  />
+                  <Text style={styles.etichettaUnitaGg}>g</Text>
+                </View>
+
               </View>
 
-              {/* ───🔘─── LINEA SLIDER DA 0 A 300 GRAMMI */}
-              <View style={styles.containerSliderLinea}>
-                <Slider
-                  style={{ width: '100%', height: 40 }}
-                  minimumValue={0}
-                  maximumValue={300}
-                  minimumTrackTintColor={COLORS.brandPrimary}
-                  maximumTrackTintColor="#2C2C2E"
-                  thumbTintColor={COLORS.brandPrimary}
-                  value={grammiAttuali}
-                  onValueChange={(v) => gestisciCambioGrammi(item.id, v)}
-                />
-              </View>
-
+              {/* Riga Inferiore Risultato Carboidrati Complessivi */}
               <View style={styles.rigaDettaglioValore}>
-                <Text style={styles.etichettaValoreBase}>Valore base: {item.cho100g}g CHO / 100g</Text>
-                <Text style={styles.valoreCalcolatoCho}>
+                <Text style={styles.etichettaRisultatoCHO}>Totale stimato pasto:</Text>
+                <Text style={[styles.valoreCalcolatoCho, grammiValore > 0 && { color: COLORS.brandPrimary }]}>
                   {choCalcolati} <Text style={styles.unitaChoSub}>g CHO</Text>
                 </Text>
               </View>
+
             </View>
           );
         }}
@@ -152,7 +174,6 @@ const styles = StyleSheet.create({
   boxInputRicerca: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceSecondary, borderRadius: 12, paddingHorizontal: 12, height: 44, marginTop: 14, borderWidth: 1, borderColor: COLORS.borderGlass },
   inputRicercaTesto: { flex: 1, color: COLORS.onSurface, fontFamily: 'Plus Jakarta Sans', fontSize: 14, paddingVertical: 4 },
   
-  // 🎨 CHIPS CATEGORIE CSS AD ALTO CONTRASTO OLED EFFECT
   containerFiltroCategorie: { backgroundColor: COLORS.background, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
   scrollCategorieContent: { paddingHorizontal: 16, gap: 8 },
   chipCategoria: { backgroundColor: COLORS.surfaceSecondary, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: COLORS.borderGlass },
@@ -161,15 +182,20 @@ const styles = StyleSheet.create({
   textChipCategoriaAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
 
   listContent: { padding: 16, paddingBottom: 40 },
-  cardAlimentoPremium: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: COLORS.borderGlass, marginBottom: 12, width: '100%' },
-  rigaInfoSuperiore: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' },
-  nomeAlimento: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: COLORS.onSurface, flex: 1, marginRight: 10 },
-  badgeGrammi: { backgroundColor: '#1A1A24', borderWidth: 1, borderColor: COLORS.borderGlass, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8 },
-  testoBadgeGrammi: { fontFamily: 'Space Grotesk', fontSize: 12, fontWeight: '700', color: COLORS.brandPrimary },
-  
-  containerSliderLinea: { width: '100%', marginVertical: 2 },
-  rigaDettaglioValore: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: 2 },
+  cardAlimentoPremium: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: COLORS.borderGlass, marginBottom: 12, width: '100%', flexDirection: 'column' },
+  rigaInfoSuperiore: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottomWidth: 1, borderBottomColor: "rgba(255, 255, 255, 0.04)", paddingBottom: 10 },
+  boxTestiSinistra: { flex: 1, marginRight: 16, alignItems: 'flex-start' },
+  nomeAlimento: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: COLORS.onSurface, marginBottom: 4 },
   etichettaValoreBase: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: COLORS.muted },
-  valoreCalcolatoCho: { fontFamily: 'Space Grotesk', fontSize: 18, fontWeight: '800', color: COLORS.success },
+  
+  // 📐 CSS DEL NUOVO RIQUADRO INPUT INTERATTIVO DEI GRAMMI FIANCHEGGIATO SULLA DESTRA
+  boxRiquadroInputDestra: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  inputGrammiRiquadro: { backgroundColor: '#1A1A24', borderHorizontalWidth: 1, borderColor: COLORS.borderGlass, borderWidth: 1, borderRadius: 10, width: 68, height: 42, textAlign: 'center', color: COLORS.muted, fontFamily: 'Space Grotesk', fontSize: 16, fontWeight: '700' },
+  inputGrammiRiquadroAttivo: { borderColor: COLORS.brandPrimary, color: COLORS.brandPrimary, backgroundColor: 'rgba(0, 229, 255, 0.02)' },
+  etichettaUnitaGg: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '600', color: COLORS.muted, width: 12 },
+
+  rigaDettaglioValore: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: 10 },
+  etichettaRisultatoCHO: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, fontWeight: '500' },
+  valoreCalcolatoCho: { fontFamily: 'Space Grotesk', fontSize: 19, fontWeight: '800', color: COLORS.muted },
   unitaChoSub: { fontSize: 11, color: COLORS.muted, fontWeight: '500' }
 });
