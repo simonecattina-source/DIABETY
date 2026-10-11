@@ -5,14 +5,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
-// 🌟 FIX PERCORSO ASSOLUTO: Risaliamo di 3 livelli da app/(tabs)/ per raggiungere la cartella context/
-import { useTheme } from '../../../context/ThemeContext';
+// 🌟 FIX ASSOLUTO VERCEL: Usiamo l'alias nativo per evitare errori di conteggio cartelle
+import { useTheme } from '@/context/ThemeContext';
 
 const MOMENTI_COLONNE = [
   "Prima Colazione", "Dopo Colazione", "Spuntino", 
   "Prima Pranzo", "Dopo Pranzo", "Merenda", 
   "Prima Cena", "Dopo Cena", "Notte"
 ];
+
 export default function StrumentiScreen() {
   const { colors, isDarkMode, toggleTheme } = useTheme();
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
