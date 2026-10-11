@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
-import Ionicons from "@react-native-vector-icons/ionicons";
+// 🛠️ RISOLTO: Importazione corretta da @expo/vector-icons per ripristinare l'icona ingranaggio
+import { Ionicons } from "@expo/vector-icons";
 import { Platform } from "react-native";
 
 import { usesNativeTabs } from "@/src/navigation";
@@ -9,7 +10,7 @@ import { useTheme } from "@/src/theme";
 export default function TabsLayout() {
   const { colors } = useTheme();
 
-  // 🎨 STILE NEON PREMIUM COORDINATO AI GRAFICI
+  // 🎨 PALETTE NEON HIGH-CONTRAST SINFONICA ED OLED OPTIMIZED
   const DESIGN_NEON = {
     backgroundBar: "#0A0A0C",      // Nero Oled profondo per la barra
     activeNeon: "#00E5FF",         // Azzurro Cyan elettrico neon attivo
@@ -24,19 +25,23 @@ export default function TabsLayout() {
           <NativeTabs.Trigger.Icon sf="plus.circle.fill" />
           <NativeTabs.Trigger.Label>Inserisci</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
-        {/* 🧠 NUOVA SCHEDA INIEZIONE BOLO REGISTRATA SOTTO MODALITÀ STRUTTURALE NATIVA APPLE */}
+        
+        {/* 🧠 SCHEDA BOLO IN SECONDA POSIZIONE SOTTO STRUTTURA NATIVA APPLE */}
         <NativeTabs.Trigger name="bolo">
           <NativeTabs.Trigger.Icon sf="calculator.circle.fill" />
           <NativeTabs.Trigger.Label>Bolo</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
+        
         <NativeTabs.Trigger name="storico">
           <NativeTabs.Trigger.Icon sf="list.bullet.rectangle" />
           <NativeTabs.Trigger.Label>Storico</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
+        
         <NativeTabs.Trigger name="grafici">
           <NativeTabs.Trigger.Icon sf="chart.bar.xaxis.asending" />
           <NativeTabs.Trigger.Label>Grafici</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
+        
         <NativeTabs.Trigger name="impostazioni">
           <NativeTabs.Trigger.Icon sf="gearshape.2.fill" />
           <NativeTabs.Trigger.Label>Impostazioni</NativeTabs.Trigger.Label>
@@ -76,7 +81,7 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* 🧠 NUOVA SCHEDA BOLO INSERITA NELLA BARRA CROSS-PLATFORM CON ICONA CALCOLATRICE */}
+      {/* 🧠 SCHEDA BOLO IN SECONDA POSIZIONE SOTTO STRUTTURA STANDARD CROSS-PLATFORM */}
       <Tabs.Screen
         name="bolo"
         options={{
@@ -106,6 +111,7 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* ⚙️ RIPRISTINATO: Grazie all'import corretto, questa riga mostra l'ingranaggio reale delle impostazioni */}
       <Tabs.Screen
         name="impostazioni"
         options={{
