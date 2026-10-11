@@ -9,6 +9,7 @@ const COLORS = {
   background: "#0A0A0C",        
   surfaceSecondary: "#13131A",  
   brandPrimary: "#00E5FF",      
+  brandSecondary: "#7D52FF",    // Viola tech per la sesta card dei grafici
   onSurface: "#FFFFFF",         
   muted: "#7E7E86",             
   success: "#00E676",           
@@ -91,7 +92,6 @@ export default function StrumentiScreen() {
     };
     lettore.readAsText(file);
   };
-
   // 📄 GENERAZIONE DEL DOCUMENTO CLINICO IN ORIZZONTALE IDENTICO ALLO STORICO
   const esportaDocumentoMatriceStoricoPDF = async () => {
     try {
@@ -329,7 +329,7 @@ export default function StrumentiScreen() {
           </TouchableOpacity>
         )}
 
-        {/* 🌟 LINEA DI SEPARAZIONE COMPLETA AGGIUNTA TRA IMPORTA E REGISTRO PDF */}
+        {/* 🌟 LINEA DI SEPARAZIONE COMPLETA TRA IMPORTA E REGISTRO PDF */}
         <View style={styles.dividerAzione} />
 
         {/* 3. Riga Esporta PDF Avanzata */}
@@ -367,31 +367,87 @@ export default function StrumentiScreen() {
         </View>
 
       </View>
-
-      {/* 📚 SEZIONE 2: GUIDA ALL'USO DETTAGLIATA */}
+      {/* 📚 SEZIONE GUIDA ALL'USO POSIZIONATA IN CODA COME ULTIMA SEZIONE IN ASSOLUTO */}
       <Text style={styles.sectionLabel}>Manuale & Linee Guida</Text>
       
+      {/* CARD 1: PROTOCOLLO REGISTRAZIONE */}
       <View style={styles.infoBlockPremium}>
-        <Text style={styles.infoBlockTitle}>🛡️ Logica dell'Archivio Trimestrale</Text>
+        <View style={styles.rigaTitoloManuale}>
+          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.08)' }]}>
+            <Ionicons name="analytics-outline" size={16} color={COLORS.brandPrimary} />
+          </View>
+          <Text style={styles.infoBlockTitle}>1. Protocollo Registrazione</Text>
+        </View>
         <Text style={styles.infoBlockText}>
-          L'applicazione memorizza localmente le misurazioni calcolando i trend su una finestra mobile di **90 giorni**. I log antecedenti vengono archiviati o rimossi in modo intelligente per salvaguardare lo spazio e mantenere l'app scattante. Prima della scadenza, si consiglia di usare la funzione "Esporta Backup".
+          Registra i tuoi dati in un attimo. Appena inizi a digitare la misurazione, l'app memorizza l'orario del test e lo inserisce automaticamente all'inizio delle tue note nel formato <Text style={{color: COLORS.brandPrimary, fontWeight: '600'}}>[HH:MM]</Text>. In questo modo avrai sempre traccia dell'ora esatta di ogni controllo senza doverla inserire a mano.
         </Text>
       </View>
 
+      {/* CARD 2: TARGET CROMATICI */}
       <View style={styles.infoBlockPremium}>
-        <Text style={styles.infoBlockTitle}>⏰ Tracciamento Orario Intraday</Text>
+        <View style={styles.rigaTitoloManuale}>
+          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 230, 118, 0.08)' }]}>
+            <Ionicons name="color-filter-outline" size={16} color={COLORS.success} />
+          </View>
+          <Text style={styles.infoBlockTitle}>2. Target Cromatici OLED</Text>
+        </View>
         <Text style={styles.infoBlockText}>
-          L'orario inserito viene impiegato dall'algoritmo per ordinare cronologicamente la timeline. Quando aggiungi delle note testuali personalizzate, l'orario effettivo viene registrato automaticamente all'inizio della stringa racchiuso tra parentesi quadre per una consultazione immediata dei pasti.
+          Monitora istantaneamente il tuo stato metabolico tramite la codifica dinamica dei colori di sicurezza:{"\n"}
+          • <Text style={{ color: COLORS.success, fontWeight: '700' }}>Verde (Euglicemia):</Text> Valori compresi nel range ideale tra 70 e 180 mg/dL.{"\n"}
+          • <Text style={{ color: COLORS.warning, fontWeight: '700' }}>Arancione (Ipoglicemia):</Text> Rilevazioni critiche inferiori a 70 mg/dL.{"\n"}
+          • <Text style={{ color: COLORS.error, fontWeight: '700' }}>Rosso (Iperglicemia):</Text> Rilevazioni elevate superiori a 180 mg/dL.
         </Text>
       </View>
 
+      {/* CARD 3: ARCHIVIO E AUTO-PULIZIA */}
       <View style={styles.infoBlockPremium}>
-        <Text style={styles.infoBlockTitle}>📊 Soglie Glicemiche e Codici Colore</Text>
+        <View style={styles.rigaTitoloManuale}>
+          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(255, 255, 255, 0.05)' }]}>
+            <Ionicons name="shield-checkmark-outline" size={16} color={COLORS.onSurface} />
+          </View>
+          <Text style={styles.infoBlockTitle}>3. Archivio e Auto-Pulizia</Text>
+        </View>
         <Text style={styles.infoBlockText}>
-          Il diario applica tre gradazioni cromatiche OLED in base ai parametri impostati:{"\n"}
-          • <Text style={{ color: COLORS.success, fontWeight: '700' }}>Verde (Normale):</Text> Valori compresi tra 70 e 180 mg/dL.{"\n"}
-          • <Text style={{ color: '#FF9100', fontWeight: '700' }}>Arancione (Ipoglicemia):</Text> Sotto i 70 mg/dL.{"\n"}
-          • <Text style={{ color: '#FF5252', fontWeight: '700' }}>Rosso (Iperglicemia):</Text> Sopra i 180 mg/dL.
+          L'applicazione applica un algoritmo rigoroso di conservazione locale calcolato su una finestra mobile di <Text style={{color: COLORS.onSurface, fontWeight: '600'}}>90 giorni</Text> rispetto al record più recente. I vecchi dati vengono eliminati automaticamente per ottimizzare la memoria del dispositivo: ricordati di salvare periodicamente un file di backup per non perderli.
+        </Text>
+      </View>
+
+      {/* CARD 4: REPORTISTICA COMPLIANT */}
+      <View style={styles.infoBlockPremium}>
+        <View style={styles.rigaTitoloManuale}>
+          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.08)' }]}>
+            <Ionicons name="document-text-outline" size={16} color={COLORS.brandPrimary} />
+          </View>
+          <Text style={styles.infoBlockTitle}>4. Reportistica Compliant</Text>
+        </View>
+        <Text style={styles.infoBlockText}>
+          Genera esportazioni mediche ufficiali in formato PDF con layout panoramico a matrice, speculare al tuo registro clinico. Puoi selezionare un periodo specifico di <Text style={{color: COLORS.brandPrimary, fontWeight: '600'}}>7, 14, 30 o 90 giorni</Text> (oppure includere l'intero storico) per personalizzare l'intervallo del documento, ottimizzando la visualizzazione dei parametri per la tua prossima consultazione specialistica.
+        </Text>
+      </View>
+
+      {/* CARD 5: INTERSCAMBIO E SICUREZZA DATI */}
+      <View style={styles.infoBlockPremium}>
+        <View style={styles.rigaTitoloManuale}>
+          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.08)' }]}>
+            <Ionicons name="sync-outline" size={16} color={COLORS.brandPrimary} />
+          </View>
+          <Text style={styles.infoBlockTitle}>5. Interscambio e Sicurezza Dati</Text>
+        </View>
+        <Text style={styles.infoBlockText}>
+          Salva e proteggi i tuoi dati in pochi clic. Puoi esportare un file di sicurezza con tutto lo storico del tuo diario oppure caricarne uno vecchio per ripristinare i log. L'importazione sovrascrive il database attuale e richiede sempre una conferma per evitare cancellazioni involontarie.
+        </Text>
+      </View>
+
+      {/* CARD 6: ANALISI AVANZATA E GRAFICI */}
+      <View style={styles.infoBlockPremium}>
+        <View style={styles.rigaTitoloManuale}>
+          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(125, 82, 255, 0.08)' }]}>
+            <Ionicons name="stats-chart-outline" size={16} color={COLORS.brandSecondary} />
+          </View>
+          <Text style={styles.infoBlockTitle}>6. Analisi Avanzata e Grafici</Text>
+        </View>
+        <Text style={styles.infoBlockText}>
+          Controlla l'andamento della tua salute in tempo reale. Questa sezione mostra grafici chiari con l'andamento della tua glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito se sei a target.
         </Text>
       </View>
 
@@ -421,7 +477,6 @@ const styles = StyleSheet.create({
     boxSizing: 'border-box' 
   },
   
-  // 🌟 STYLE DELLA LINEA DI SEPARAZIONE COMPATIBILE AL 100% SU TUTTE LE PIATTAFORME
   dividerAzione: {
     height: 1,
     backgroundColor: COLORS.borderGlass,
@@ -442,9 +497,47 @@ const styles = StyleSheet.create({
   textMiniChipPdf: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600', color: COLORS.muted },
   textMiniChipPdfAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
 
-  infoBlockPremium: { marginBottom: 12, backgroundColor: COLORS.surfaceSecondary, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%' },
-  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: '700', color: COLORS.onSurface, marginBottom: 6 },
-  infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, lineHeight: 18 },
+  infoBlockPremium: { 
+    marginBottom: 12, 
+    backgroundColor: COLORS.surfaceSecondary, 
+    padding: 16, 
+    borderRadius: 16, 
+    borderWidth: 1, 
+    borderColor: COLORS.borderGlass, 
+    width: '100%',
+    alignItems: 'flex-start'
+  },
+  rigaTitoloManuale: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 10, 
+    marginBottom: 10,
+    width: '100%'
+  },
+  miniIconWrapper: { 
+    width: 28, 
+    height: 28, 
+    borderRadius: 8, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    borderWidth: 1, 
+    borderColor: COLORS.borderGlass 
+  },
+  infoBlockTitle: { 
+    fontFamily: 'Plus Jakarta Sans', 
+    fontSize: 14, 
+    fontWeight: '800', 
+    color: COLORS.onSurface,
+    letterSpacing: -0.2
+  },
+  infoBlockText: { 
+    fontFamily: 'Plus Jakarta Sans', 
+    fontSize: 14, 
+    color: COLORS.muted, 
+    lineHeight: 22, 
+    textAlign: 'left',
+    paddingLeft: 2
+  },
 
   notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
   notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 13 }
