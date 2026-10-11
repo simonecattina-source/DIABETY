@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const COLORS = {
   background: "#0A0A0C",        
@@ -9,9 +10,9 @@ const COLORS = {
   brandSecondary: "#7D52FF",    // Viola tech per la sezione parametri
   onSurface: "#FFFFFF",         
   muted: "#7E7E86",             
-  success: "#00E676",           // Verde smeraldo Oled
-  warning: "#FF9100",           // Arancione vivo
-  error: "#FF5252",             // Rosso corallo neon
+  success: "#00E676",           
+  warning: "#FF9100",           
+  error: "#FF5252",             
   borderGlass: "rgba(255, 255, 255, 0.08)"
 };
 
@@ -20,17 +21,57 @@ export default function CalcolatoreBoloScreen() {
   const [glicemiaAttuale, setGlicemiaAttuale] = useState('');
   const [carboidratiPasto, setCarboidratiPasto] = useState('');
 
-  // Parametri Personali Terapeutici (Impostati con valori di default standard modificabili)
+  // Parametri Personali Terapeutici Persistenti (Pre-caricati)
   const [rapportoCHO, setRapportoCHO] = useState('10'); 
   const [sensibilitaISF, setSensibilitaISF] = useState('40'); 
   const [targetGlicemico, setTargetGlicemico] = useState('100'); 
 
-  // Stati per il Risultato e Pop-up Informativo
+  // Stati per il Risultato, Pop-up e Sicurezza Blocco
   const [risultatoBolo, setRisultatoBolo] = useState<number | null>(null);
   const [quotaPasto, setQuotaPasto] = useState<number>(0);
   const [quotaCorrezione, setQuotaCorrezione] = useState<number>(0);
   const [mostraHelpParametri, setMostraHelpParametri] = useState(false);
+  const [modificaAttiva, setModificaAttiva] = useState(false);
+  // 💾 CARICAMENTO AUTOMATICO DEI PARAMETRI SALVATI ALL'AVVIO DELLA SCHEDA
+  useEffect(() => {
+    const caricaParametriTerapeutici = async () => {
+      try {
+        const parametriSalvati = await AsyncStorage.getItem('glicotrack_parametri_bolo');
+        if (parametriSalvati) {
+          const parsed = JSON.parse(parametriSalvati);
+          if (parsed.rapportoCHO) setRapportoCHO(parsed.rapportoCHO);
+          if (parsed.sensibilitaISF) setSensibilitaISF(parsed.sensibilitaISF);
+          if (parsed.targetGlicemico) setTargetGlicemico(parsed.targetGlicemico);
+        }
+      } catch (error) {
+        console.log("Errore nel recupero dei parametri locali.");
+      }
+    };
+    caricaParametriTerapeutici();
+  }, []);
 
+  // 🔐 INTERRUTTORE DI SICUREZZA: SE PASSA DA ATTIVO A DISATTIVO SALVA IN MODO PERMANENTE
+  const gestisciCambioStatoSicurezza = async () => {
+    if (modificaAttiva) {
+      const r_cho = rapportoCHO.trim() || '10';
+      const isf = sensibilitaISF.trim() || '40';
+      const target = targetGlicemico.trim() || '100';
+
+      try {
+        const pacchettoParametri = {
+          rapportoCHO: r_cho,
+          sensibilitaISF: isf,
+          targetGlicemico: target
+        };
+        await AsyncStorage.setItem('glicotrack_parametri_bolo', JSON.stringify(pacchettoParametri));
+        setModificaAttiva(false);
+      } catch (error) {
+        alert("Impossibile salvare i parametri sul dispositivo.");
+      }
+    } else {
+      setModificaAttiva(true);
+    }
+  };
   const calcolaBoloInsulinico = () => {
     const cho = parseFloat(carboidratiPasto) || 0;
     const glic = parseFloat(glicemiaAttuale) || 0;
@@ -116,24 +157,38 @@ export default function CalcolatoreBoloScreen() {
           <Text style={styles.saveButtonText}>Calcola Bolo</Text>
         </TouchableOpacity>
       </View>
-      {/* BOX IMPOSTAZIONI RATIO TERAPEUTICI MODIFICABILI CON PULSANTE "i" E SOTTOTESTO MEDICO */}
+      {/* BOX IMPOSTAZIONI RATIO TERAPEUTICI CON RIGIDO CONTROLLO DI BLOCCO/SBLOCCO DI SICUREZZA */}
       <View style={{ marginTop: 14, marginBottom: 10, width: '100%' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-          <Text style={styles.sectionLabelBolo}>I tuoi Rapporti Personali</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 4 }}>
+          
+          {/* Gruppo di Sinistra: Titolo + Icona "i" */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.sectionLabelBolo}>I tuoi Rapporti Personali</Text>
+            <TouchableOpacity onPress={() => setMostraHelpParametri(true)} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} style={{ justifyContent: 'center', alignItems: 'center', marginTop: 1 }}>
+              <Ionicons name="information-circle-outline" size={18} color={COLORS.brandPrimary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* 🔐 Pulsante di Destra: Attiva/Disattiva Modifica Parametri Permanenti */}
           <TouchableOpacity 
-            onPress={() => setMostraHelpParametri(true)} 
+            onPress={gestisciCambioStatoSicurezza} 
+            style={[styles.pulsanteDestroAzioneBolo, modificaAttiva ? styles.pulsanteStatoAttivoBg : styles.pulsanteStatoDisattivoBg]}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-            style={{ justifyContent: 'center', alignItems: 'center', marginTop: 1 }}
           >
-            <Ionicons name="information-circle-outline" size={18} color={COLORS.brandPrimary} />
+            <Ionicons name={modificaAttiva ? "lock-open-outline" : "lock-closed-outline"} size={14} color={modificaAttiva ? COLORS.success : COLORS.brandPrimary} />
+            <Text style={[styles.testoPulsanteDestroBolo, { color: modificaAttiva ? COLORS.success : COLORS.brandPrimary }]}>
+              {modificaAttiva ? "Disattiva" : "Attiva"}
+            </Text>
           </TouchableOpacity>
+
         </View>
         <Text style={styles.subLabelSpiegazioneBolo}>
           Pianifica e Studia i tuoi rapporti personali insieme al tuo medico e inseriscili nel riquadro specifico.
         </Text>
       </View>
 
-      <View style={styles.cardParametriFissi}>
+      {/* I TRE CAMPI INPUT PROTETTI COINVOLTI DAL BLOCCO DI SICUREZZA */}
+      <View style={[styles.cardParametriFissi, !modificaAttiva && { opacity: 0.65 }]}>
         <View style={styles.rigaRapportoParametro}>
           <View style={styles.sinistraInfoParametro}>
             <Ionicons name="pizza-outline" size={18} color={COLORS.brandSecondary} />
@@ -142,7 +197,7 @@ export default function CalcolatoreBoloScreen() {
               <Text style={styles.descParametro}>Quanti grammi di carboidrati copre 1 UI</Text>
             </View>
           </View>
-          <TextInput style={styles.inputParametroFisso} keyboardType="numeric" value={rapportoCHO} onChangeText={setRapportoCHO} maxLength={2} />
+          <TextInput style={[styles.inputParametroFisso, { color: modificaAttiva ? COLORS.success : COLORS.brandPrimary }]} keyboardType="numeric" value={rapportoCHO} onChangeText={setRapportoCHO} maxLength={2} editable={modificaAttiva} />
         </View>
 
         <View style={styles.dividerParametri} />
@@ -155,7 +210,7 @@ export default function CalcolatoreBoloScreen() {
               <Text style={styles.descParametro}>Di quanto mg/dL scende con 1 UI</Text>
             </View>
           </View>
-          <TextInput style={styles.inputParametroFisso} keyboardType="numeric" value={sensibilitaISF} onChangeText={setSensibilitaISF} maxLength={3} />
+          <TextInput style={[styles.inputParametroFisso, { color: modificaAttiva ? COLORS.success : COLORS.brandPrimary }]} keyboardType="numeric" value={sensibilitaISF} onChangeText={setSensibilitaISF} maxLength={3} editable={modificaAttiva} />
         </View>
 
         <View style={styles.dividerParametri} />
@@ -168,7 +223,7 @@ export default function CalcolatoreBoloScreen() {
               <Text style={styles.descParametro}>Il tuo valore ideale di riferimento</Text>
             </View>
           </View>
-          <TextInput style={styles.inputParametroFisso} keyboardType="numeric" value={targetGlicemico} onChangeText={setTargetGlicemico} maxLength={3} />
+          <TextInput style={[styles.inputParametroFisso, { color: modificaAttiva ? COLORS.success : COLORS.brandPrimary }]} keyboardType="numeric" value={targetGlicemico} onChangeText={setTargetGlicemico} maxLength={3} editable={modificaAttiva} />
         </View>
       </View>
 
@@ -213,7 +268,6 @@ const styles = StyleSheet.create({
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 14, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
   sectionLabelBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, letterSpacing: -0.2 },
   subLabelSpiegazioneBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, marginTop: 2, lineHeight: 18, textAlign: 'left' },
-  
   rigaDatiPrincipali: { flexDirection: 'row', gap: 12, marginBottom: 16, width: '100%' },
   metaLarghezza: { flex: 1 }, 
   
@@ -230,8 +284,14 @@ const styles = StyleSheet.create({
   sinistraInfoParametro: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   titleParametro: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
   descParametro: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: COLORS.muted, marginTop: 1 },
-  inputParametroFisso: { backgroundColor: '#1A1A24', borderHorizontalWidth: 1, borderColor: COLORS.borderGlass, borderRadius: 10, width: 55, height: 36, textAlign: 'center', color: COLORS.brandPrimary, fontFamily: 'Space Grotesk', fontSize: 15, fontWeight: '700', borderWidth: 1 },
+  inputParametroFisso: { backgroundColor: '#1A1A24', borderHorizontalWidth: 1, borderColor: COLORS.borderGlass, borderRadius: 10, width: 55, height: 36, textAlign: 'center', fontFamily: 'Space Grotesk', fontSize: 15, fontWeight: '700', borderWidth: 1 },
   dividerParametri: { height: 1, backgroundColor: COLORS.borderGlass, width: '100%' },
+
+  pulsanteDestroAzioneBolo: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, paddingVertical: 5, paddingHorizontal: 12, borderRadius: 9 },
+  pulsanteStatoDisattivoBg: { backgroundColor: 'rgba(0, 229, 255, 0.04)', borderColor: 'rgba(0, 229, 255, 0.20)' },
+  pulsanteStatoAttivoBg: { backgroundColor: 'rgba(0, 230, 118, 0.05)', borderColor: 'rgba(0, 230, 118, 0.25)' },
+  testoPulsanteDestroBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 11.5, fontWeight: '700', letterSpacing: -0.1 },
+
   cardRisultatoHighlight: { backgroundColor: 'rgba(0, 229, 255, 0.04)', borderRadius: 20, borderWidth: 1, borderColor: COLORS.brandPrimary, padding: 18, width: '100%', marginBottom: 16, alignItems: 'center' },
   labelRisultato: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: '700', color: COLORS.brandPrimary, uppercase: true, letterSpacing: 0.5 },
   valoreRisultato: { fontFamily: 'Space Grotesk', fontSize: 46, fontWeight: '900', color: COLORS.onSurface, marginTop: 4 },
@@ -243,7 +303,6 @@ const styles = StyleSheet.create({
   dividerDettaglioVerticale: { width: 1, backgroundColor: 'rgba(0, 229, 255, 0.15)', height: '100%' },
   disclaimerBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, color: COLORS.muted, textAlign: 'center', marginTop: 14, fontStyle: 'italic' },
 
-  // CONFIGURAZIONI DEL POPUP COMPLETAMENTE ALLINEATE ALLO STORICO E ALLA HOME
   modalOverlayCentrato: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalContentHelp: { backgroundColor: '#111116', borderRadius: 24, padding: 24, width: '100%', maxWidth: 360, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
   modalTitleHelp: { fontFamily: 'Space Grotesk', fontSize: 20, fontWeight: '800', color: '#FFFFFF', marginBottom: 24, alignSelf: 'flex-start', letterSpacing: -0.3 },
