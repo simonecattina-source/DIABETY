@@ -18,6 +18,8 @@ const COLORS = {
 };
 export default function StrumentiScreen() {
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
+  // 📅 STATO PER TRACCIARE IL FILTRO TEMPORALE DEL REPORT PDF
+  const [filtroPdfSelezionato, setFiltroPdfSelezionato] = useState<string>('30 GG');
 
   const mostraMessaggioNotifica = (testo: string) => {
     setStatoNotifica(testo);
@@ -94,7 +96,7 @@ export default function StrumentiScreen() {
         return;
       }
 
-      alert("Predisposizione tracciamento ed esportazione in formato PDF medico avviata!");
+      alert(`Predisposizione esportazione in formato PDF medico per l'intervallo [${filtroPdfSelezionato}] avviata!`);
     } catch (error) {
       alert("Errore durante la generazione del PDF.");
     }
@@ -114,7 +116,7 @@ export default function StrumentiScreen() {
         </View>
       )}
 
-      {/* 📊 SEZIONE 1: AZIONI E BACKUP */}
+      {/* 📊 SEZIONE 1: AZIONI E BACKUP CON SELETTORE TEMPORALE INTEGRATO */}
       <Text style={styles.sectionLabel}>Manutenzione e Report</Text>
       <View style={styles.cardAzioni}>
         
@@ -162,19 +164,39 @@ export default function StrumentiScreen() {
           </TouchableOpacity>
         )}
 
-        {/* 3. Riga Esporta PDF */}
-        <TouchableOpacity style={[styles.rowAzione, { borderBottomWidth: 0 }]} onPress={esportaDiarioPDF}>
-          <View style={styles.leftAzione}>
-            <View style={[styles.iconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.1)' }]}>
-              <Ionicons name="document-text-outline" size={20} color={COLORS.brandPrimary} />
+        {/* 3. Riga Esporta PDF Avanzata (Riquadro unico con selettore ad incastro sotto) */}
+        <View style={styles.rowAzionePdfComplessa}>
+          <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDiarioPDF}>
+            <View style={styles.leftAzione}>
+              <View style={[styles.iconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.1)' }]}>
+                <Ionicons name="document-text-outline" size={20} color={COLORS.brandPrimary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esporta Registro PDF</Text>
+                <Text style={styles.descAzione}>Genera un documento clinico strutturato per il medico</Text>
+              </View>
             </View>
-            <View>
-              <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esporta Registro PDF</Text>
-              <Text style={styles.descAzione}>Genera un documento clinico strutturato per il medico</Text>
-            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.brandPrimary} />
+          </TouchableOpacity>
+
+          {/* 📅 Pulsantiera Orizzontale Interna coesa nello stesso modulo */}
+          <View style={styles.containerMiniFiltriPdf}>
+            {['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'].map((intervallo) => {
+              const attivo = filtroPdfSelezionato === intervallo;
+              return (
+                <TouchableOpacity
+                  key={intervallo}
+                  style={[styles.chipMiniPdf, attivo && styles.chipMiniPdfAttiva]}
+                  onPress={() => setFiltroPdfSelezionato(intervallo)}
+                >
+                  <Text style={[styles.textMiniChipPdf, attivo && styles.textMiniChipPdfAttivo]}>
+                    {intervallo}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-          <Ionicons name="chevron-forward" size={18} color={COLORS.brandPrimary} />
-        </TouchableOpacity>
+        </View>
 
       </View>
 
@@ -217,11 +239,10 @@ const styles = StyleSheet.create({
   
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 22, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
   
-  // 📐 ALLINEAMENTO BLINDATO: FORZATURA COMPORTAMENTO FLEX PER EVITARE IL CROLLO INLINE DEL LABELS
   cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', overflow: 'hidden' },
   rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
   rowAzioneLabel: { 
-    display: 'flex',            // 🌟 Forzatura Flex esplicita contro il ripiego inline di HTML
+    display: 'flex', 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
@@ -237,6 +258,16 @@ const styles = StyleSheet.create({
   iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
   titoloAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
   descAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: COLORS.muted, marginTop: 2 },
+
+  // 📐 INTERFACCIA VERTICALE AD ALTO CONTRASTO PER IL MODULO PDF
+  rowAzionePdfComplessa: { width: '100%', padding: 14, paddingTop: 12, paddingBottom: 14, flexDirection: 'column' },
+  rowPdfClickArea: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 12 },
+  
+  containerMiniFiltriPdf: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', gap: 6, paddingLeft: 2 },
+  chipMiniPdf: { flex: 1, backgroundColor: '#1A1A24', paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
+  chipMiniPdfAttiva: { backgroundColor: 'rgba(0, 229, 255, 0.08)', borderColor: COLORS.brandPrimary },
+  textMiniChipPdf: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600', color: COLORS.muted },
+  textMiniChipPdfAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
 
   // Blocchi Guida Premium
   infoBlockPremium: { marginBottom: 12, backgroundColor: COLORS.surfaceSecondary, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%' },
