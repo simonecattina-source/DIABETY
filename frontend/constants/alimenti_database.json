@@ -146,6 +146,22 @@
   { "id": "145", "nome": "Pane di Altamura / Pane pugliese a lievitazione naturale", "cho100g": 54.5 },
   { "id": "146", "nome": "Crostata casalinga alla marmellata", "cho100g": 56.2 },
   { "id": "147", "nome": "Granita siciliana al limone / mandorla", "cho100g": 22.0 },
-  { "id": "148", "nome": "Bruschetta classica pomodoro e olio", "cho100g": 24.5 }
+  { "id": "148", "nome": "Bruschetta classica pomodoro e olio", "cho100g": 24.5 },
+  { "id": "149", "nome": "Caffè espresso amaro (senza zucchero)", "cho100g": 0.0 },
+  { "id": "150", "nome": "Caffè espresso zuccherato (1 bustina classica da 5g)", "cho100g": 5.0 },
+  { "id": "151", "nome": "Cappuccino classico da bar (con latte intero, amaro)", "cho100g": 3.8 },
+  { "id": "152", "nome": "Macchiato caldo / freddo da bar (amaro)", "cho100g": 1.2 },
+  { "id": "153", "nome": "Biscotti Macine (Mulino Bianco)", "cho100g": 66.0 },
+  { "id": "154", "nome": "Biscotti Tarallucci (Mulino Bianco)", "cho100g": 69.0 },
+  { "id": "155", "nome": "Biscotti Galletti (Mulino Bianco)", "cho100g": 72.0 },
+  { "id": "156", "nome": "Biscotti Abbracci (Mulino Bianco)", "cho100g": 64.0 },
+  { "id": "157", "nome": "Biscotti Pan di Stelle (Mulino Bianco)", "cho100g": 65.0 },
+  { "id": "158", "nome": "Biscotti Baiocchi (Mulino Bianco)", "cho100g": 59.0 },
+  { "id": "159", "nome": "Biscotti Campagnole (Mulino Bianco)", "cho100g": 67.5 },
+  { "id": "160", "nome": "Biscotti Girotondi (Mulino Bianco)", "cho100g": 71.0 },
+  { "id": "161", "nome": "Biscotti Molinetti (Mulino Bianco)", "cho100g": 63.0 },
+  { "id": "162", "nome": "Biscotti Nascondini (Mulino Bianco)", "cho100g": 63.0 },
+  { "id": "163", "nome": "Biscotti Rigoli (Mulino Bianco)", "cho100g": 73.0 },
+  { "id": "164", "nome": "Biscotti Spagnole (Mulino Bianco)", "cho100g": 68.0 },
+  { "id": "165", "nome": "Biscotti Cuor di Mela (Mulino Bianco)", "cho100g": 64.0 }
 ]
-
