@@ -40,7 +40,8 @@ export default function GraficiScreen() {
   const [totaleMisurazioni, setTotaleMisurazioni] = useState<number>(0);
   const [timeInRange, setTimeInRange] = useState<number>(0);
   
-  const [puntiGraficoLinea, setPJMutiGraficoLinea] = useState<any[]>([]);
+  // 🛠️ FIX COMPILATORE: Sostituito setPJMutiGraficoLinea con il nome corretto setPuntiGraficoLinea
+  const [puntiGraficoLinea, setPuntiGraficoLinea] = useState<any[]>([]);
   const [medieMomenti, setMedieMomenti] = useState<any[]>([]);
   const [puntiGrafico24Ore, setPuntiGrafico24Ore] = useState<any[]>([]);
 
@@ -66,10 +67,10 @@ export default function GraficiScreen() {
       setModalTesto("Questo box calcola in tempo reale la media aritmetica di tutte le misurazioni effettuate esclusivamente nella data corrente (dalle 00:00 ad adesso).\n\nTi permette un controllo immediato per capire se l'andamento della giornata è a target.");
     } else if (tipo === '24h') {
       setModalTitolo("Andamento sulle 24 Ore");
-      setModalTesto("Questo grafico mostra l'andamento della glicemia nella giornata di oggi.\n\nLa curva continua azzurra unisce cronologicamente i tuoi test. Il grafico recupera automaticamente l'ultima misurazione di ieri sera prima di mezzanotte e la usa as punto di partenza a inizio giornata.");
+      setModalTesto("Questo grafico mostra l'andamento della glicemia nella giornata di oggi.\n\nLa curva continua azzurra unisce cronologicamente i tuoi test. Il grafico recupera automaticamente l'ultima misurazione di ieri sera prima di mezzanotte e la usa come punto di partenza a inizio giornata.");
     } else if (tipo === 'giornaliere') {
       setModalTitolo("Andamento Medie Giornaliere");
-      setModalTesto("Questo grafico mostra il trend macro della tua media glicemica includendo tutti i 90 giorni del trimestre.\n\nLa fascia entre le due linee tratteggiate evidenzia il range ideale (70 - 180 mg/dL). Le linee tratteggiate indicano i limites di sicurezza.");
+      setModalTesto("Questo grafico mostra il trend macro della tua media glicemica includendo tutti i 90 giorni del trimestre.\n\nLa fascia entre le due linee tratteggiate evidenzia il range ideale (70 - 180 mg/dL). Le linee tratteggiate indicano i limiti di sicurezza.");
     } else if (tipo === 'momenti') {
       setModalTitolo("Medie per Momento");
       setModalTesto("Questo grafico analizza lo storico trimestrale (90 giorni) diviso per i 7 momenti della giornata.\n\nOgni colonna mostra la media calcolata in quello specifico orario. Lo stato indica: Verde (a target), Arancione (basso/ipo) o Rosso (alto/iper). Il trattino (-) indica assenza di dati.");
@@ -79,7 +80,6 @@ export default function GraficiScreen() {
     }
     setModalVisibile(true);
   };
-
   const parsingData = (stringaData: string) => {
     if (!stringaData || !stringaData.includes('/')) return new Date(0);
     const [g, m, a] = stringaData.split('/');
@@ -174,7 +174,9 @@ export default function GraficiScreen() {
               return { dataLabel: dataChiave, media: Math.round(mediaGiorno) };
             })
             .sort((a, b) => parsingData(a.dataLabel).getTime() - parsingData(b.dataLabel).getTime());
-          setPJMutiGraficoLinea(andamentoCronologico);
+          
+          // 🛠️ FIX COMPILATORE: Collegato correttamente senza errori di battitura
+          setPuntiGraficoLinea(andamentoCronologico);
 
           const gruppiPerMomento: Record<string, number[]> = {};
           MOMENTI_ELENCO.forEach(m => { gruppiPerMomento[m] = []; });
@@ -198,7 +200,7 @@ export default function GraficiScreen() {
           setTimeInRange(0);
           setGlicataStimata(0);
           setGlicataMmol(0);
-          setPJMutiGraficoLinea([]);
+          setPuntiGraficoLinea([]);
           setMedieMomenti([]);
           setPuntiGrafico24Ore([]);
         }
@@ -232,7 +234,7 @@ export default function GraficiScreen() {
   const renderizzaGraficoLinea24Ore = () => {
     if (puntiGrafico24Ore.length === 0) return null;
     
-    // 📐 RISOLTO: Rimosso il blocco a 340px. Ora la dimensione calcola dinamicamente le proporzioni del PC
+    // 📐 RISOLTO: Larghezza fluida proporzionata per PC ed iPhone
     const larghezzaGrafico = Dimensions.get('window').width - (Platform.OS === 'web' ? 32 : 64);
     const altezzaGrafico = 150;
     const margineLaterale = 25;
@@ -298,7 +300,7 @@ export default function GraficiScreen() {
   const renderizzaGraficoLineaGiorni = () => {
     if (puntiGraficoLinea.length === 0) return null;
     
-    // 📐 RISOLTO: Uniformata la larghezza hardware dinamica per PC e Tablet
+    // 📐 RISOLTO: Larghezza macro-trend dinamica sincronizzata per monitor PC
     const larghezzaGrafico = Dimensions.get('window').width - (Platform.OS === 'web' ? 32 : 64);
     const altezzaGrafico = 150;
     const margineLaterale = 20;
@@ -388,6 +390,21 @@ export default function GraficiScreen() {
         </View>
       </View>
     );
+  };
+
+  const ottieniColoreGlicata = (val: number) => {
+    if (val === 0) return "#1F1F29";
+    if (val < 7.0) return COLORS.success;   
+    if (val <= 8.0) return COLORS.warning;  
+    return COLORS.error;                    
+  };
+
+  const calcolaPercentualeBarraGlicata = (val: number) => {
+    if (val === 0) return 0;
+    const MIN_GLIC = 4.0;
+    const MAX_GLICEMIA = 12.0;
+    const protetto = Math.max(MIN_GLIC, Math.min(MAX_GLICEMIA, val));
+    return ((protetto - MIN_GLIC) / (MAX_GLICEMIA - MIN_GLIC)) * 100;
   };
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -553,18 +570,19 @@ const styles = StyleSheet.create({
   containerBoxInternoOggi: { marginTop: 10, width: '100%' },
   infoBoxStatOggiCompatto: { backgroundColor: '#020204', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.borderGlass, borderLeftWidth: 3, alignItems: 'flex-start', minHeight: 65 },
   statLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: '700', color: COLORS.muted, marginBottom: 2 },
-  statValueMini: { fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: '900', color: COLORS.onSurface },
   unitaMisuraSub: { fontSize: 9, color: COLORS.muted, fontWeight: '400' },
+  statValueMini: { fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: '900', color: COLORS.onSurface },
   statValueOggiCentrale: { fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: '900' },
   cardGraficoContenitore: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 16, width: '100%', alignItems: 'flex-start', borderWidth: 1, borderColor: COLORS.borderGlass },
   rigaTitoloGrafico: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' },
   pulsanteInfoTocco: { padding: 4, justifyContent: 'center', alignItems: 'center', opacity: 0.85 },
   containerGraficoSvg: { width: '100%', marginTop: 6, position: 'relative' },
   
-  // 📐 RISOLTO: Allineato l'asse orizzontale in modo speculare alla larghezza flessibile del grafico
+  // 📐 RISOLTO CON PROPRIETÀ NATIVA: Allineamento perfetto orizzontale asse ore 24h sia per monitor PC che mobile
   rigaEtichetteDate: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingHorizontal: 2 },
   dataTestoLabel: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '700', color: COLORS.muted },
   
+  // 📐 RISOLTO CON PROPRIETÀ NATIVA: Allineamento e distribuzione orizzontale istogrammi momenti della giornata
   rigaColonneContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', minHeight: 140, paddingTop: 15, alignItems: 'flex-end' },
   singolaColonnaWrapper: { flex: 1, alignItems: 'center', gap: 6 },
   valoreColonnaTesto: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '800' },
@@ -582,6 +600,8 @@ const styles = StyleSheet.create({
   etichettaMmolSecondaria: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, fontWeight: '700' },
   binarioGrigioBarraSfondo: { width: '100%', height: 10, backgroundColor: '#171721', borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.borderGlass },
   riempimentoAttivoBarra: { height: '100%', borderRadius: 6 },
+  
+  // 📐 RISOLTO CON PROPRIETÀ NATIVA: Allineamento orizzontale legenda limiti HbA1c
   rigaLegendaGlicataLimiti: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8 },
   testoLegendaMarcatore: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '700', color: COLORS.muted }
 });
