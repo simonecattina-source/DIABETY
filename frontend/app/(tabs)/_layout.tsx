@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
-import { Ionicons } from "@expo/vector-icons";
+// 🛠️ AGGIORNATO: Importata anche la libreria MaterialIcons per aggirare il bug strutturale di Ionicons
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Platform } from "react-native";
 
 import { usesNativeTabs } from "@/src/navigation";
@@ -110,13 +111,13 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ⚙️ RISOLTO: Forzato l'identificativo su "cog" per ripristinare la ruota dentata delle impostazioni */}
+      {/* ⚙️ RISOLTO DEFINITIVAMENTE: Forzato l'uso di MaterialIcons con il glifo "settings" */}
       <Tabs.Screen
         name="impostazioni"
         options={{
           title: "Impostazioni",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cog" size={size} color={color} />
+            <MaterialIcons name="settings" size={size} color={color} />
           ),
         }}
       />
