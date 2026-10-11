@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
-// 🌟 FIX ASSOLUTO VERCEL: Usiamo l'alias nativo per evitare errori di conteggio cartelle
+// 🌟 ALLINEAMENTO PERCORSO: Chiamata pulita tramite alias nativo
 import { useTheme } from '@/context/ThemeContext';
 
 const MOMENTI_COLONNE = [
