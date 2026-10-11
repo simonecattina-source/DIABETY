@@ -268,8 +268,43 @@
   { "id": "267", "categoria": "Colazione", "nome": "Biscotti Novellini Dolciando Eurospin", "cho100g": 74.0 },
   { "id": "268", "categoria": "Colazione", "nome": "Merendine Crostatine all'Albicocca Dolciando Eurospin", "cho100g": 61.5 },
   { "id": "269", "categoria": "Colazione", "nome": "Plumcake allo Yogurt Dolciando Eurospin", "cho100g": 52.0 },
-  { "id": "270", "categoria": "Colazione", "nome": "Crema spalmabile alle nocciole Dolciando Eurospin", "cho100g": 57.0 }
+  { "id": "270", "categoria": "Colazione", "nome": "Crema spalmabile alle nocciole Dolciando Eurospin", "cho100g": 57.0 },
+  { "id": "271", "categoria": "Colazione", "nome": "Muffin classico semplice / alla vaniglia (da forno/bar)", "cho100g": 48.0 },
+  { "id": "272", "categoria": "Colazione", "nome": "Muffin con gocce di cioccolato / cacao", "cho100g": 51.5 },
+  { "id": "273", "categoria": "Colazione", "nome": "Muffin integrale / con mirtilli", "cho100g": 44.0 },
+  { "id": "274", "categoria": "Colazione", "nome": "Plumcake classico allo yogurt (Dolciando / Mulino Bianco)", "cho100g": 52.5 },
+  { "id": "275", "categoria": "Colazione", "nome": "Plumcake integrale / con avena", "cho100g": 46.0 },
+  { "id": "276", "categoria": "Colazione", "nome": "Plumcake farcito con gocce di cioccolato", "cho100g": 54.0 },
+  { "id": "277", "categoria": "Colazione", "nome": "Bignè alla crema pasticcera (pasticceria)", "cho100g": 30.5 },
+  { "id": "278", "categoria": "Colazione", "nome": "Bignè al cioccolato / crema al cacao (pasticceria)", "cho100g": 32.0 },
+  { "id": "279", "categoria": "Colazione", "nome": "Cannolo alla crema con sfoglia artigianale", "cho100g": 43.5 },
+  { "id": "280", "categoria": "Colazione", "nome": "Krapfen / Bombolone fritto alla crema", "cho100g": 48.0 },
+  { "id": "281", "categoria": "Colazione", "nome": "Meringhe semplici / Spumiglie di zucchero", "cho100g": 92.0 },
+  { "id": "282", "categoria": "Colazione", "nome": "Millefoglie alla crema e sfoglia (porzione pasticceria)", "cho100g": 38.5 },
+  { "id": "283", "categoria": "Colazione", "nome": "Pasticceria secca: Occhi di bue alla marmellata", "cho100g": 62.5 },
+  { "id": "284", "categoria": "Colazione", "nome": "Pasticceria secca: Occhi di bue alla Nutella / cioccolato", "cho100g": 60.0 },
+  { "id": "285", "categoria": "Colazione", "nome": "Pasticceria mignon fresca assortita (valore medio)", "cho100g": 35.0 },
+  { "id": "286", "categoria": "Colazione", "nome": "Profiteroles al cioccolato e panna", "cho100g": 36.4 },
+  { "id": "287", "categoria": "Verdure e Piatti Unici", "nome": "Sushi: Hosomaki misti (Piccolo rotolo con alga esterna e riso)", "cho100g": 28.0 },
+  { "id": "288", "categoria": "Verdure e Piatti Unici", "nome": "Sushi: Nigiri misti (Polpettina di riso con fetta di pesce sopra)", "cho100g": 26.5 },
+  { "id": "289", "categoria": "Verdure e Piatti Unici", "nome": "Sushi: Sashimi di Salmone / Tonno / Branzino (Pesce crudo puro)", "cho100g": 0.0 },
+  { "id": "290", "categoria": "Verdure e Piatti Unici", "nome": "Sushi: Temaki misto (Cono di alga farcito con riso e pesce)", "cho100g": 22.0 },
+  { "id": "291", "categoria": "Verdure e Piatti Unici", "nome": "Sushi: Uramaki / California Roll (Rotolo con riso esterno)", "cho100g": 19.5 },
+  { "id": "292", "categoria": "Verdure e Piatti Unici", "nome": "Cucina Cinese: Involtino della Primavera fritto (singolo)", "cho100g": 22.5 },
+  { "id": "293", "categoria": "Verdure e Piatti Unici", "nome": "Cucina Cinese: Nuvole di drago / Patatine di granchio fritte", "cho100g": 62.0 },
+  { "id": "294", "categoria": "Verdure e Piatti Unici", "nome": "Cucina Cinese: Pollo alle mandorle / al limone (con salsa densa)", "cho100g": 8.5 },
+  { "id": "295", "categoria": "Verdure e Piatti Unici", "nome": "Cucina Cinese: Riso alla Cantonese fritto (con uovo, piselli, prosciutto)", "cho100g": 24.5 },
+  { "id": "296", "categoria": "Verdure e Piatti Unici", "nome": "Cucina Cinese: Ravioli al vapore / alla piastra (Jiaozi - carne o verdura)", "cho100g": 21.0 },
+  { "id": "297", "categoria": "Verdure e Piatti Unici", "nome": "Cucina Cinese: Spaghetti di riso / soia saltati con verdure e carne", "cho100g": 23.0 },
+  { "id": "298", "categoria": "Verdure e Piatti Unici", "nome": "Cucina Giapponese: Edamame bolliti (Fagioli di soia verde nel baccello)", "cho100g": 7.5 },
+  { "id": "299", "categoria": "Verdure e Piatti Unici", "nome": "Cucina Giapponese: Ramen di carne o pesce (Brodo, spaghetti, uovo)", "cho100g": 11.0 },
+  { "id": "300", "categoria": "Verdure e Piatti Unici", "nome": "Cucina Giapponese: Gyoza (Ravioli giapponesi carne/verdura)", "cho100g": 22.0 },
+  { "id": "301", "categoria": "Verdure e Piatti Unici", "nome": "Salse orientali: Salsa di Soia classica (salata)", "cho100g": 5.0 },
+  { "id": "302", "categoria": "Verdure e Piatti Unici", "nome": "Salse orientali: Salsa Teriyaki / Agrodolce (salsa densa zuccherata)", "cho100g": 38.0 }
 ]
+
+
+
 
 
 
