@@ -11,12 +11,13 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { queryClient } from "@/src/query-client";
 
-// 🌟 IMPORTAZIONE DEL PROVIDER DI TEMA GLOBALE SPOSTATO FUORI DA APP
-import { ThemeProvider } from "../context/ThemeContext";
+// 🌟 IMPORTAZIONE ASSOLUTA SICURA PER L'INTERRUTTORE GENERALE
+import { ThemeProvider } from "@/context/ThemeContext";
 
 LogBox.ignoreAllLogs(true);
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     SpaceGrotesk: require("../assets/fonts/SpaceGrotesk.ttf"),
