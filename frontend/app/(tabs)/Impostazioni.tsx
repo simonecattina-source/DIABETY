@@ -74,7 +74,7 @@ export default function StrumentiScreen() {
     lettore.onload = async (e: any) => {
       try {
         const contenutoTesto = e.target.result;
-        const datiVerificati = JSON.parse(contenidoTesto);
+        const datiVerificati = JSON.parse(contenutoTesto);
         
         if (Array.isArray(datiVerificati)) {
           const conferma = window.confirm("ATTENZIONE: L'importazione sovrascriverà tutti i dati attuali. Vuoi procedere?");
@@ -89,11 +89,11 @@ export default function StrumentiScreen() {
         alert("Impossibile leggere il file JSON.");
       }
     };
-    navigate_file: lettore.readAsText(file);
+    lettore.readAsText(file);
   };
 
-  // 📄 ALGORITMO ESTRATTO INTEGRALMENTE DALLO STORICO (MATRICE 11 COLONNE - BLOCCHI DA 4 GIORNI)
-  const esportaDiarioPDF = async () => {
+  // 📄 FUNZIONE INTEGRALE A MATRICE ESTRATTA DALLO STORICO (PROTETTA CONTRO I CONFLITTI DI CAPTURE)
+  const esportaDocumentoMatriceStoricoPDF = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
       let dati = storicoEsistente ? JSON.parse(storicoEsistente) : [];
@@ -103,7 +103,6 @@ export default function StrumentiScreen() {
         return;
       }
 
-      // 📅 Filtro Temporale Coordinato con la Pulsantiera
       if (filtroPdfSelezionato !== 'Tutti') {
         const giorniFiltro = parseInt(filtroPdfSelezionato);
         const oggi = new Date();
@@ -124,7 +123,6 @@ export default function StrumentiScreen() {
         return;
       }
 
-      // Raggruppamento per data (Identico alla logica del report nativo)
       const sezioni: Record<string, any[]> = {};
       dati.forEach((item: any) => {
         const dataChiave = item.dataTesto || "Oggi";
@@ -242,20 +240,24 @@ export default function StrumentiScreen() {
           </body>
         </html>`;
 
-      // Trigger di salvataggio e download nativo o web
       if (Platform.OS === 'web') {
-        const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
-        const risposta = await fetch(uri);
-        const blobFile = await risposta.blob();
-        const urlDownload = URL.createObjectURL(blobFile);
-        const tagAnchor = document.createElement('a');
-        tagAnchor.href = urlDownload;
-        tagAnchor.download = `Registro_Glicemico_Diabety_${filtroPdfSelezionato.replace(" ", "_")}.pdf`;
-        document.body.appendChild(tagAnchor);
-        tagAnchor.click();
-        document.body.removeChild(tagAnchor);
-        URL.revokeObjectURL(urlDownload);
-        mostraMessaggioNotifica("✓ Report PDF scaricato!");
+        const finestraStampa = window.open('', '_blank');
+        if (finestraStampa) {
+          finestraStampa.document.write(htmlTemplateHTML);
+          finestraStampa.document.close();
+          finestraStampa.onload = () => { finestraStampa.focus(); finestraStampa.print(); };
+        } else {
+          const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
+          const risposta = await fetch(uri);
+          const blobFile = await risposta.blob();
+          const urlDownload = URL.createObjectURL(blobFile);
+          const tagAnchor = document.createElement('a');
+          tagAnchor.href = urlDownload;
+          tagAnchor.download = `Registro_Glicemico_Diabety_${filtroPdfSelezionato.replace(" ", "_")}.pdf`;
+          document.body.appendChild(tagAnchor);
+          tagAnchor.click();
+          document.body.removeChild(tagAnchor);
+        }
       } else {
         const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
         await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
@@ -327,9 +329,9 @@ export default function StrumentiScreen() {
           </TouchableOpacity>
         )}
 
-        {/* 3. Riga Esporta PDF Avanzata (Matrice 11 colonne identica allo Storico) */}
+        {/* 3. Riga Esporta PDF Avanzata (Mappata sulla Nuova Funzione Indipendente) */}
         <View style={styles.rowAzionePdfComplessa}>
-          <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDiarioPDF}>
+          <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDocumentoMatriceStoricoPDF}>
             <View style={styles.leftAzione}>
               <View style={[styles.iconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.1)' }]}>
                 <Ionicons name="document-text-outline" size={20} color={COLORS.brandPrimary} />
@@ -369,7 +371,7 @@ export default function StrumentiScreen() {
       <View style={styles.infoBlockPremium}>
         <Text style={styles.infoBlockTitle}>🛡️ Logica dell'Archivio Trimestrale</Text>
         <Text style={styles.infoBlockText}>
-          L'applicazione memorizza localmente le misurazioni calcolando i trend su una finestra mobile di **90 giorni**. I log antecedenti vengono archiviati o rimossi in modo intelligente per salvaguardare lo spazio e mantenere l'app scattante. Prima della scadenza, si consiglia di usare la funzione "Esporta Backup".
+          L'applicazione memorizza localmente le misurazioni calcolando i trend su una finestra mobile di **90 giorni**. I log antecedenti vengono archiviati o rimossi in modo intelligente per salvaguardare lo spazio e mantenere l'app scattante. Prima della scadenza, si consiglia di usare la function "Esporta Backup".
         </Text>
       </View>
 
