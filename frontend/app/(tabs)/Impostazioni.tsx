@@ -249,6 +249,7 @@ export default function StrumentiScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
+      {/* 🌟 FIX FONDAMENTALE: Tag riaperto correttamente */}
       <View style={styles.headerForm}>
         <Text style={[styles.title, { color: colors.onSurface }]}>Centro Strumenti</Text>
         <Text style={[styles.subtitle, { color: colors.muted }]}>Gestione database e configurazione visiva dell'app</Text>
@@ -260,6 +261,7 @@ export default function StrumentiScreen() {
         </View>
       )}
 
+      {/* 🎨 SEZIONE TEMA */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Interfaccia Visiva</Text>
       <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         <View style={styles.rowAzioneTema}>
@@ -295,6 +297,7 @@ export default function StrumentiScreen() {
         </View>
       </View>
 
+      {/* 📊 SEZIONE DATABASE */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manutenzione e Report</Text>
       <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         
