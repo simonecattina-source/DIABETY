@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
 
-// 🌟 FIX COMPILATORE: Importiamo Sharing solo se non siamo su Web per evitare crash distruttivi
+// 🌟 FIX CONDIZIONALE: Carichiamo Sharing solo se supportato (Ambiente Nativo)
 const Sharing = Platform.OS !== 'web' ? require('expo-sharing') : null;
 
 // 🌟 FIX PERCORSO GEOMETRICO: Risaliamo di 2 livelli esatti per uscire da (tabs) e app
@@ -65,7 +64,7 @@ export default function StrumentiScreen() {
     const lettore = new FileReader();
     lettore.onload = async (e: any) => {
       try {
-        const contenutoTesto = e.target.result;
+        const contenutoTesto = e.target.result as string;
         const datiVerificati = JSON.parse(contenutoTesto);
         
         if (Array.isArray(datiVerificati)) {
@@ -263,12 +262,16 @@ export default function StrumentiScreen() {
         </View>
       )}
 
+      {/* 🎨 SEZIONE TEMA */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Interfaccia Visiva</Text>
       <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         <View style={styles.rowAzioneTema}>
           <View style={styles.leftAzione}>
             <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
-              <Ionicons name="sunny-outline" size={20} color={colors.onSurface} />
+              {/* Sun SVG */}
+              <View style={{ width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 16, color: colors.onSurface }}>☀️</Text>
+              </View>
             </View>
             <View>
               <Text style={[styles.titoloAzione, { color: colors.onSurface }]}>Tema dell'applicazione</Text>
@@ -282,7 +285,7 @@ export default function StrumentiScreen() {
             style={[styles.btnTemaSelector, { backgroundColor: colors.bgUtility }, !isDarkMode && styles.btnTemaSelectorAttivoLight]} 
             onPress={() => toggleTheme('light')}
           >
-            <Ionicons name="sunny" size={16} color={!isDarkMode ? "#00B4D8" : colors.muted} />
+            <Text style={{ fontSize: 13, marginRight: 2 }}>☀️</Text>
             <Text style={[styles.textBtnTema, { color: colors.muted }, !isDarkMode && styles.textBtnTemaAttivoLight]}>Light Mode</Text>
           </TouchableOpacity>
 
@@ -290,71 +293,75 @@ export default function StrumentiScreen() {
             style={[styles.btnTemaSelector, { backgroundColor: colors.bgUtility }, isDarkMode && styles.btnTemaSelectorAttivoDark]} 
             onPress={() => toggleTheme('dark')}
           >
-            <Ionicons name="moon" size={16} color={isDarkMode ? colors.brandPrimary : colors.muted} />
+            <Text style={{ fontSize: 13, marginRight: 2 }}>🌙</Text>
             <Text style={[styles.textBtnTema, { color: colors.muted }, isDarkMode && styles.textBtnTemaAttivoDark]}>Dark Mode</Text>
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* 📊 SEZIONE DATABASE */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manutenzione e Report</Text>
       <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         
+        {/* 1. Esporta Backup */}
         <TouchableOpacity style={[styles.rowAzione, { borderBottomColor: colors.borderGlass }]} onPress={esportaBackupJSON}>
           <View style={styles.leftAzione}>
             <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
-              <Ionicons name="cloud-download-outline" size={20} color={colors.onSurface} />
+              <Text style={{ fontSize: 16 }}>📥</Text>
             </View>
             <View>
               <Text style={[styles.titoloAzione, { color: colors.onSurface }]}>Esporta Backup</Text>
               <Text style={[styles.descAzione, { color: colors.muted }]}>Salva un file JSON con tutto lo storico dei log</Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+          <Text style={{ color: colors.muted, fontSize: 14 }}>➔</Text>
         </TouchableOpacity>
 
+        {/* 2. Importa Backup */}
         {Platform.OS === 'web' ? (
           <label style={[styles.rowAzioneLabel, { borderBottomColor: colors.borderGlass }]}>
             <View style={styles.leftAzione}>
               <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
-                <Ionicons name="cloud-upload-outline" size={20} color={colors.onSurface} />
+                <Text style={{ fontSize: 16 }}>📤</Text>
               </View>
               <View>
                 <Text style={[styles.titoloAzione, { color: colors.onSurface }]}>Importa Backup</Text>
                 <Text style={[styles.descAzione, { color: colors.muted }]}>Ripristina il database caricando un file JSON</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+            <Text style={{ color: colors.muted, fontSize: 14 }}>➔</Text>
             <input type="file" accept=".json" onChange={gestisciImportazioneWeb} style={{ display: 'none' }} />
           </label>
         ) : (
           <TouchableOpacity style={[styles.rowAzione, { borderBottomColor: colors.borderGlass }]}>
             <View style={styles.leftAzione}>
               <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
-                <Ionicons name="cloud-upload-outline" size={20} color={colors.onSurface} />
+                <Text style={{ fontSize: 16 }}>📤</Text>
               </View>
               <View>
                 <Text style={[styles.titoloAzione, { color: colors.onSurface }]}>Importa Backup</Text>
                 <Text style={[styles.descAzione, { color: colors.muted }]}>Ripristina il database caricando un file JSON</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+            <Text style={{ color: colors.muted, fontSize: 14 }}>➔</Text>
           </TouchableOpacity>
         )}
 
         <View style={[styles.dividerAzione, { backgroundColor: colors.borderGlass }]} />
 
+        {/* 3. Esporta PDF Avanzato */}
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDocumentoMatriceStoricoPDF}>
             <View style={styles.leftAzione}>
               <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
-                <Ionicons name="document-text-outline" size={20} color={colors.brandPrimary} />
+                <Text style={{ fontSize: 16 }}>📄</Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.titoloAzione, { color: colors.brandPrimary }]}>Esporta Registro PDF</Text>
                 <Text style={[styles.descAzione, { color: colors.muted }]}>Genera il documento clinico a matrice identico allo storico</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.brandPrimary} />
+            <Text style={{ color: colors.brandPrimary, fontSize: 14 }}>➔</Text>
           </TouchableOpacity>
 
           <View style={styles.containerMiniFiltriPdf}>
