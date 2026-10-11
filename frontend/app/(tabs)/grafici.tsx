@@ -66,13 +66,13 @@ export default function GraficiScreen() {
       setModalTesto("Questo box calcola in tempo reale la media aritmetica di tutte le misurazioni effettuate esclusivamente nella data corrente (dalle 00:00 ad adesso).\n\nTi permette un controllo immediato per capire se l'andamento della giornata è a target.");
     } else if (tipo === '24h') {
       setModalTitolo("Andamento sulle 24 Ore");
-      setModalTesto("Questo grafico mostra l'andamento della glicemia nella giornata di oggi.\n\nLa curva continua azzurra unisce cronologicamente i tuoi test. Il grafico recupera automaticamente l'ultima misurazione di ieri sera prima di mezzanotte e la usa come punto di partenza a inizio giornata.");
+      setModalTesto("Questo grafico mostra l'andamento della glicemia nella giornata di oggi.\n\nLa curva continua azzurra unisce cronologicamente i tuoi test. Il grafico recupera automaticamente l'ultima misurazione di ieri sera prima di mezzanotte e la usa as punto di partenza a inizio giornata.");
     } else if (tipo === 'giornaliere') {
       setModalTitolo("Andamento Medie Giornaliere");
-      setModalTesto("Questo grafico mostra il trend macro della tua media glicemica includendo tutti i 90 giorni del trimestre.\n\nLa fascia entre le due linee tratteggiate evidenzia il range ideale (70 - 180 mg/dL). Le linee tratteggiate indicano i limiti di sicurezza.");
+      setModalTesto("Questo grafico mostra il trend macro della tua media glicemica includendo tutti i 90 giorni del trimestre.\n\nLa fascia entre le due linee tratteggiate evidenzia il range ideale (70 - 180 mg/dL). Le linee tratteggiate indicano i limites di sicurezza.");
     } else if (tipo === 'momenti') {
       setModalTitolo("Medie per Momento");
-      setModalTesto("Questo grafico analizza lo storico trimestrale (90 giorni) diviso per i 7 moments della giornata.\n\nOgni colonna mostra la media calcolata in quello specifico orario. Lo stato indica: Verde (a target), Arancione (basso/ipo) o Rosso (alto/iper). Il trattino (-) indica assenza di dati.");
+      setModalTesto("Questo grafico analizza lo storico trimestrale (90 giorni) diviso per i 7 momenti della giornata.\n\nOgni colonna mostra la media calcolata in quello specifico orario. Lo stato indica: Verde (a target), Arancione (basso/ipo) o Rosso (alto/iper). Il trattino (-) indica assenza di dati.");
     } else if (tipo === 'glicata') {
       setModalTitolo("Stima Emoglobina Glicata (HbA1c)");
       setModalTesto("Questo modulo esegue una stima matematica predittiva della tua Emoglobina Glicata (HbA1c) basandosi sulla formula internazionale ADA (eAG) applicata a tutti i test degli ultimi 90 giorni.\n\nI binari indicano il livello di controllo metabolico:\n• Verde (< 7.0%): Ottimo controllo\n• Arancione (7.0% - 8.0%): Controllo moderato\n• Rosso (> 8.0%): Controllo insufficiente\n\nAttenzione: questo valore è puramente indicativo e matematico. Non sostituisce in alcun modo l'esame del sangue effettuato in laboratorio medico.");
@@ -231,7 +231,9 @@ export default function GraficiScreen() {
   };
   const renderizzaGraficoLinea24Ore = () => {
     if (puntiGrafico24Ore.length === 0) return null;
-    const larghezzaGrafico = Platform.OS === 'web' ? 340 : Dimensions.get('window').width - 64;
+    
+    // 📐 RISOLTO: Rimosso il blocco a 340px. Ora la dimensione calcola dinamicamente le proporzioni del PC
+    const larghezzaGrafico = Dimensions.get('window').width - (Platform.OS === 'web' ? 32 : 64);
     const altezzaGrafico = 150;
     const margineLaterale = 25;
     const spazioUtileX = larghezzaGrafico - (margineLaterale * 2);
@@ -257,7 +259,7 @@ export default function GraficiScreen() {
 
     return (
       <View style={styles.containerGraficoSvg}>
-        <svg width="100%" height="175" style={{ display: 'block', overflow: 'visible' }}>
+        <svg width={larghezzaGrafico} height="175" style={{ display: 'block', overflow: 'visible' }}>
           <defs>
             <linearGradient id="neonCyanGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={COLORS.brandPrimary} stopOpacity="0.28" />
@@ -282,7 +284,7 @@ export default function GraficiScreen() {
             </g>
           ))}
         </svg>
-        <View style={styles.rigaEtichetteDate}>
+        <View style={[styles.rigaEtichetteDate, { width: larghezzaGrafico }]}>
           <Text style={styles.dataTestoLabel}>00:00</Text>
           <Text style={styles.dataTestoLabel}>06:00</Text>
           <Text style={styles.dataTestoLabel}>12:00</Text>
@@ -295,7 +297,9 @@ export default function GraficiScreen() {
 
   const renderizzaGraficoLineaGiorni = () => {
     if (puntiGraficoLinea.length === 0) return null;
-    const larghezzaGrafico = Platform.OS === 'web' ? 340 : Dimensions.get('window').width - 64;
+    
+    // 📐 RISOLTO: Uniformata la larghezza hardware dinamica per PC e Tablet
+    const larghezzaGrafico = Dimensions.get('window').width - (Platform.OS === 'web' ? 32 : 64);
     const altezzaGrafico = 150;
     const margineLaterale = 20;
     const spazioUtileX = larghezzaGrafico - (margineLaterale * 2);
@@ -320,7 +324,7 @@ export default function GraficiScreen() {
 
     return (
       <View style={styles.containerGraficoSvg}>
-        <svg width="100%" height="175" style={{ display: 'block', overflow: 'visible' }}>
+        <svg width={larghezzaGrafico} height="175" style={{ display: 'block', overflow: 'visible' }}>
           <defs>
             <linearGradient id="neonPurpleGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={COLORS.brandSecondary} stopOpacity="0.25" />
@@ -351,7 +355,7 @@ export default function GraficiScreen() {
             );
           })}
         </svg>
-        <View style={styles.rigaEtichetteDate}>
+        <View style={[styles.rigaEtichetteDate, { width: larghezzaGrafico }]}>
           {puntiGraficoLinea.map((p, i) => {
             const mostraData = i === 0 || i === Math.floor(puntiGraficoLinea.length / 2) || i === puntiGraficoLinea.length - 1;
             return <Text key={i} style={[styles.dataTestoLabel, { opacity: mostraData ? 1 : 0 }]}>{p.dataLabel.slice(0, 5)}</Text>;
@@ -385,21 +389,6 @@ export default function GraficiScreen() {
       </View>
     );
   };
-
-  const ottieniColoreGlicata = (val: number) => {
-    if (val === 0) return "#1F1F29";
-    if (val < 7.0) return COLORS.success;   
-    if (val <= 8.0) return COLORS.warning;  
-    return COLORS.error;                    
-  };
-
-  const calcolaPercentualeBarraGlicata = (val: number) => {
-    if (val === 0) return 0;
-    const MIN_GLIC = 4.0;
-    const MAX_GLICEMIA = 12.0;
-    const protetto = Math.max(MIN_GLIC, Math.min(MAX_GLICEMIA, val));
-    return ((protetto - MIN_GLIC) / (MAX_GLICEMIA - MIN_GLIC)) * 100;
-  };
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>Analisi e Grafici</Text>
@@ -416,10 +405,7 @@ export default function GraficiScreen() {
         </View>
       </Modal>
       
-      {/* 🌟 STRUTTURA AD AFFIANCAMENTO: COLONNA TRIMESTRE (2/3) E COLONNA OGGI (1/3) */}
       <View style={styles.rigaCardSuperioriContainer}>
-        
-        {/* COLONNA SINISTRA: TRIMESTRE (PRENDE 2/3 DELLO SPAZIO) */}
         <View style={styles.cardSuperioreDueTerzi}>
           <View style={styles.rigaTitoloGrafico}>
             <Text style={styles.sectionLabel} numberOfLines={1}>Trimestre (90 GG)</Text>
@@ -429,7 +415,6 @@ export default function GraficiScreen() {
           </View>
           
           <View style={styles.rigaBoxInterniTrimestre}>
-            {/* BOX MEDIA */}
             <View style={[styles.infoBoxStatMini, { borderLeftColor: mediaGlicemia > 180 ? COLORS.error : mediaGlicemia < 70 ? COLORS.warning : mediaGlicemia === 0 ? COLORS.borderGlass : COLORS.success }]}>
               <Text style={styles.statLabel} numberOfLines={1}>Media</Text>
               <Text style={[styles.statValueMini, { color: mediaGlicemia > 180 ? COLORS.error : mediaGlicemia < 70 ? COLORS.warning : mediaGlicemia === 0 ? COLORS.muted : COLORS.success }]}>
@@ -437,7 +422,6 @@ export default function GraficiScreen() {
               </Text>
             </View>
             
-            {/* BOX IN RANGE */}
             <View style={[styles.infoBoxStatMini, { borderLeftColor: totaleMisurazioni === 0 ? COLORS.borderGlass : timeInRange >= 70 ? COLORS.success : timeInRange >= 50 ? COLORS.warning : COLORS.error }]}>
               <Text style={styles.statLabel} numberOfLines={1}>In Range</Text>
               <Text style={[styles.statValueMini, { color: totaleMisurazioni === 0 ? COLORS.muted : timeInRange >= 70 ? COLORS.success : timeInRange >= 50 ? COLORS.warning : COLORS.error }]}>
@@ -447,7 +431,6 @@ export default function GraficiScreen() {
           </View>
         </View>
 
-        {/* 🌟 COLONNA DESTRA: CARD MEDIA DI OGGI (PRENDE 1/3 DELLO SPAZIO) */}
         <View style={styles.cardSuperioreUnTerzo}>
           <View style={styles.rigaTitoloGrafico}>
             <Text style={styles.sectionLabel} numberOfLines={1}>Media Oggi</Text>
@@ -466,14 +449,12 @@ export default function GraficiScreen() {
             </View>
           </View>
         </View>
-
       </View>
 
-      {/* CARD 2: GRAFICO CURVO ANDAMENTO 24 ORE */}
       <View style={[styles.cardGraficoContenitore, { marginTop: 16 }]}>
         <View style={styles.rigaTitoloGrafico}>
           <Text style={styles.sectionLabel}>Andamento sulle 24 Ore (Oggi)</Text>
-          <TouchableOpacity onPress={() => apriSpiegazione('24h')} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} style={styles.pulsanteInfoTocco}>
+          <TouchableOpacity onPress={() => apriSpiegazione('24h')} style={styles.pulsanteInfoTocco}>
             <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
           </TouchableOpacity>
         </View>
@@ -486,11 +467,10 @@ export default function GraficiScreen() {
         )}
       </View>
 
-      {/* CARD 3: GRAFICO CURVO TREND MACRO 90 GIORNI */}
       <View style={[styles.cardGraficoContenitore, { marginTop: 16 }]}>
         <View style={styles.rigaTitoloGrafico}>
           <Text style={styles.sectionLabel}>Andamento Medie Giornaliere</Text>
-          <TouchableOpacity onPress={() => apriSpiegazione('giornaliere')} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} style={styles.pulsanteInfoTocco}>
+          <TouchableOpacity onPress={() => apriSpiegazione('giornaliere')} style={styles.pulsanteInfoTocco}>
             <Ionicons name="information-circle-outline" size={20} color={COLORS.brandSecondary} />
           </TouchableOpacity>
         </View>
@@ -503,11 +483,10 @@ export default function GraficiScreen() {
         )}
       </View>
 
-      {/* CARD 4: ISTOGRAMMI PER MOMENTO DELLA GIORNATA */}
       <View style={[styles.cardGraficoContenitore, { marginTop: 16 }]}>
         <View style={styles.rigaTitoloGrafico}>
           <Text style={styles.sectionLabel}>Medie per Momento della Giornata</Text>
-          <TouchableOpacity onPress={() => apriSpiegazione('momenti')} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} style={styles.pulsanteInfoTocco}>
+          <TouchableOpacity onPress={() => apriSpiegazione('momenti')} style={styles.pulsanteInfoTocco}>
             <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
           </TouchableOpacity>
         </View>
@@ -520,11 +499,10 @@ export default function GraficiScreen() {
         )}
       </View>
 
-      {/* CARD 5: STIMA DEDICATA INTERFACCIA GLICATA (HbA1c) */}
       <View style={[styles.cardGraficoContenitore, { marginTop: 16, paddingBottom: 20 }]}>
         <View style={styles.rigaTitoloGrafico}>
           <Text style={styles.sectionLabel}>Stima Emoglobina Glicata (HbA1c)</Text>
-          <TouchableOpacity onPress={() => apriSpiegazione('glicata')} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} style={styles.pulsanteInfoTocco}>
+          <TouchableOpacity onPress={() => apriSpiegazione('glicata')} style={styles.pulsanteInfoTocco}>
             <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
           </TouchableOpacity>
         </View>
@@ -583,11 +561,10 @@ const styles = StyleSheet.create({
   pulsanteInfoTocco: { padding: 4, justifyContent: 'center', alignItems: 'center', opacity: 0.85 },
   containerGraficoSvg: { width: '100%', marginTop: 6, position: 'relative' },
   
-  // 📐 INTERVENTO: Corretto justifyContent per distanziare simmetricamente l'asse orizzontale delle ore 24h
-  rigaEtichetteDate: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8, paddingHorizontal: 2 },
+  // 📐 RISOLTO: Allineato l'asse orizzontale in modo speculare alla larghezza flessibile del grafico
+  rigaEtichetteDate: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingHorizontal: 2 },
   dataTestoLabel: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '700', color: COLORS.muted },
   
-  // 📐 INTERVENTO: Corretto justifyContent per allineare gli istogrammi dei momenti della giornata
   rigaColonneContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', minHeight: 140, paddingTop: 15, alignItems: 'flex-end' },
   singolaColonnaWrapper: { flex: 1, alignItems: 'center', gap: 6 },
   valoreColonnaTesto: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '800' },
@@ -605,8 +582,6 @@ const styles = StyleSheet.create({
   etichettaMmolSecondaria: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, fontWeight: '700' },
   binarioGrigioBarraSfondo: { width: '100%', height: 10, backgroundColor: '#171721', borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.borderGlass },
   riempimentoAttivoBarra: { height: '100%', borderRadius: 6 },
-  
-  // 📐 INTERVENTO: Corretto justifyContent per l'interfaccia della barra glicata HbA1c
   rigaLegendaGlicataLimiti: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8 },
   testoLegendaMarcatore: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '700', color: COLORS.muted }
 });
