@@ -5,15 +5,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
-// 🌟 ALLINEAMENTO PERCORSO: Chiamata pulita tramite alias nativo
-import { useTheme } from '@/context/ThemeContext';
+// 🌟 FIX PERCORSO: Risaliamo di 3 livelli esatti da app/(tabs)/ per raggiungere context/ senza errori
+import { useTheme } from '../../../context/ThemeContext';
 
 const MOMENTI_COLONNE = [
   "Prima Colazione", "Dopo Colazione", "Spuntino", 
   "Prima Pranzo", "Dopo Pranzo", "Merenda", 
   "Prima Cena", "Dopo Cena", "Notte"
 ];
-
 export default function StrumentiScreen() {
   const { colors, isDarkMode, toggleTheme } = useTheme();
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
@@ -261,7 +260,7 @@ export default function StrumentiScreen() {
         </View>
       )}
 
-      {/* 🎨 SEZIONE NUOVA: CONTROLLO INTERFACCIA TEMA LIGHT / DARK */}
+      {/* 🎨 SEZIONE: CONTROLLO INTERFACCIA TEMA LIGHT / DARK */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Interfaccia Visiva</Text>
       <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         <View style={styles.rowAzioneTema}>
@@ -276,7 +275,7 @@ export default function StrumentiScreen() {
           </View>
         </View>
         
-        {/* Griglia Switcher Ad Incastro Bilanciata */}
+        {/* Interruttore Selettore Ad Incastro */}
         <View style={styles.containerToggleTema}>
           <TouchableOpacity 
             style={[styles.btnTemaSelector, { backgroundColor: colors.bgUtility }, !isDarkMode && styles.btnTemaSelectorAttivoLight]} 
@@ -300,7 +299,7 @@ export default function StrumentiScreen() {
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manutenzione e Report</Text>
       <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         
-        {/* 1. Riga Esporta Backup */}
+        {/* 1. Esporta Backup */}
         <TouchableOpacity style={[styles.rowAzione, { borderBottomColor: colors.borderGlass }]} onPress={esportaBackupJSON}>
           <View style={styles.leftAzione}>
             <View style={[styles.iconWrapper, { backgroundColor: colors.bgUtility, borderColor: colors.borderGlass }]}>
@@ -314,7 +313,7 @@ export default function StrumentiScreen() {
           <Ionicons name="chevron-forward" size={18} color={colors.muted} />
         </TouchableOpacity>
 
-        {/* 2. Riga Importa Backup */}
+        {/* 2. Importa Backup */}
         {Platform.OS === 'web' ? (
           <label style={[styles.rowAzioneLabel, { borderBottomColor: colors.borderGlass }]}>
             <View style={styles.leftAzione}>
@@ -344,10 +343,10 @@ export default function StrumentiScreen() {
           </TouchableOpacity>
         )}
 
-        {/* LINEA DI SEPARAZIONE SIMMETRICA */}
+        {/* Linea Divisoria Simmetrica */}
         <View style={[styles.dividerAzione, { backgroundColor: colors.borderGlass }]} />
 
-        {/* 3. Riga Esporta PDF Avanzata */}
+        {/* 3. Esporta PDF Avanzato */}
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDocumentoMatriceStoricoPDF}>
             <View style={styles.leftAzione}>
@@ -362,7 +361,6 @@ export default function StrumentiScreen() {
             <Ionicons name="chevron-forward" size={18} color={colors.brandPrimary} />
           </TouchableOpacity>
 
-          {/* 📅 Pulsantiera Orizzontale Interna */}
           <View style={styles.containerMiniFiltriPdf}>
             {['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'].map((intervallo) => {
               const attivo = filtroPdfSelezionato === intervallo;
@@ -380,10 +378,9 @@ export default function StrumentiScreen() {
             })}
           </View>
         </View>
-
       </View>
 
-      {/* 📚 SEZIONE: MANUALE CLINICO */}
+      {/* 📚 SEZIONE: MANUALE INFORMATIVO */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manuale & Linee Guida</Text>
       
       <View style={[styles.infoBlockPremium, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
@@ -420,7 +417,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700' },
   subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, marginTop: 4 },
   
-  sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', marginTop: 22, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
+  sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', marginTop: 22, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   
   cardAzioni: { borderRadius: 16, borderWidth: 1, width: '100%', overflow: 'hidden' },
   rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, width: '100%' },
@@ -436,8 +433,6 @@ const styles = StyleSheet.create({
   btnTemaSelectorAttivoLight: { backgroundColor: 'rgba(0, 180, 216, 0.08)', borderColor: '#00B4D8' },
   btnTemaSelectorAttivoDark: { backgroundColor: 'rgba(0, 229, 255, 0.08)', borderColor: '#00E5FF' },
   textBtnTema: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600' },
-  textBtnTemaAttivoLight: { color: '#00B4D8', fontWeight: '700' },
-  textBtnTemaAttivoDark: { color: '#00E5FF', fontWeight: '700' },
 
   dividerAzione: { height: 1, width: '100%' },
 
