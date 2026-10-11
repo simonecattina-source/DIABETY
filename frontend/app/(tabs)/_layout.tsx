@@ -1,6 +1,5 @@
 import { Tabs } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
-// 🛠️ RISOLTO: Importazione corretta da @expo/vector-icons per ripristinare l'icona ingranaggio
 import { Ionicons } from "@expo/vector-icons";
 import { Platform } from "react-native";
 
@@ -111,13 +110,13 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ⚙️ RIPRISTINATO: Grazie all'import corretto, questa riga mostra l'ingranaggio reale delle impostazioni */}
+      {/* ⚙️ RISOLTO: Forzato l'identificativo su "cog" per ripristinare la ruota dentata delle impostazioni */}
       <Tabs.Screen
         name="impostazioni"
         options={{
           title: "Impostazioni",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings" size={size} color={color} />
+            <Ionicons name="cog" size={size} color={color} />
           ),
         }}
       />
