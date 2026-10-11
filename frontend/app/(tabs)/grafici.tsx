@@ -40,7 +40,7 @@ export default function GraficiScreen() {
   const [totaleMisurazioni, setTotaleMisurazioni] = useState<number>(0);
   const [timeInRange, setTimeInRange] = useState<number>(0);
   
-  // 🛠️ COSTRUTTORE CORRETTO: Risolto il potenziale blocco di compilazione web allineando la funzione dello stato
+  // 🛠️ COSTRUTTORE ALLINEATO: Stato unificato e sincronizzato senza errori di battitura
   const [puntiGraficoLinea, setPuntiGraficoLinea] = useState<any[]>([]);
   const [medieMomenti, setMedieMomenti] = useState<any[]>([]);
   const [puntiGrafico24Ore, setPuntiGrafico24Ore] = useState<any[]>([]);
@@ -67,7 +67,7 @@ export default function GraficiScreen() {
       setModalTesto("Questo box calcola in tempo reale la media aritmetica di tutte le misurazioni effettuate esclusivamente nella data corrente (dalle 00:00 ad adesso).\n\nTi permette un controllo immediato per capire se l'andamento della giornata è a target.");
     } else if (tipo === '24h') {
       setModalTitolo("Andamento sulle 24 Ore");
-      setModalTesto("Questo grafico shows l'andamento della glicemia nella giornata di oggi.\n\nLa curva continua azzurra unisce cronologicamente i tuoi test. Il grafico recupera automaticamente l'ultima misurazione di ieri sera prima di mezzanotte e la usa come punto di partenza a inizio giornata.");
+      setModalTesto("Questo grafico mostra l'andamento della glicemia nella giornata di oggi.\n\nLa curva continua azzurra unisce cronologicamente i tuoi test. Il grafico recupera automaticamente l'ultima misurazione di ieri sera prima di mezzanotte e la usa come punto di partenza a inizio giornata.");
     } else if (tipo === 'giornaliere') {
       setModalTitolo("Andamento Medie Giornaliere");
       setModalTesto("Questo grafico mostra il trend macro della tua media glicemica includendo tutti i 90 giorni del trimestre.\n\nLa fascia entre le due linee tratteggiate evidenzia il range ideale (70 - 180 mg/dL). Le linee tratteggiate indicano i limiti di sicurezza.");
@@ -80,13 +80,13 @@ export default function GraficiScreen() {
     }
     setModalVisibile(true);
   };
+
   const parsingData = (stringaData: string) => {
     if (!stringaData || !stringaData.includes('/')) return new Date(0);
     const [g, m, a] = stringaData.split('/');
     const annoCompleto = parseInt(a) < 50 ? 2000 + parseInt(a) : 1900 + parseInt(a);
     return new Date(annoCompleto, parseInt(m) - 1, parseInt(g));
   };
-
   const caricaDatiECalcola = async () => {
     try {
       const datiSalvati = await AsyncStorage.getItem('glicotrack_data');
@@ -175,7 +175,6 @@ export default function GraficiScreen() {
             })
             .sort((a, b) => parsingData(a.dataLabel).getTime() - parsingData(b.dataLabel).getTime());
           
-          // 🛠️ ALLINEATO: Stato corretto collegato alla funzione aggiornata senza typo
           setPuntiGraficoLinea(andamentoCronologico);
 
           const gruppiPerMomento: Record<string, number[]> = {};
@@ -259,7 +258,8 @@ export default function GraficiScreen() {
 
     return (
       <View style={styles.containerGraficoSvg}>
-        <svg width="100%" height="175" style={{ display: 'block', overflow: 'visible' }}>
+        {/* L'altezza totale viene leggermente aumentata a 195 per accogliere l'asse X orario al suo interno */}
+        <svg width="100%" height="195" style={{ display: 'block', overflow: 'visible' }}>
           <defs>
             <linearGradient id="neonCyanGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={COLORS.brandPrimary} stopOpacity="0.28" />
@@ -283,14 +283,16 @@ export default function GraficiScreen() {
               <text x={p.x} y={p.y - 9} fill={COLORS.onSurface} fontSize="9" fontWeight="800" textAnchor="middle">{p.glicemia}</text>
             </g>
           ))}
+
+          {/* 🛠️ ASSE DELLE ORE EMBEDDATO: Inserito direttamente all'interno del blocco SVG. Segue millimetricamente il grafico senza allungarsi mai su PC */}
+          <g fill={COLORS.muted} fontSize="10" fontWeight="700" textAnchor="middle">
+            <text x={margineLaterale} y={altezzaGrafico + 22}>00:00</text>
+            <text x={margineLaterale + (spazioUtileX * 0.25)} y={altezzaGrafico + 22}>06:00</text>
+            <text x={margineLaterale + (spazioUtileX * 0.50)} y={altezzaGrafico + 22}>12:00</text>
+            <text x={margineLaterale + (spazioUtileX * 0.75)} y={altezzaGrafico + 22}>18:00</text>
+            <text x={larghezzaGrafico - margineLaterale} y={altezzaGrafico + 22}>24:00</text>
+          </g>
         </svg>
-        <View style={styles.rigaEtichetteDate}>
-          <Text style={styles.dataTestoLabel}>00:00</Text>
-          <Text style={styles.dataTestoLabel}>06:00</Text>
-          <Text style={styles.dataTestoLabel}>12:00</Text>
-          <Text style={styles.dataTestoLabel}>18:00</Text>
-          <Text style={styles.dataTestoLabel}>24:00</Text>
-        </View>
       </View>
     );
   };
@@ -322,7 +324,7 @@ export default function GraficiScreen() {
 
     return (
       <View style={styles.containerGraficoSvg}>
-        <svg width="100%" height="175" style={{ display: 'block', overflow: 'visible' }}>
+        <svg width="100%" height="195" style={{ display: 'block', overflow: 'visible' }}>
           <defs>
             <linearGradient id="neonPurpleGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={COLORS.brandSecondary} stopOpacity="0.25" />
@@ -352,13 +354,19 @@ export default function GraficiScreen() {
               </g>
             );
           })}
+
+          {/* 🛠️ ASSE DELLE DATE EMBEDDATO: Sincronizzato con precisione millimetrica all'interno dell'SVG macro trend */}
+          <g fill={COLORS.muted} fontSize="10" fontWeight="700" textAnchor="middle">
+            {puntiGraficoLinea.map((p, i) => {
+              const mostraData = i === 0 || i === Math.floor(puntiGraficoLinea.length / 2) || i === puntiGraficoLinea.length - 1;
+              if (!mostraData) return null;
+              
+              const posPercentuale = i / (puntiGraficoLinea.length - 1 || 1);
+              const xPos = margineLaterale + (posPercentuale * spazioUtileX);
+              return <text key={`lbl-${i}`} x={xPos} y={altezzaGrafico + 22}>{p.dataLabel.slice(0, 5)}</text>;
+            })}
+          </g>
         </svg>
-        <View style={styles.rigaEtichetteDate}>
-          {puntiGraficoLinea.map((p, i) => {
-            const mostraData = i === 0 || i === Math.floor(puntiGraficoLinea.length / 2) || i === puntiGraficoLinea.length - 1;
-            return <Text key={i} style={[styles.dataTestoLabel, { opacity: mostraData ? 1 : 0 }]}>{p.dataLabel.slice(0, 5)}</Text>;
-          })}
-        </View>
       </View>
     );
   };
@@ -387,7 +395,6 @@ export default function GraficiScreen() {
       </View>
     );
   };
-
   const ottieniColoreGlicata = (val: number) => {
     if (val === 0) return "#1F1F29";
     if (val < 7.0) return COLORS.success;   
@@ -402,6 +409,7 @@ export default function GraficiScreen() {
     const protetto = Math.max(MIN_GLIC, Math.min(MAX_GLICEMIA, val));
     return ((protetto - MIN_GLIC) / (MAX_GLICEMIA - MIN_GLIC)) * 100;
   };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>Analisi e Grafici</Text>
@@ -463,7 +471,6 @@ export default function GraficiScreen() {
           </View>
         </View>
       </View>
-
       <View style={[styles.cardGraficoContenitore, { marginTop: 16 }]}>
         <View style={styles.rigaTitoloGrafico}>
           <Text style={styles.sectionLabel}>Andamento sulle 24 Ore (Oggi)</Text>
@@ -479,7 +486,6 @@ export default function GraficiScreen() {
           </View>
         )}
       </View>
-
       <View style={[styles.cardGraficoContenitore, { marginTop: 16 }]}>
         <View style={styles.rigaTitoloGrafico}>
           <Text style={styles.sectionLabel}>Andamento Medie Giornaliere</Text>
@@ -511,7 +517,6 @@ export default function GraficiScreen() {
           </View>
         )}
       </View>
-
       <View style={[styles.cardGraficoContenitore, { marginTop: 16, paddingBottom: 20 }]}>
         <View style={styles.rigaTitoloGrafico}>
           <Text style={styles.sectionLabel}>Stima Emoglobina Glicata (HbA1c)</Text>
@@ -569,15 +574,15 @@ const styles = StyleSheet.create({
   unitaMisuraSub: { fontSize: 9, color: COLORS.muted, fontWeight: '400' },
   statValueMini: { fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: '900', color: COLORS.onSurface },
   statValueOggiCentrale: { fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: '900' },
-  cardGraficoContenitore: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 16, width: '100%', alignItems: 'flex-start', borderWidth: 1, borderColor: COLORS.borderGlass },
+  // 📐 CONTENITORE CARD: Forza la card ad allinearsi perfettamente senza far sbordare l'SVG interno
+  cardGraficoContenitore: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 16, width: '100%', alignItems: 'stretch', borderWidth: 1, borderColor: COLORS.borderGlass, overflow: 'hidden' },
   rigaTitoloGrafico: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' },
   pulsanteInfoTocco: { padding: 4, justifyContent: 'center', alignItems: 'center', opacity: 0.85 },
+  
+  // 📐 AREA SVG COMPACT UX: Forzata al 100% per accogliere l'asse orario ed azzerare gli sfasamenti su PC
   containerGraficoSvg: { width: '100%', marginTop: 6, position: 'relative' },
   
-  // 📐 RISOLTO CON LA PROPRIETÀ NATIVA: Ripristinato lo space-between ufficiale di React Native per separare ed allineare le ore/date sotto i grafici
-  rigaEtichetteDate: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8, paddingHorizontal: 2 },
-  dataTestoLabel: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '700', color: COLORS.muted },
-  
+  // 📐 INTERVENTO: Allineato lo space-between ufficiale di React Native per separare gli istogrammi dei momenti
   rigaColonneContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', minHeight: 140, paddingTop: 15, alignItems: 'flex-end' },
   singolaColonnaWrapper: { flex: 1, alignItems: 'center', gap: 6 },
   valoreColonnaTesto: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '800' },
@@ -595,6 +600,7 @@ const styles = StyleSheet.create({
   etichettaMmolSecondaria: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, fontWeight: '700' },
   binarioGrigioBarraSfondo: { width: '100%', height: 10, backgroundColor: '#171721', borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.borderGlass },
   riempimentoAttivoBarra: { height: '100%', borderRadius: 6 },
-  rigaLegendaGlicataLimiti: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8 },
-  testoLegendaMarcatore: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '700', color: COLORS.muted }
+  
+  // 📐 INTERVENTO: Allineamento orizzontale legenda limiti HbA1c
+  rigaLegendaGlicataLimiti: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8 }
 });
