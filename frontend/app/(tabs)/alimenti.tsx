@@ -3,6 +3,9 @@ import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Platform
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 
+// 📂 IMPORTAZIONE ASINCRONA DEL TUO DATABASE DI ALIMENTI ESTERNO JSON
+import DATABASE_ALIMENTI_ESTERNO from '../../constants/alimenti_database.json';
+
 const COLORS = {
   background: "#0A0A0C",        
   surfaceSecondary: "#13131A",  
@@ -14,83 +17,8 @@ const COLORS = {
   borderGlass: "rgba(255, 255, 255, 0.08)"
 };
 
-// 📊 DATABASE ALIMENTI COMPATTO ED ESTENDIBILE CON VIRTUALIZZAZIONE NATIVA
-const DATABASE_ALIMENTI = [
-  // 🍝 PASTA, RISO E CEREALI
-  { id: '1', nome: 'Pasta di semola comune (cruda)', cho100g: 73.0 },
-  { id: '2', nome: 'Pasta integrale (cruda)', cho100g: 65.0 },
-  { id: '3', nome: 'Pasta all\'uovo secca (cruda)', cho100g: 68.5 },
-  { id: '4', nome: 'Riso brillato bianco (crudo)', cho100g: 80.4 },
-  { id: '5', nome: 'Riso integrale (crudo)', cho100g: 72.4 },
-  { id: '6', nome: 'Riso Basmati / Venere (crudo)', cho100g: 78.0 },
-  { id: '7', nome: 'Gnocchi di patate', cho100g: 36.3 },
-  { id: '8', nome: 'Farina di frumento Tipo 00', cho100g: 77.3 },
-  { id: '9', nome: 'Farina d\'avena / Fiocchi d\'avena', cho100g: 66.2 },
-  { id: '10', nome: 'Farina di mais / Polenta (cruda)', cho100g: 76.9 },
-  { id: '11', nome: 'Couscous (crudo)', cho100g: 71.0 },
-  { id: '12', nome: 'Farro o Orzo perlato (crudo)', cho100g: 71.3 },
-  { id: '13', nome: 'Quinoa (cruda)', cho100g: 64.0 },
-  { id: '14', nome: 'Pane grattugiato / Pan grattato', cho100g: 72.8 },
-
-  // 🥖 PANE, PIZZE E PRODOTTI DA FORNO
-  { id: '15', nome: 'Pane comune (Rosetta/Ciabatta)', cho100g: 52.8 },
-  { id: '16', nome: 'Pane integrale', cho100g: 44.2 },
-  { id: '17', nome: 'Pane per tramezzini / Pan bauletto', cho100g: 49.5 },
-  { id: '18', nome: 'Pane di segale', cho100g: 45.4 },
-  { id: '19', nome: 'Piadina romagnola all\'olio', cho100g: 50.0 },
-  { id: '20', nome: 'Crackers salati comuni', cho100g: 68.1 },
-  { id: '21', nome: 'Crackers integrali', cho100g: 62.0 },
-  { id: '22', nome: 'Fette biscottate classiche', cho100g: 72.3 },
-  { id: '23', nome: 'Fette biscottate integrali', cho100g: 66.5 },
-  { id: '24', nome: 'Grissini classici comuni', cho100g: 68.3 },
-  { id: '25', nome: 'Gallette di riso', cho100g: 81.0 },
-  { id: '26', nome: 'Gallette di mais', cho100g: 79.5 },
-  { id: '27', nome: 'Taralli classici pugliesi', cho100g: 61.5 },
-  { id: '28', nome: 'Focaccia classica all\'olio', cho100g: 48.2 },
-  { id: '29', nome: 'Pizza Margherita da pizzeria', cho100g: 52.9 },
-  { id: '30', nome: 'Pizza Marinara', cho100g: 55.4 },
-  // 🍎 FRUTTA FRESCA ED ESSICCATA
-  { id: '31', nome: 'Mela fresca (con buccia)', cho100g: 13.8 },
-  { id: '32', nome: 'Banana fresca', cho100g: 22.8 },
-  { id: '33', nome: 'Arancia / Mandarino / Clementina', cho100g: 9.3 },
-  { id: '34', nome: 'Pera fresca', cho100g: 15.5 },
-  { id: '35', nome: 'Fragole fresche', cho100g: 5.3 },
-  { id: '36', nome: 'Pesca / Albicocca fresca', cho100g: 9.5 },
-  { id: '37', nome: 'Uva bianca o nera fresca', cho100g: 18.1 },
-  { id: '38', nome: 'Melone / Anguria d\'estate', cho100g: 6.8 },
-  { id: '39', nome: 'Kiwi', cho100g: 14.6 },
-  { id: '40', nome: 'Ananas fresco', cho100g: 11.2 },
-  { id: '41', nome: 'Frutta secca essiccata: Uva passa / Uvetta', cho100g: 79.2 },
-  { id: '42', nome: 'Frutta secca essiccata: Datteri secchi', cho100g: 75.0 },
-  { id: '43', nome: 'Frutta a guscio: Noci/Mandorle/Nocciole', cho100g: 5.5 },
-
-  // 🍰 DOLCI, MERENDINE E LATTICINI
-  { id: '44', nome: 'Biscotti frollini semplici', cho100g: 69.2 },
-  { id: '45', nome: 'Brioche / Cornetto semplice vuoto', cho100g: 48.5 },
-  { id: '46', nome: 'Cornetto farcito alla crema / cioccolato', cho100g: 54.0 },
-  { id: '47', nome: 'Cioccolato al latte', cho100g: 54.1 },
-  { id: '48', nome: 'Cioccolato fondente dal 70% in su', cho100g: 30.5 },
-  { id: '49', nome: 'Zucchero bianco / Saccarosio puro', cho100g: 100.0 },
-  { id: '50', nome: 'Yogurt bianco intero naturale dolce', cho100g: 4.3 },
-  { id: '51', nome: 'Yogurt alla frutta classico vasetto', cho100g: 12.8 },
-  { id: '52', nome: 'Yogurt Greco magro bianco 0%', cho100g: 3.2 },
-
-  // 🥤 FAST FOOD, BEVANDE E VERDURE
-  { id: '53', nome: 'Hamburger / Cheeseburger fast food', cho100g: 30.0 },
-  { id: '54', nome: 'Patatine fritte da fast food / sacchetto', cho100g: 45.0 },
-  { id: '55', nome: 'Patate lesse o al vapore', cho100g: 16.3 },
-  { id: '56', nome: 'Patate al forno con olio', cho100g: 22.7 },
-  { id: '57', nome: 'Coca Cola / Pepsi Classica (Zuccherata)', cho100g: 10.6 },
-  { id: '58', nome: 'Coca Cola Zero / Sprite Zero / Dietetiche', cho100g: 0.0 },
-  { id: '59', nome: 'Succo di frutta confezionato netto', cho100g: 13.5 },
-  { id: '60', nome: 'Latte vaccino intero / parzialmente scremato', cho100g: 4.9 },
-  { id: '61', nome: 'Fagioli / Lenticchie / Ceci in scatola scolati', cho100g: 15.2 },
-  { id: '62', nome: 'Carote fresche crude o bollite', cho100g: 7.6 },
-  { id: '63', nome: 'Pomodori rossi da insalata / sugo', cho100g: 3.5 },
-  { id: '64', nome: 'Zucchine / Melanzane / Finocchi leggeri', cho100g: 2.5 },
-  { id: '65', nome: 'Sushi Roll misto / Futomaki / Hosomaki', cho100g: 19.5 },
-  { id: '66', nome: 'Carni e Pesci freschi al naturale', cho100g: 0.0 }
-].sort((a, b) => a.nome.localeCompare(b.nome));
+// Ordiniamo alfabeticamente l'array importato per garantire una ricerca utente ottimale
+const DATABASE_ALIMENTI = DATABASE_ALIMENTI_ESTERNO.sort((a, b) => a.nome.localeCompare(b.nome));
 export default function AlimentiScreen() {
   const [ricerca, setCerca] = useState('');
   const [grammature, setGrammature] = useState<Record<string, number>>({});
@@ -99,9 +27,11 @@ export default function AlimentiScreen() {
     setGrammature(prev => ({ ...prev, [id]: Math.round(valore) }));
   };
 
+  // Filtra in tempo reale gli alimenti estratti dal file JSON esterno
   const alimentiFiltrati = DATABASE_ALIMENTI.filter(alimento =>
     alimento.nome.toLowerCase().includes(ricerca.toLowerCase())
   );
+
   return (
     <View style={styles.container}>
       
@@ -114,7 +44,7 @@ export default function AlimentiScreen() {
           <Ionicons name="search-outline" size={18} color={COLORS.muted} style={{ marginRight: 8 }} />
           <TextInput
             style={styles.inputRicercaTesto}
-            placeholder="Cerca alimento..."
+            placeholder="Cerca tra tutti gli alimenti nel database..."
             placeholderTextColor="#636366"
             value={ricerca}
             onChangeText={setCerca}
@@ -128,14 +58,14 @@ export default function AlimentiScreen() {
         </View>
       </View>
 
-      {/* 📦 LISTA FLUIDA ALIMENTI CON SLIDER INTEGRATO (VIRTUALIZZAZIONE NATIVA AD ALTE PRESTAZIONI) */}
+      {/* 📦 LISTA FLUIDA ALIMENTI CON SLIDER INTEGRATO (OTTIMIZZATA COMPLIANT A 1000+ ELEMENTI) */}
       <FlatList
         data={alimentiFiltrati}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         
-        // ⚡ MOTORE DI VIRTUALIZZAZIONE PROTETTO: Ottimizzato per reggere database ultra-estesi
+        // ⚡ MOTORE DI VIRTUALIZZAZIONE AVANZATO: Protegge la memoria del dispositivo da crash o blocchi
         initialNumToRender={8}
         maxToRenderPerBatch={10}
         windowSize={4}
