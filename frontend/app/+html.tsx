@@ -9,38 +9,34 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         
-        {/* 📐 ADATTAMENTO GEOMETRICO ASSOLUTO */}
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover, user-scalable=no"
-        />
-
-        {/* 🛠️ MODALITÀ APPLICAZIONE NATIVA APPLE */}
+        {/* 📐 AZZERAMENTO DEI MARGINI E ACCESSO IMMERSIVO NATIVO */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover, user-scalable=no" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-
-        {/* 🎨 FUSIONE TOTALE: Permette allo sfondo nero di salire fin sopra Notch e Isola Dinamica */}
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        
+        {/* 🎨 METATAG DI EMERGENZA SAFARI: Dice a iOS il colore esatto del notch prima della grafica */}
+        <meta name="theme-color" content="#0A0A0C" />
 
         <ScrollViewStyleReset />
         
         <style
           dangerouslySetInnerHTML={{
             __html: `
-              html, body { 
+              html, body, #root, #__next, [data-reactroot] { 
                 background-color: #0A0A0C !important; 
                 overflow: hidden !important; 
                 position: fixed !important;
+                top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
                 width: 100% !important;
                 height: 100% !important;
+                margin: 0 !important; padding: 0 !important;
                 overscroll-behavior: none !important;
+                overscroll-behavior-y: none !important;
                 -webkit-overflow-scrolling: touch;
               }
               body > div:first-child { 
                 position: fixed !important; 
-                top: 0; 
-                left: 0; 
-                right: 0; 
-                bottom: 0; 
+                top: 0; left: 0; right: 0; bottom: 0; 
                 background-color: #0A0A0C !important;
                 overflow: hidden !important;
               }
@@ -65,16 +61,3 @@ export default function Root({ children }: PropsWithChildren) {
     </html>
   );
 }
-        tabBarStyle: {
-          backgroundColor: DESIGN_NEON.backgroundBar,
-          borderTopColor: DESIGN_NEON.borderGlass,
-          borderTopWidth: 1,
-          elevation: 0,
-          shadowOpacity: 0,
-          // 🛠️ RISOLTO: Altezza fissa di sicurezza per eliminare lo sfasamento e la barra bianca inferiore su iOS Home Screen
-          ...(Platform.OS === "web" ? { 
-            height: typeof window !== 'undefined' && window.navigator.standalone ? 78 : 64, 
-            paddingTop: typeof window !== 'undefined' && window.navigator.standalone ? 6 : 0,
-            paddingBottom: typeof window !== 'undefined' && window.navigator.standalone ? 20 : 0 
-          } : {}), 
-        },
