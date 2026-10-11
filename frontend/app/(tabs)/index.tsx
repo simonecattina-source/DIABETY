@@ -2,22 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Sharing from 'expo-sharing';
 
 // 🎨 PALETTE COLORI ELEVATA PER MASSIMO STACCO IN DARK MODE
 const COLORS = {
   background: "#0A0A0C",        
-  surfaceSecondary: "#13131A",  // Nero profondo tech per i contenitori
-  brandPrimary: "#00E5FF",      // Azzurro Cyan elettrico neon coordinato
-  onSurface: "#FFFFFF",         // Bianco purissimo ultra-nitido
+  surfaceSecondary: "#13131A",  
+  brandPrimary: "#00E5FF",      
+  onSurface: "#FFFFFF",         
   muted: "#7E7E86",             
-  success: "#00E676",           // Verde smeraldo Oled
-  warning: "#FF9100",           // Arancione vivo
-  error: "#FF5252",             // Rosso corallo neon
+  success: "#00E676",           
+  warning: "#FF9100",           
+  error: "#FF5252",             
   borderGlass: "rgba(255, 255, 255, 0.08)",
-  borderGlassBright: "rgba(255, 255, 255, 0.15)", // Bordo ad alto contrasto per i box principali
-  bgUtility: "#1A1A24",         
-  borderUtility: "#3A3A4A"      
+  borderGlassBright: "rgba(255, 255, 255, 0.15)"
 };
 
 const MOMENTI = [
@@ -25,6 +22,7 @@ const MOMENTI = [
   "Prima Pranzo", "Dopo Pranzo", "Merenda", 
   "Prima Cena", "Dopo Cena", "Notte"
 ];
+
 export default function InserimentoScreen() {
   const ottieniDataOdiernaISO = () => {
     const oggi = new Date();
@@ -49,7 +47,6 @@ export default function InserimentoScreen() {
   const [note, setNote] = useState('');
   const [mostraNotifica, setMostraNotifica] = useState(false);
   const [mostraModalInfo, setMostraModalInfo] = useState(false);
-
   useEffect(() => {
     const timer = setInterval(() => {
       if (glicemia === '' && insulina === '' && note === '') {
@@ -58,6 +55,7 @@ export default function InserimentoScreen() {
     }, 1000);
     return () => clearInterval(timer);
   }, [glicemia, insulina, note]);
+
   const ottieniDataFormattataStorico = (stringaISO: string) => {
     if (!stringaISO) return "";
     const [anno, mese, giorno] = stringaISO.split('-');
@@ -79,65 +77,6 @@ export default function InserimentoScreen() {
     if (valore > 180) return COLORS.error;
     return COLORS.success;
   };
-
-  // 💾 ESPORTA IL BACKUP DIARIO IN UN FILE JSON CONDIVISIBILE
-  const esportaBackupJSON = async () => {
-    try {
-      const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
-      if (!storicoEsistente || JSON.parse(storicoEsistente).length === 0) {
-        alert("Non ci sono misurazioni salvate da esportare.");
-        return;
-      }
-      
-      if (Platform.OS === 'web') {
-        const blob = new Blob([storicoEsistente], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'backup_diabety_diario.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } else {
-        const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(storicoEsistente)}`;
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(dataUri, { dialogTitle: 'Salva il tuo Backup Diabety' });
-        } else {
-          alert("La condivisione non è supportata su questo dispositivo.");
-        }
-      }
-    } catch (error) {
-      alert("Errore Aegean durante il backup.");
-    }
-  };
-  // 📂 IMPORTA UN FILE JSON E RE-INIETTA I DATI LOCALI (✓ SINTASSI CORRETTA AL 100%)
-  const gestisciImportazioneWeb = async (evento: any) => {
-    const file = evento.target.files?.[0]; 
-    if (!file) return;
-
-    const lettore = new FileReader();
-    lettore.onload = async (e: any) => {
-      try {
-        const contenutoTesto = e.target.result;
-        const datiVerificati = JSON.parse(contenutoTesto);
-        
-        if (Array.isArray(datiVerificati)) {
-          const conferma = window.confirm("ATTENZIONE: L'importazione di questo backup sovrascriverà completamente tutti i dati attualmente presenti sul telefono. Vuoi procedere?");
-          if (conferma) {
-            await AsyncStorage.setItem('glicotrack_data', contenutoTesto);
-            alert("✓ Diario ripristinato con successo! Riavvia l'applicazione per aggiornare le schermate.");
-          }
-        } else {
-          alert("Il file selezionato non è un backup valido di Diabety.");
-        }
-      } catch (err) {
-        alert("Impossibile leggere il file. Assicurati che sia un file JSON corretto.");
-      }
-    };
-    lettore.readAsText(file);
-  };
-
   const salvaMisurazione = async () => {
     const valoreGlicemia = parseInt(glicemia);
     
@@ -205,31 +144,6 @@ export default function InserimentoScreen() {
           <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
         </TouchableOpacity>
       </View>
-
-      {/* ⚙️ ZONE PULSANTI MANUTENZIONE UNIFORMATI E COMPATTI */}
-      <View style={styles.containerPulsantiBackupEsterni}>
-        <TouchableOpacity style={styles.btnBackupEsterno} onPress={esportaBackupJSON}>
-          <Ionicons name="cloud-download-outline" size={13} color={COLORS.onSurface} style={{ marginRight: 5 }} />
-          <Text style={{ fontFamily: 'Plus Jakarta Sans', color: COLORS.onSurface, fontSize: 11, fontWeight: '700' }}>Esporta Backup</Text>
-        </TouchableOpacity>
-        
-        {Platform.OS === 'web' ? (
-          <label style={{
-            backgroundColor: COLORS.bgUtility, borderWidth: '1px', borderStyle: 'solid', borderColor: COLORS.borderUtility, borderRadius: 10,
-            paddingVertical: 6, paddingHorizontal: 12, display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-            cursor: 'pointer', fontFamily: 'Plus Jakarta Sans', fontSize: '11px', fontWeight: '700', color: COLORS.onSurface, boxSizing: 'border-box'
-          }}>
-            <Ionicons name="cloud-upload-outline" size={13} color={COLORS.onSurface} style={{ marginRight: 5 }} />
-            Importa Backup
-            <input type="file" accept=".json" onChange={gestisciImportazioneWeb} style={{ display: 'none' }} />
-          </label>
-        ) : (
-          <TouchableOpacity style={styles.btnBackupEsterno}>
-            <Ionicons name="cloud-upload-outline" size={13} color={COLORS.onSurface} style={{ marginRight: 5 }} />
-            <Text style={{ fontFamily: 'Plus Jakarta Sans', color: COLORS.onSurface, fontSize: 11, fontWeight: '700' }}>Importa Backup</Text>
-          </TouchableOpacity>
-        )}
-      </View>
       
       {/* 📅⏰ RIGHE TEMPORALI */}
       <View style={styles.containerRigaTemporale}>
@@ -270,6 +184,7 @@ export default function InserimentoScreen() {
           )}
         </View>
       </View>
+
       <View style={styles.rigaDatiPrincipali}>
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
           <Text style={styles.labelLeftHighlight}>Glicemia (mg/dL)</Text>
@@ -297,7 +212,6 @@ export default function InserimentoScreen() {
           />
         </View>
       </View>
-
       <Text style={styles.sectionLabel}>Momento della Giornata</Text>
       <View style={styles.chipsContainer}>
         {MOMENTI.map((m) => {
@@ -324,7 +238,6 @@ export default function InserimentoScreen() {
       <TouchableOpacity style={styles.saveButton} onPress={salvaMisurazione}>
         <Text style={styles.saveButtonText}>Salva Misurazione</Text>
       </TouchableOpacity>
-      {/* 🎪 POP-UP GUIDA ALL'USO AGGIORNATO CON 5 NUOVE SEZIONI PREMIUM */}
       <Modal visible={mostraModalInfo} animationType="fade" transparent={true} onRequestClose={() => setMostraModalInfo(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContentPremium}>
@@ -336,37 +249,26 @@ export default function InserimentoScreen() {
             </View>
 
             <ScrollView style={styles.modalScrollInfo} showsVerticalScrollIndicator={false}>
-              
-              {/* SEZIONE 1: DATA E ORA */}
               <View style={styles.infoBlockPremium}>
                 <Text style={styles.infoBlockTitle}>📅 Data e Ora del Test</Text>
                 <Text style={styles.infoBlockText}>L'applicazione imposta automaticamente il giorno corrente e l'orario attuale. Se hai dimenticato di registrare un test precedente, puoi modificarli liberamente per mantenere coerente il tuo diario.</Text>
               </View>
-
-              {/* SEZIONE 2: GLICEMIA */}
               <View style={styles.infoBlockPremium}>
                 <Text style={styles.infoBlockTitle}>🩸 Inserimento Glicemia</Text>
                 <Text style={styles.infoBlockText}>Digita il valore espresso in mg/dL rilevato dal tuo glucometro. Il testo cambierà colore in tempo reale seguendo le linee guida mediche standard: verde per i valori normali, arancione per l'ipoglicemia e rosso per l'iperglicemia.</Text>
               </View>
-
-              {/* SEZIONE 3: INSULINA */}
               <View style={styles.infoBlockPremium}>
                 <Text style={styles.infoBlockTitle}>💉 Inserimento Insulina</Text>
-                <Text style={styles.infoBlockText}>Indica il numero di Unità (UI) di insulina rapida o lenta che hai somministrato. Se per questo controllo non hai assunto alcuna dose, lascia pure il campo vuoto: il sistema registrerà automaticamente un trattino.</Text>
+                <Text style={styles.infoBlockText}>Indica il numero di Unità (UI) di insulina rapida o lenta che hai somministrato. Se per questo controllo non hai assunto alcuna dose, lascia pure campo vuoto.</Text>
               </View>
-
-              {/* SEZIONE 4: MOMENTI DELLA GIORNATA */}
               <View style={styles.infoBlockPremium}>
                 <Text style={styles.infoBlockTitle}>⏰ Momenti della Giornata</Text>
-                <Text style={styles.infoBlockText}>Seleziona il bottone corrispondente al blocco temporale della misurazione. Questo parametro è fondamentale perché permette all'algoritmo di inserire i dati nella giusta colonna durante l'esportazione del report clinico.</Text>
+                <Text style={styles.infoBlockText}>Seleziona il bottone corrispondente al blocco temporale della misurazione. Questo parametro ripartisce i dati nel report clinico.</Text>
               </View>
-
-              {/* SEZIONE 5: NOTE E FUSIONE ORARIO */}
               <View style={styles.infoBlockPremium}>
                 <Text style={styles.infoBlockTitle}>📝 Note Alimentari e Sintomi</Text>
-                <Text style={styles.infoBlockText}>Usa questo spazio per annotare cosa hai mangiato o come ti senti. Salvando la misurazione, l'orario del test verrà fuso in automatico tra parentesi quadre all'inizio del testo, creando una cronologia perfetta.</Text>
+                <Text style={styles.infoBlockText}>Usa questo spazio per annotare cosa hai mangiato o come ti senti. Salvando la misurazione, l'orario del test verrà fuso in automatico all'inizio del testo.</Text>
               </View>
-
             </ScrollView>
 
             <TouchableOpacity style={styles.btnChiudiInfo} onPress={() => setMostraModalInfo(false)}>
@@ -382,8 +284,6 @@ export default function InserimentoScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background }, 
   content: { padding: 16, paddingTop: 15, paddingBottom: 40 },
-  
-  // 📐 STRUTTURA FLUIDA CON JUSTIFYCONTENT FLEX-START ED ANCORAGGIO ALL'ICONA
   headerForm: { 
     flexDirection: 'row', 
     justifyContent: 'flex-start', 
@@ -394,10 +294,6 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: 'Space Grotesk', fontSize: 24, fontWeight: '700', color: COLORS.onSurface },
   infoButtonMinimal: { justifyContent: 'center', alignItems: 'center', padding: 2, marginTop: 2 },
-  
-  containerPulsantiBackupEsterni: { flexDirection: 'row', gap: 8, width: '100%', marginBottom: 16, justifyContent: 'flex-start' },
-  btnBackupEsterno: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, backgroundColor: COLORS.bgUtility, borderColor: COLORS.borderUtility },
-
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 14, marginBottom: 10 },
   cardInput: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 14, alignItems: 'flex-start', borderWidth: 1, borderColor: COLORS.borderGlass },
   labelLeft: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600', color: COLORS.muted, marginBottom: 4, textAlign: 'left', alignSelf: 'flex-start', paddingLeft: 2 },
@@ -421,7 +317,6 @@ const styles = StyleSheet.create({
   saveButtonText: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: '#0A0A0C' },
   notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12, alignItems: 'center', width: '100%' },
   notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 14 },
-  
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 16 },
   modalContentPremium: { backgroundColor: '#111116', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: COLORS.borderGlass, maxHeight: '85%' },
   modalHeaderInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, paddingBottom: 10 },
