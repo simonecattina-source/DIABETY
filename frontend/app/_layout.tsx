@@ -11,8 +11,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { queryClient } from "@/src/query-client";
 
-// 🌟 FIX PERCORSO: Risaliamo di un livello da app/ per raggiungere context/ senza usare la chiocciola
-import { ThemeProvider } from "../context/ThemeContext";
+// 🌟 FIX COMPILATORE VERCEL: Puntiamo alla cartella context interna a src tramite alias assoluto coordinato
+import { ThemeProvider } from "@/src/context/ThemeContext";
 
 LogBox.ignoreAllLogs(true);
 
