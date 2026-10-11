@@ -3,10 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform } from '
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
 
-// 🌟 FIX CONDIZIONALE: Carichiamo Sharing solo se supportato (Ambiente Nativo)
 const Sharing = Platform.OS !== 'web' ? require('expo-sharing') : null;
-
-// 🌟 FIX PERCORSO GEOMETRICO: Risaliamo di 2 livelli esatti per uscire da (tabs) e app
 import { useTheme } from '../../context/ThemeContext';
 
 const MOMENTI_COLONNE = [
@@ -19,7 +16,6 @@ export default function StrumentiScreen() {
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
   const [filtroPdfSelezionato, setFiltroPdfSelezionato] = useState<string>('30 GG');
 
-  // Protezione di sicurezza se il contesto del tema non è ancora pronto
   if (!contextTheme) {
     return <View style={{ flex: 1, backgroundColor: '#ffffff' }} />;
   }
@@ -31,7 +27,6 @@ export default function StrumentiScreen() {
     setTimeout(() => setStatoNotifica(null), 3500);
   };
 
-  // 💾 ESPORTA BACKUP JSON PROTEGGI-PIATTAFORMA
   const esportaBackupJSON = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -63,7 +58,6 @@ export default function StrumentiScreen() {
       alert("Errore durante la creazione del file di backup.");
     }
   };
-  // 📂 IMPORTA BACKUP JSON - SINTASSI RIPARATA AL 100%
   const gestisciImportazioneWeb = async (evento: any) => {
     const file = evento.target.files ? evento.target.files[0] : null;
     if (!file) return;
@@ -90,7 +84,6 @@ export default function StrumentiScreen() {
     lettore.readAsText(file);
   };
 
-  // 📄 ALGORITMO PDF A MATRICE 11 COLONNE
   const esportaDocumentoMatriceStoricoPDF = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -192,9 +185,7 @@ export default function StrumentiScreen() {
         });
 
         const rigaInterruzionePagina = (i + 4 < sezioniOrdinate.length) ? 'style="page-break-after: always;"' : '';
-        const htmlTitoloIntestazione = (i === 0) 
-          ? `<h1>Diabety - Registro Storico Giornaliero</h1>` 
-          : `<div style="height: 10px;"></div>`;
+        const htmlTitoloIntestazione = (i === 0) ? `<h1>Diabety - Registro Storico Giornaliero</h1>` : `<div style="height: 10px;"></div>`;
 
         corpoHtmlCompleto += `
           <div class="pagina-pdf" ${rigaInterruzionePagina}>
@@ -269,7 +260,6 @@ export default function StrumentiScreen() {
         </View>
       )}
 
-      {/* 🎨 SEZIONE TEMA */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Interfaccia Visiva</Text>
       <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         <View style={styles.rowAzioneTema}>
@@ -305,7 +295,6 @@ export default function StrumentiScreen() {
         </View>
       </View>
 
-      {/* 📊 SEZIONE DATABASE */}
       <Text style={[styles.sectionLabel, { color: colors.onSurface }]}>Manutenzione e Report</Text>
       <View style={[styles.cardAzioni, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderGlass }]}>
         
@@ -419,42 +408,34 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, paddingTop: 20, paddingBottom: 40 },
   headerForm: { marginBottom: 20, width: '100%' },
-  title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700' },
-  subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, marginTop: 4 },
-  
-  sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', marginTop: 22, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  
+  title: { fontSize: 26, fontWeight: '700' },
+  subtitle: { fontSize: 13, marginTop: 4 },
+  sectionLabel: { fontSize: 14, fontWeight: '700', marginTop: 22, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   cardAzioni: { borderRadius: 16, borderWidth: 1, width: '100%', overflow: 'hidden' },
   rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, width: '100%' },
   rowAzioneLabel: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, cursor: 'pointer', width: '100%', boxSizing: 'border-box' },
   leftAzione: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
-  titoloAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700' },
-  descAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, marginTop: 2 },
-
+  titoloAzione: { fontSize: 14, fontWeight: '700' },
+  descAzione: { fontSize: 11, marginTop: 2 },
   rowAzioneTema: { flexDirection: 'row', alignItems: 'center', padding: 14, width: '100%' },
   containerToggleTema: { flexDirection: 'row', paddingHorizontal: 14, paddingBottom: 14, gap: 8, width: '100%' },
   btnTemaSelector: { flex: 1, flexDirection: 'row', paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: 'transparent' },
   btnTemaSelectorAttivoLight: { backgroundColor: 'rgba(0, 180, 216, 0.08)', borderColor: '#00B4D8' },
   btnTemaSelectorAttivoDark: { backgroundColor: 'rgba(0, 229, 255, 0.08)', borderColor: '#00E5FF' },
-  textBtnTema: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600' },
+  textBtnTema: { fontSize: 12, fontWeight: '600' },
   textBtnTemaAttivoLight: { color: '#00B4D8', fontWeight: '700' },
   textBtnTemaAttivoDark: { color: '#00E5FF', fontWeight: '700' },
-
   dividerAzione: { height: 1, width: '100%' },
-
   rowAzionePdfComplessa: { width: '100%', padding: 14, paddingTop: 12, paddingBottom: 14, flexDirection: 'column' },
   rowPdfClickArea: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 12 },
-  
   containerMiniFiltriPdf: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', gap: 6, paddingLeft: 2 },
   chipMiniPdf: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   chipMiniPdfAttiva: { backgroundColor: 'rgba(0, 229, 255, 0.08)', borderColor: '#00E5FF' },
-  textMiniChipPdf: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600' },
-
+  textMiniChipPdf: { fontSize: 11, fontWeight: '600' },
   infoBlockPremium: { marginBottom: 12, padding: 14, borderRadius: 16, borderWidth: 1, width: '100%' },
-  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: '700', marginBottom: 6 },
-  infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, lineHeight: 18 },
-
+  infoBlockTitle: { fontSize: 13, fontWeight: '700', marginBottom: 6 },
+  infoBlockText: { fontSize: 12, lineHeight: 18 },
   notificaTendina: { borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
-  notificaTesto: { fontFamily: 'Plus Jakarta Sans', fontWeight: '600', fontSize: 13 }
+  notificaTesto: { fontWeight: '600', fontSize: 13 }
 });
