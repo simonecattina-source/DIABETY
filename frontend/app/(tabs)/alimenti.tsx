@@ -22,6 +22,8 @@ const DATABASE_ALIMENTI = DATABASE_ALIMENTI_ESTERNO.sort((a, b) => a.nome.locale
 export default function AlimentiScreen() {
   const [ricerca, setCerca] = useState('');
   const [categoriaSelezionata, setCategoriaSelezionata] = useState('Tutti');
+  
+  // Memorizziamo le grammature degli alimenti salvandole come stringhe per permettere la digitazione fluida
   const [grammature, setGrammature] = useState<Record<string, string>>({});
   
   // 🍽️ STATO DEL PIATTO VIRTUALE: Array di elementi selezionati accumulati
@@ -164,7 +166,7 @@ export default function AlimentiScreen() {
                     onPress={() => aggiungiAlPiatto(item)}
                     disabled={grammiValore <= 0}
                   >
-                    <Ionicons name="add" size={18} color="#0A0A0C" />
+                    <Ionicons name="add" size={18} color={0x0A0A0C} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -187,7 +189,7 @@ export default function AlimentiScreen() {
           </View>
         }
       />
-      {/* 🍽️ SEZIONE COMPOSIZIONE MEAL: Visualizzata dinamicamente solo se contiene cibi */}
+      {/* 🍽️ PANNELLO ORA VISIVAMENTE ISOLATO DALLO SFONDO GRAZIE AL BORDO CYAN ED EFFETTO FLOATING */}
       {piattoSelezionato.length > 0 && (
         <View style={styles.footerPiattoCumulativo}>
           <View style={styles.headerPiattoRiepilogo}>
@@ -236,7 +238,7 @@ const styles = StyleSheet.create({
   textChipCategoria: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600', color: COLORS.muted },
   textChipCategoriaAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
 
-  listContent: { padding: 16, paddingBottom: 160 }, // Spazio extra in coda per non coprire l'ultimo cibo dal pannello del piatto
+  listContent: { padding: 16, paddingBottom: 180 }, // Spazio di sicurezza maggiorato per non nascondere l'ultimo cibo sotto il nuovo pannello sollevato
   cardAlimentoPremium: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: COLORS.borderGlass, marginBottom: 12, width: '100%' },
   rigaInfoSuperiore: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottomWidth: 1, borderBottomColor: "rgba(255, 255, 255, 0.04)", paddingBottom: 10 },
   boxTestiSinistra: { flex: 1, marginRight: 10, alignItems: 'flex-start' },
@@ -255,13 +257,33 @@ const styles = StyleSheet.create({
   valoreCalcolatoCho: { fontFamily: 'Space Grotesk', fontSize: 18, fontWeight: '800', color: COLORS.muted },
   unitaChoSub: { fontSize: 11, color: COLORS.muted, fontWeight: '500' },
 
-  // 📐 CSS PANNELLO DINAMICO IN CODA "IL TUO PIATTO" AD ALTO CONTRASTO
-  footerPiattoCumulativo: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: "#111116", borderTopWidth: 1, borderTopColor: COLORS.borderGlass, padding: 16, borderTopLeftRadius: 20, borderTopRightRadius: 20, shadowColor: "#000", shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 15 },
+  // 📐 STILE AGGIORNATO: Finestra ultra-distinguibile ad alto contrasto con galleggiamento tridimensionale
+  footerPiattoCumulativo: { 
+    position: 'absolute', 
+    bottom: 0, 
+    left: 0, 
+    right: 0, 
+    backgroundColor: "#1A1A24", // Schiarito rispetto al fondo #0A0A0C per un distacco immediato
+    borderTopWidth: 1.5, 
+    borderTopColor: "#00E5FF",  // Linea Ciano Neon netta per marcare la sovrapposizione
+    borderLeftWidth: 1,
+    borderLeftColor: "rgba(0, 229, 255, 0.15)",
+    borderRightWidth: 1,
+    borderRightColor: "rgba(0, 229, 255, 0.15)",
+    padding: 16, 
+    borderTopLeftRadius: 24, 
+    borderTopRightRadius: 24, 
+    shadowColor: "#000000", 
+    shadowOffset: { width: 0, height: -10 }, 
+    shadowOpacity: 0.65, 
+    shadowRadius: 16, 
+    elevation: 24 
+  },
   headerPiattoRiepilogo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, width: '100%' },
   titoloPiattoSezione: { fontFamily: 'Space Grotesk', fontSize: 16, fontWeight: '700', color: COLORS.onSurface },
   testoSvuotaPiatto: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.error, fontWeight: '600' },
   scrollCibiPiatto: { width: '100%', maxHeight: 36, marginBottom: 4 },
-  chipCiboInserito: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A24', borderWidth: 1, borderColor: COLORS.borderGlass, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, gap: 6 },
+  chipCiboInserito: { flexDirection: 'row', alignItems: 'center', backgroundColor: "#111116", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.08)", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, gap: 6 },
   testoChipCiboInserito: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.onSurface, fontWeight: '500' },
   btnRimuoviCiboSingolo: { justifyContent: 'center', alignItems: 'center', paddingLeft: 2 },
   rigaTotaleCumulativoFinale: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.06)", paddingTop: 12, marginTop: 8 },
