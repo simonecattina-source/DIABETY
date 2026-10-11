@@ -167,7 +167,8 @@
   { "id": "166", "categoria": "Colazione", "nome": "Biscotti Ringo alla Vaniglia (Barilla)", "cho100g": 69.0 },
   { "id": "167", "categoria": "Colazione", "nome": "Biscotti Ringo al Cacao (Barilla)", "cho100g": 68.0 },
   { "id": "168", "categoria": "Primi", "nome": "Pasta alla Carbonara tradizionale (porzione cotta)", "cho100g": 21.5 },
-  { "id": "169", "categoria": "Pane e Forno", "nome": "Tramezzino classico farcito da bar (Maionese + Prosciutto/Tonno)", "cho100g": 26.5 }
+  { "id": "169", "categoria": "Pane e Forno", "nome": "Tramezzino classico farcito da bar (Maionese + Prosciutto/Tonno)", "cho100g": 26.5 },
+  { "id": "170", "categoria": "Verdure e Piatti Unici", "nome": "Minestra di legumi misti (Fagioli/Ceci/Lenticchie - porzione cotta)", "cho100g": 11.8 },
+  { "id": "171", "categoria": "Verdure e Piatti Unici", "nome": "Verdure alla griglia miste condite (Zucchine/Melanzane/Peperoni)", "cho100g": 4.2 },
+  { "id": "172", "categoria": "Verdure e Piatti Unici", "nome": "Cotoletta alla milanese / impanata (Carne di vitello o pollo)", "cho100g": 14.5 }
 ]
-
-
