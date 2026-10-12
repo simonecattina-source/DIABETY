@@ -29,7 +29,7 @@ const STORAGE_PIATTO = 'diabety_alimenti_piatto_v1';
 const normalizzaRicerca = (testo: string) => testo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('it').trim();
 export default function AlimentiScreen() {
   const [ricerca, setCerca] = useState('');
-  const [categoriaAperta, setCategoriaAperta] = useState<string | null>('Preferiti');
+  const [categoriaAperta, setCategoriaAperta] = useState<string | null>(null);
   const [preferiti, setPreferiti] = useState<string[]>([]);
   const [datiCaricati, setDatiCaricati] = useState(false);
   const prossimoId = useRef(0);
