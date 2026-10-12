@@ -279,49 +279,65 @@ export default function StrumentiScreen() {
           contenitore.appendChild(corpoPdf);
           document.body.appendChild(contenitore);
           try {
-            // Attende due frame: il browser deve completare layout e disegno
-            // prima che html2canvas fotografi la tabella.
-            await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-            if (!corpoPdf.querySelector('table') || corpoPdf.getBoundingClientRect().height < 10) {
-              throw new Error('La tabella HTML non è stata renderizzata.');
-            }
-            const operazione = html2pdf().set({
-              margin: 0,
-              filename: 'Registro_Diabety.pdf',
-              image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                scrollX: 0,
-                scrollY: 0,
-                windowWidth: 1200,
-                logging: false
-              },
-              jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-              pagebreak: { mode: ['css'] }
-            }).from(corpoPdf);
-            // Verifica che la cattura contenga pixel non bianchi: se fallisce,
-            // blocca il download invece di produrre un PDF apparentemente valido.
-            const canvas = await operazione.toCanvas().get('canvas');
-            const ctx = canvas.getContext('2d');
-            if (!ctx || canvas.width < 10 || canvas.height < 10) {
-              throw new Error('Impossibile acquisire il contenuto della tabella.');
-            }
-            const larghezza = Math.min(canvas.width, 500);
-            const altezza = Math.min(canvas.height, 500);
-            const campione = ctx.getImageData(0, 0, larghezza, altezza).data;
-            let pixelScuri = 0;
-            for (let i = 0; i < campione.length; i += 16) {
-              if (campione[i] < 235 || campione[i + 1] < 235 || campione[i + 2] < 235) {
-                pixelScuri++;
-                if (pixelScuri > 20) break;
+            // Ogni pagina viene acquisita separatamente. In questo modo i salti
+            // di pagina CSS non possono creare una pagina bianca intermedia.
+            const elementiPagina = Array.from(corpoPdf.querySelectorAll<HTMLElement>('.pagina-pdf'));
+            if (!elementiPagina.length) throw new Error('Nessuna pagina disponibile per il PDF.');
+            let pdfFinale: any = null;
+            for (let indice = 0; indice < elementiPagina.length; indice++) {
+              const pagina = elementiPagina[indice];
+              pagina.style.breakAfter = 'auto';
+              pagina.style.pageBreakAfter = 'auto';
+              // Nel contenitore resta visibile soltanto la pagina da acquisire.
+              // Non usare display:none sulla pagina attiva.
+              elementiPagina.forEach((elemento, j) => {
+                elemento.style.display = j === indice ? 'block' : 'none';
+              });
+              await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+              if (!pagina.querySelector('table') || pagina.getBoundingClientRect().height < 10) {
+                throw new Error(`La tabella della pagina ${indice + 1} non è stata renderizzata.`);
+              }
+              const operazione = html2pdf().set({
+                margin: 0,
+                filename: 'Registro_Diabety.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                  scale: 2, useCORS: true, backgroundColor: '#ffffff',
+                  scrollX: 0, scrollY: 0, windowWidth: 1200, logging: false
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                pagebreak: { mode: [] }
+              }).from(pagina);
+              const canvas = await operazione.toCanvas().get('canvas');
+              const ctx = canvas.getContext('2d');
+              if (!ctx || canvas.width < 10 || canvas.height < 10) {
+                throw new Error(`Impossibile acquisire la pagina ${indice + 1}.`);
+              }
+              const larghezza = Math.min(canvas.width, 500);
+              const altezza = Math.min(canvas.height, 500);
+              const campione = ctx.getImageData(0, 0, larghezza, altezza).data;
+              let pixelScuri = 0;
+              for (let k = 0; k < campione.length; k += 16) {
+                if (campione[k] < 235 || campione[k + 1] < 235 || campione[k + 2] < 235) {
+                  if (++pixelScuri > 20) break;
+                }
+              }
+              if (pixelScuri <= 20) {
+                throw new Error(`La pagina ${indice + 1} risulta vuota.`);
+              }
+              if (indice === 0) {
+                // html2pdf crea il PDF e fornisce l'istanza jsPDF già inclusa
+                // nella dipendenza: non occorre installare nuove librerie.
+                pdfFinale = await operazione.toPdf().get('pdf');
+                // Rimuove eventuali pagine extra prodotte dagli arrotondamenti.
+                while (pdfFinale.getNumberOfPages() > 1) pdfFinale.deletePage(pdfFinale.getNumberOfPages());
+              } else {
+                pdfFinale.addPage('a4', 'landscape');
+                pdfFinale.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, 297, 210);
               }
             }
-            if (pixelScuri <= 20) {
-              throw new Error('La cattura della tabella è risultata vuota.');
-            }
-            await operazione.save();
+            if (!pdfFinale) throw new Error('Impossibile completare il PDF.');
+            pdfFinale.save('Registro_Diabety.pdf');
           } finally {
             contenitore.remove();
           }
@@ -574,4 +590,3 @@ const styles = StyleSheet.create({
   notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
   notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 13 }
 });
-
