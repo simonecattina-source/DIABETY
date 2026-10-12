@@ -105,7 +105,7 @@ export default function GraficiScreen() {
       setModalTesto("Questo grafico analizza lo storico trimestrale (90 giorni) diviso per i 7 momenti della giornata.\n\nOgni colonna mostra la media calcolata in quello specifico orario. Lo stato indica: Verde (a target), Arancione (basso/ipo) o Rosso (alto/iper). Il trattino (-) indica assenza di dati.");
     } else if (tipo === 'glicata') {
       setModalTitolo("Stima Emoglobina Glicata (HbA1c)");
-      setModalTesto("La HbA1c qui visualizzata è soltanto una stima orientativa ricavata dalla media delle misurazioni disponibili negli ultimi 90 giorni, mediante la relazione matematica eAG/HbA1c.\n\nLa frequenza e la distribuzione dei controlli possono influenzare molto il risultato: non rappresenta una previsione clinica affidabile, né sostituisce l'esame HbA1c di laboratorio o il parere del medico. I colori della barra sono indicativi e non costituiscono una valutazione clinica individuale.");
+      setModalTesto("La HbA1c qui visualizzata è soltanto una stima orientativa ricavata dalla media delle misurazioni disponibili negli ultimi 90 giorni, mediante la relazione matematica eAG/HbA1c.\n\nLa frequenza e la distribuzione dei controlli possono influenzare molto il risultato: non rappresenta una previsione clinica affidabile, né sostituisce l'esame HbA1c di laboratorio o il parere del medico. La scala cromatica e le diciture delle fasce sono soltanto riferimenti grafici illustrativi, non classificazioni diagnostiche né obiettivi terapeutici personalizzati.");
     }
     setModalVisibile(true);
   };
@@ -283,20 +283,22 @@ export default function GraficiScreen() {
       </View>
     );
   };
-  const ottieniColoreGlicata = (val: number) => {
-    if (val === 0) return "#1F1F29";
-    if (val < 7.0) return COLORS.success;   
-    if (val <= 8.0) return COLORS.warning;  
-    return COLORS.error;                    
+  // Le fasce sono una legenda grafica orientativa, non obiettivi terapeutici individuali.
+  const fasciaGlicata = (val: number) => {
+    if (val < 5.7) return { nome: 'Ottimale', colore: '#00E6A0' };
+    if (val <= 6.4) return { nome: 'Nella norma', colore: '#00D9FF' };
+    if (val <= 7.0) return { nome: 'Da monitorare', colore: '#FFBC39' };
+    return { nome: 'Elevato', colore: '#FF526E' };
   };
-
-  const calcolaPercentualeBarraGlicata = (val: number) => {
-    if (val === 0) return 0;
-    const MIN_GLIC = 4.0;
-    const MAX_GLICEMIA = 12.0;
-    const protetto = Math.max(MIN_GLIC, Math.min(MAX_GLICEMIA, val));
-    return ((protetto - MIN_GLIC) / (MAX_GLICEMIA - MIN_GLIC)) * 100;
-  };
+  const posizioneGlicata = (val: number) =>
+    Math.max(0, Math.min(100, ((val - 4) / 6) * 100));
+  const [larghezzaBarraGlicata, setLarghezzaBarraGlicata] = useState(0);
+  const legendeGlicata = [
+    { limite: '< 5,7%', nome: 'Ottimale', colore: '#00E6A0', sfondo: '#07392D' },
+    { limite: '5,7 – 6,4%', nome: 'Nella norma', colore: '#00D9FF', sfondo: '#082F48' },
+    { limite: '6,5 – 7,0%', nome: 'Da monitorare', colore: '#FFBC39', sfondo: '#45300C' },
+    { limite: '> 7,0%', nome: 'Elevato', colore: '#FF526E', sfondo: '#3B0D21' },
+  ];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -405,42 +407,80 @@ export default function GraficiScreen() {
           </View>
         )}
       </View>
-      <View style={[styles.cardGraficoContenitore, { marginTop: 16, paddingBottom: 20 }]}>
+      <View style={[styles.cardGraficoContenitore, styles.cardHbPremium, { marginTop: 16 }]}>
         <View style={styles.rigaTitoloGrafico}>
-          <Text style={styles.sectionLabel}>Stima Emoglobina Glicata (HbA1c)</Text>
+          <View style={styles.titoloHbRiga}>
+            <Ionicons name="water" size={25} color="#9855FF" />
+            <Text style={[styles.sectionLabel, styles.titoloHbTesto]}>Stima Emoglobina Glicata (HbA1c)</Text>
+          </View>
           <TouchableOpacity onPress={() => apriSpiegazione('glicata')} style={styles.pulsanteInfoTocco}>
-            <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
+            <Ionicons name="information-circle-outline" size={23} color="#9855FF" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.subLabelSpiegazione}>Stima orientativa dai test disponibili negli ultimi 90 giorni; non sostituisce il laboratorio.</Text>
-        
-        {totaleMisurazioni > 0 ? (
-          <View style={styles.containerInterfacciaGlicata}>
-            <View style={styles.rigaDatiGlicataPrincipale}>
-              <Text style={[styles.valoreGlicataTestoCentrale, { color: ottieniColoreGlicata(glicataStimata) }]}>
-                {glicataStimata > 0 ? `${glicataStimata.toFixed(1)}%` : '-'}
-              </Text>
-              <Text style={styles.etichettaMmolSecondaria}>
-                {glicataMmol > 0 ? `~ ${glicataMmol} mmol/mol` : '-'}
-              </Text>
+
+        {totaleMisurazioni > 0 && glicataStimata > 0 ? (
+          <View style={styles.containerHbPremium}>
+            <Text style={styles.valoreHbPremium}>{glicataStimata.toFixed(1).replace('.', ',')}<Text style={styles.simboloHbPremium}>%</Text></Text>
+            <Text style={styles.mmolHbPremium}>{glicataMmol} <Text style={styles.unitaHbPremium}>mmol/mol</Text></Text>
+
+            <View style={styles.barraHbContenitore} onLayout={(e) => setLarghezzaBarraGlicata(e.nativeEvent.layout.width)}>
+              <Svg width="100%" height={36} viewBox="0 0 600 36" preserveAspectRatio="none">
+                <Defs>
+                  <LinearGradient id="hbGradientPremium" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <Stop offset="0%" stopColor="#00DA9C"/>
+                    <Stop offset="28%" stopColor="#00D8D1"/>
+                    <Stop offset="44%" stopColor="#02A7FF"/>
+                    <Stop offset="52%" stopColor="#F9D449"/>
+                    <Stop offset="70%" stopColor="#FF8C22"/>
+                    <Stop offset="100%" stopColor="#F32254"/>
+                  </LinearGradient>
+                </Defs>
+                <Rect x="1" y="4" width="598" height="27" rx="13.5" fill="url(#hbGradientPremium)" />
+                {[100,200,300,400,500].map(x => <Line key={x} x1={x} x2={x} y1="5" y2="30" stroke="#0C1020" strokeWidth="2" opacity={0.75}/>)}
+              </Svg>
+              {larghezzaBarraGlicata > 0 && (
+                <View pointerEvents="none" style={[styles.indicatoreHb, { left: Math.max(8, Math.min(larghezzaBarraGlicata - 8, larghezzaBarraGlicata * posizioneGlicata(glicataStimata) / 100)) - 8 }]}>
+                  <View style={styles.lineaIndicatoreHb}/>
+                  <View style={styles.pallinoIndicatoreHb}/>
+                  <View style={styles.lineaIndicatoreHb}/>
+                </View>
+              )}
             </View>
-            
-            <View style={styles.binarioGrigioBarraSfondo}>
-              <View style={[styles.riempimentoAttivoBarra, { width: `${calcolaPercentualeBarraGlicata(glicataStimata)}%`, backgroundColor: ottieniColoreGlicata(glicataStimata) }]} />
+            <View style={styles.scalaHb}>
+              {['4,0','5,0','6,0','7,0','8,0','9,0','10,0'].map((n, i) => (
+                <Text key={n} style={[styles.taccaHb, i === 0 && { textAlign: 'left' }, i === 6 && { textAlign: 'right' }]}>{n}</Text>
+              ))}
             </View>
 
-            <View style={styles.rigaLegendaGlicataLimiti}>
-              <Text style={styles.testoLegendaMarcatore}>4.0%</Text>
-              <Text style={[styles.testoLegendaMarcatore, { color: COLORS.success }]}>Target (&lt;7%)</Text>
-              <Text style={styles.testoLegendaMarcatore}>12.0%</Text>
+            <View style={styles.legendeHb}>
+              {legendeGlicata.map((f) => (
+                <View key={f.nome} style={[styles.legendaHb, { borderColor: f.colore, backgroundColor: f.sfondo }]}>
+                  <Text style={[styles.legendaHbLimite, { color: f.colore }]} numberOfLines={1} adjustsFontSizeToFit>{f.limite}</Text>
+                  <Text style={[styles.legendaHbNome, { color: f.colore }]} numberOfLines={1} adjustsFontSizeToFit>{f.nome}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={[styles.risultatoHb, { borderColor: fasciaGlicata(glicataStimata).colore + '70' }]}>
+              <Ionicons name="checkmark-circle" size={25} color={fasciaGlicata(glicataStimata).colore}/>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.risultatoHbTitolo, { color: fasciaGlicata(glicataStimata).colore }]}>{fasciaGlicata(glicataStimata).nome}</Text>
+                <Text style={styles.risultatoHbDescrizione}>Fascia grafica indicativa · Stima dai dati degli ultimi 90 giorni</Text>
+              </View>
             </View>
           </View>
         ) : (
-          <View style={{ paddingVertical: 25, alignItems: 'center', width: '100%' }}>
-            <Ionicons name="flask-outline" size={26} color={COLORS.muted} style={{ marginBottom: 6 }} />
-            <Text style={{ color: COLORS.muted, fontSize: 13 }}>Dati insufficienti per stimare l'HbA1c.</Text>
+          <View style={styles.hbSenzaDati}>
+            <Text style={styles.valoreHbPremium}>-</Text>
+            <Text style={styles.mmolHbPremium}>-</Text>
+            <Text style={styles.testoHbSenzaDati}>Dati insufficienti per stimare l'HbA1c.</Text>
           </View>
         )}
+
+        <View style={styles.notaHb}>
+          <Ionicons name="information-circle" size={20} color="#9588F9"/>
+          <Text style={styles.notaHbTesto}>La stima dell'HbA1c è orientativa e non sostituisce un esame di laboratorio. Le fasce non rappresentano obiettivi clinici personalizzati.</Text>
+        </View>
       </View>
     </ScrollView>
   );
@@ -491,4 +531,30 @@ const styles = StyleSheet.create({
   
   // 📐 INTERVENTO: Allineamento orizzontale legenda limiti HbA1c
   rigaLegendaGlicataLimiti: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8 }
+  cardHbPremium: { backgroundColor: '#0C0E20', borderColor: '#5940AD', borderRadius: 20, padding: 18 },
+  titoloHbRiga: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 9, paddingRight: 8 },
+  titoloHbTesto: { flexShrink: 1, fontSize: 14, lineHeight: 20 },
+  containerHbPremium: { width: '100%', alignItems: 'center', paddingTop: 20 },
+  valoreHbPremium: { fontFamily: 'Space Grotesk', color: '#F4F0FF', fontWeight: '900', fontSize: 57, letterSpacing: -2, textShadowColor: '#7645FF', textShadowRadius: 17 },
+  simboloHbPremium: { fontSize: 35, color: '#B5A1FF' },
+  mmolHbPremium: { fontFamily: 'Plus Jakarta Sans', color: '#FFFFFF', fontWeight: '700', fontSize: 19, marginTop: -3 },
+  unitaHbPremium: { color: '#B2A5EF', fontSize: 15, fontWeight: '400' },
+  barraHbContenitore: { width: '100%', height: 36, marginTop: 29, position: 'relative', justifyContent: 'center' },
+  indicatoreHb: { position: 'absolute', width: 16, top: -4, height: 43, alignItems: 'center', justifyContent: 'center' },
+  lineaIndicatoreHb: { width: 2, height: 10, backgroundColor: '#EAE1FF', shadowColor: '#8A55FF', shadowOpacity: 1, shadowRadius: 7 },
+  pallinoIndicatoreHb: { width: 17, height: 17, borderRadius: 9, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#9A63FF', shadowColor: '#8A55FF', shadowOpacity: 1, shadowRadius: 9, elevation: 5 },
+  scalaHb: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginTop: 4 },
+  taccaHb: { flex: 1, textAlign: 'center', fontSize: 11, color: '#BBC2E9', fontFamily: 'Plus Jakarta Sans' },
+  legendeHb: { flexDirection: 'row', width: '100%', gap: 5, marginTop: 25 },
+  legendaHb: { flex: 1, minWidth: 0, borderRadius: 9, borderWidth: 1, paddingVertical: 10, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  legendaHbLimite: { fontFamily: 'Space Grotesk', fontSize: 11, fontWeight: '800', textAlign: 'center' },
+  legendaHbNome: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: '700', textAlign: 'center' },
+  risultatoHb: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, backgroundColor: '#08202A', borderRadius: 12, padding: 13, marginTop: 20 },
+  risultatoHbTitolo: { fontFamily: 'Space Grotesk', fontSize: 15, fontWeight: '800' },
+  risultatoHbDescrizione: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: '#C4D0DD', marginTop: 3, lineHeight: 16 },
+  notaHb: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 12, borderRadius: 12, backgroundColor: '#12162F', borderWidth: 1, borderColor: '#343A73', marginTop: 13 },
+  notaHbTesto: { fontFamily: 'Plus Jakarta Sans', color: '#B9C1E9', fontSize: 11, lineHeight: 17, flex: 1 },
+  hbSenzaDati: { alignItems: 'center', paddingVertical: 20 },
+  testoHbSenzaDati: { fontFamily: 'Plus Jakarta Sans', color: COLORS.muted, fontSize: 12, marginTop: 12 },
+
 });
