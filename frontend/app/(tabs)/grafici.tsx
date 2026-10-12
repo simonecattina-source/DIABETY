@@ -259,27 +259,56 @@ export default function GraficiScreen() {
     </View>;
   };
 
+  // Le chiavi dei momenti restano identiche a quelle salvate nel diario:
+  // cambiano soltanto le etichette visibili, per non perdere misurazioni.
   const renderizzaGraficoColonneMomenti = () => {
-    if (medieMomenti.length === 0) return null;
-    const altezzaMassimaColonna = 110;
-    const valoreMassimoScala = 300;
-
+    const dettagli: Record<string, { nome: string; icona: keyof typeof Ionicons.glyphMap; colore: string; chiaro: string }> = {
+      "Prima Colazione": { nome: "Al risveglio", icona: "sunny-outline", colore: "#00CFFF", chiaro: "#31F5EF" },
+      "Dopo Colazione": { nome: "Dopo la colazione", icona: "cafe-outline", colore: "#7054FF", chiaro: "#B878FF" },
+      "Prima Pranzo": { nome: "Prima di pranzo", icona: "sunny-outline", colore: "#FF8B39", chiaro: "#FFDB49" },
+      "Dopo Pranzo": { nome: "Dopo pranzo", icona: "restaurant-outline", colore: "#FF317B", chiaro: "#FF7291" },
+      "Prima Cena": { nome: "Prima di cena", icona: "partly-sunny-outline", colore: "#8752FF", chiaro: "#789AFF" },
+      "Dopo Cena": { nome: "Dopo cena", icona: "moon-outline", colore: "#00C8BC", chiaro: "#29F5D7" },
+      "Notte": { nome: "Prima di Dormire", icona: "moon-outline", colore: "#575EFF", chiaro: "#8C9CFF" },
+    };
+    // Scala condivisa: i rapporti tra le barre riflettono le medie reali.
+    // I valori superiori al limite visivo mantengono comunque il numero originale.
+    const massimo = Math.max(180, ...medieMomenti.map(m => m.media ?? 0));
     return (
-      <View style={styles.containerGraficoSvg}>
-        <View style={styles.rigaColonneContainer}>
-          {medieMomenti.map((m, i) => {
-            const altezzaCalcolata = m.media !== null ? Math.min(altezzaMassimaColonna, ((m.media ?? 0) / valoreMassimoScala) * altezzaMassimaColonna) : 4;
-            const coloreColonna = m.media === null ? "#1F1F29" : m.media > 180 ? COLORS.error : m.media < 70 ? COLORS.warning : COLORS.success;
-
-            return (
-              <View key={i} style={styles.singolaColonnaWrapper}>
-                <Text style={[styles.valoreColonnaTesto, { color: m.media === null ? COLORS.muted : COLORS.onSurface }]}>{m.media !== null ? m.media : '-'}</Text>
-                <View style={[styles.colonnaRettangolo, { height: altezzaCalcolata, backgroundColor: coloreColonna }]} />
-                <Text style={styles.etichettaColonnaMomento}>{MOMENTI_SHORT[m.momento as keyof typeof MOMENTI_SHORT]}</Text>
+      <View style={styles.momentiLista}>
+        {medieMomenti.map((m) => {
+          const info = dettagli[m.momento];
+          if (!info) return null;
+          const presente = m.media !== null;
+          const percentuale = presente ? Math.max(0, Math.min(100, (m.media! / massimo) * 100)) : 0;
+          const gradId = `momentoGrad${MOMENTI_ELENCO.indexOf(m.momento)}`;
+          return (
+            <View key={m.momento} style={styles.momentoRigaPremium}>
+              <View style={styles.momentoNomeGruppo}>
+                <Ionicons name={info.icona} size={22} color={info.colore} />
+                <Text style={styles.momentoNomePremium} numberOfLines={2}>{info.nome}</Text>
               </View>
-            );
-          })}
-        </View>
+              <View style={styles.momentoBinario}>
+                <Svg width="100%" height="100%" viewBox="0 0 100 16" preserveAspectRatio="none">
+                  <Defs>
+                    <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
+                      <Stop offset="0%" stopColor={info.colore} />
+                      <Stop offset="100%" stopColor={info.chiaro} />
+                    </LinearGradient>
+                  </Defs>
+                  <Rect x="0" y="0" width="100" height="16" rx="8" fill="#24284E" />
+                  {presente && percentuale > 0 && (
+                    <Rect x="0" y="0" width={percentuale} height="16" rx={Math.min(8,percentuale/2)} fill={`url(#${gradId})`} />
+                  )}
+                </Svg>
+              </View>
+              <View style={styles.momentoValoreGruppo}>
+                <Text style={[styles.momentoValorePremium, { color: presente ? info.chiaro : COLORS.muted }]}>{presente ? m.media : '-'}</Text>
+                <Text style={styles.momentoUnitaPremium}>mg/dL</Text>
+              </View>
+            </View>
+          );
+        })}
       </View>
     );
   };
@@ -392,20 +421,29 @@ export default function GraficiScreen() {
         )}
       </View>
 
-      <View style={[styles.cardGraficoContenitore, { marginTop: 16 }]}>
+      <View style={[styles.cardGraficoContenitore, styles.cardMomentiPremium, { marginTop: 16 }]}>
         <View style={styles.rigaTitoloGrafico}>
-          <Text style={styles.sectionLabel}>Medie per Momento della Giornata</Text>
+          <View style={styles.titoloMomentiPremium}>
+            <Ionicons name="stats-chart" size={23} color="#A775FF" />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.sectionLabel, { flexShrink: 1 }]}>Medie per Momento della Giornata</Text>
+              <Text style={styles.sottotitoloMomentiPremium}>Media glicemica · mg/dL</Text>
+            </View>
+          </View>
           <TouchableOpacity onPress={() => apriSpiegazione('momenti')} style={styles.pulsanteInfoTocco}>
-            <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
+            <Ionicons name="information-circle-outline" size={23} color="#9855FF" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.subLabelSpiegazione}>Analisi divisa per i 7 controlli del diario clinico.</Text>
         {totaleMisurazioni > 0 ? renderizzaGraficoColonneMomenti() : (
           <View style={{ paddingVertical: 30, alignItems: 'center', width: '100%' }}>
             <Ionicons name="bar-chart-outline" size={26} color={COLORS.muted} style={{ marginBottom: 6 }} />
             <Text style={{ color: COLORS.muted, fontSize: 13 }}>Nessun dato inserito.</Text>
           </View>
         )}
+        <View style={styles.notaMomentiPremium}>
+          <Ionicons name="information-circle" size={20} color="#9588F9" />
+          <Text style={styles.notaMomentiTesto}>Le medie per momento della giornata sono calcolate sulle misurazioni disponibili negli ultimi 90 giorni e possono variare in base alla disponibilità dei dati.</Text>
+        </View>
       </View>
       <View style={[styles.cardGraficoContenitore, styles.cardHbPremium, { marginTop: 16 }]}>
         <View style={styles.rigaTitoloGrafico}>
@@ -531,6 +569,19 @@ const styles = StyleSheet.create({
   
   // 📐 INTERVENTO: Allineamento orizzontale legenda limiti HbA1c
   rigaLegendaGlicataLimiti: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8 },
+  cardMomentiPremium: { backgroundColor: '#0C0E20', borderColor: '#5940AD', borderRadius: 20, padding: 16 },
+  titoloMomentiPremium: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10, paddingRight: 8 },
+  sottotitoloMomentiPremium: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: '#AAA6D7', marginTop: 3 },
+  momentiLista: { gap: 7, marginTop: 19 },
+  momentoRigaPremium: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0A1229', borderWidth: 1, borderColor: '#1D2850', borderRadius: 12, paddingVertical: 13, paddingHorizontal: 10, gap: 9, minHeight: 64 },
+  momentoNomeGruppo: { width: '34%', flexDirection: 'row', alignItems: 'center', gap: 7 },
+  momentoNomePremium: { fontFamily: 'Plus Jakarta Sans', color: '#F4F0FF', fontSize: 11, fontWeight: '700', flex: 1, lineHeight: 15 },
+  momentoBinario: { flex: 1, height: 16, borderRadius: 8, overflow: 'hidden', backgroundColor: '#24284E' },
+  momentoValoreGruppo: { width: 69, alignItems: 'flex-end', justifyContent: 'center' },
+  momentoValorePremium: { fontFamily: 'Space Grotesk', fontSize: 19, fontWeight: '800' },
+  momentoUnitaPremium: { fontFamily: 'Plus Jakarta Sans', fontSize: 9, color: '#B3B9D8', marginTop: -2 },
+  notaMomentiPremium: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 12, borderRadius: 12, backgroundColor: '#12162F', borderWidth: 1, borderColor: '#343A73', marginTop: 17 },
+  notaMomentiTesto: { fontFamily: 'Plus Jakarta Sans', color: '#B9C1E9', fontSize: 11, lineHeight: 17, flex: 1 },
   cardHbPremium: { backgroundColor: '#0C0E20', borderColor: '#5940AD', borderRadius: 20, padding: 18 },
   titoloHbRiga: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 9, paddingRight: 8 },
   titoloHbTesto: { flexShrink: 1, fontSize: 14, lineHeight: 20 },
