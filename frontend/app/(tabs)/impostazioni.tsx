@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform, LayoutAnimation, UIManager } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform, LayoutAnimation, UIManager, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
@@ -32,7 +32,8 @@ const MOMENTI_COLONNE = [
 ];
 export default function StrumentiScreen() {
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
-  const [filtroPdfSelezionato, setFiltroPdfSelezionato] = useState<string>('30 GG');
+  const [filtroPdfSelezionato, setFiltroPdfSelezionato] = useState<string>('Tutti');
+  const [modalPdfVisibile, setModalPdfVisibile] = useState(false);
   const [expandedPointId, setExpandedPointId] = useState<number | null>(null);
 
   const mostraMessaggioNotifica = (testo: string) => {
@@ -137,7 +138,8 @@ export default function StrumentiScreen() {
       alert('Impossibile leggere o importare il backup. Lo storico attuale non è stato modificato se la scrittura non è riuscita.');
     }
   };
-  const esportaDocumentoMatriceStoricoPDF = async () => {
+  const esportaDocumentoMatriceStoricoPDF = async (modalita: 'html' | 'pdf') => {
+    setModalPdfVisibile(false);
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
       let dati = storicoEsistente ? JSON.parse(storicoEsistente) : [];
@@ -154,13 +156,14 @@ export default function StrumentiScreen() {
 
       if (dati.length === 0) { alert(`Nessun dato registrato nell'intervallo selezionato.`); return; }
 
+      // L'ordine dell'array salvato viene mantenuto: la prima registrazione inserita vince.
       const sezioni: Record<string, any[]> = {};
       dati.forEach((item: any) => { const k = item.dataTesto || "Oggi"; if (!sezioni[k]) sezioni[k] = []; sezioni[k].push(item); });
 
       const sezioniOrdinate = Object.keys(sezioni).sort((a, b) => {
         const [gA, mA, anA] = a.split('/'); const [gB, mB, anB] = b.split('/');
         return new Date(parseInt(anB) < 50 ? 2000+parseInt(anB) : 1900+parseInt(anB), parseInt(mB)-1, parseInt(gB)).getTime() - new Date(parseInt(anA) < 50 ? 2000+parseInt(anA) : 1900+parseInt(anA), parseInt(mA)-1, parseInt(gA)).getTime();
-      }).map(ch => ({ title: ch, data: sezioni[ch].sort((xA, xB) => xB.ora.localeCompare(xA.ora)) }));
+      }).map(ch => ({ title: ch, data: sezioni[ch] }));
 
       let corpoHtmlCompleto = "";
       for (let i = 0; i < sezioniOrdinate.length; i += 4) {
@@ -168,12 +171,14 @@ export default function StrumentiScreen() {
         blocco.forEach(sez => {
           const rG: Record<string, string> = {}; const rI: Record<string, string> = {}; const rN: Record<string, string> = {};
           MOMENTI_COLONNE.forEach(m => { rG[m] = "-"; rI[m] = "-"; rN[m] = "-"; });
+          const momentiGiaInseriti = new Set<string>();
           sez.data.forEach(item => {
-            if (MOMENTI_COLONNE.includes(item.tipo)) {
+            if (MOMENTI_COLONNE.includes(item.tipo) && !momentiGiaInseriti.has(item.tipo)) {
+              momentiGiaInseriti.add(item.tipo);
               let col = '#34C759'; if (item.glicemia > 180) col = '#FF3B30'; if (item.glicemia < 70) col = '#FF9F0A';
               rG[item.tipo] = `<span style="color: ${col}; font-weight: bold;">${item.glicemia} mg/dL</span>`;
               rI[item.tipo] = item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : "-";
-              rN[item.tipo] = item.note ? `<span style="font-style: italic; color: #555;">${item.note}</span>` : "-";
+              rN[item.tipo] = item.note ? `<span style="font-style: italic; color: #555;">${String(item.note).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}</span>` : "-";
             }
           });
           let tG = ""; let tI = ""; let tN = "";
@@ -187,15 +192,51 @@ export default function StrumentiScreen() {
       const htmlTemplateHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page { size: landscape; margin: 10mm; } body { font-family: sans-serif; color: #1c1c1e; padding: 0; margin: 0; background: #ffffff; } .pagina-pdf { box-sizing: border-box; width: 100%; } h1 { font-size: 18px; color: #0A66C2; margin: 0 0 10px 0; font-weight: bold; border-bottom: 2px solid #0A66C2; padding-bottom: 4px; } table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 5px; } th, td { border: 1px solid #c7c7cc; padding: 6px 4px; font-size: 10px; text-align: center; vertical-align: middle; word-wrap: break-word; } th { background-color: #f2f2f7; font-weight: bold; font-size: 9px; text-transform: uppercase; } .cell-data { font-weight: bold; background-color: #f0f5fa; color: #0A66C2; font-size: 10.5px; width: 75px; } .cell-label { font-weight: 600; background-color: #f2f2f7; text-align: left; padding-left: 5px; width: 80px; } .row-separator td { background-color: #ffffff; }</style></head><body>${corpoHtmlCompleto}</body></html>`;
 
       if (Platform.OS === 'web') {
-        const win = window.open('', '_blank');
-        if (win) {
-          win.document.write(htmlTemplateHTML); win.document.close(); win.onload = () => { win.focus(); win.print(); };
+        if (modalita === 'html') {
+          const blob = new Blob([htmlTemplateHTML], { type: 'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const finestra = window.open(url, '_blank');
+          if (!finestra) {
+            URL.revokeObjectURL(url);
+            alert('Il browser ha bloccato la nuova finestra. Consenti i popup per visualizzare il documento.');
+            return;
+          }
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
         } else {
-          const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML }); const res = await fetch(uri); const b = await res.blob(); const u = URL.createObjectURL(b);
-          const a = document.createElement('a'); a.href = u; a.download = `Registro_PDF.pdf`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          // html2pdf.js genera un PDF autentico a partire dal medesimo HTML dell'anteprima.
+          // @ts-ignore - html2pdf.js non include dichiarazioni TypeScript proprie.
+          const modulo = await import('html2pdf.js');
+          const html2pdf = modulo.default || modulo;
+          const contenitore = document.createElement('div');
+          contenitore.style.cssText = 'position:fixed;left:-20000px;top:0;width:1122px;background:#fff;z-index:-1;';
+          const docPdf = new DOMParser().parseFromString(htmlTemplateHTML, 'text/html');
+          const stilePdf = document.createElement('style');
+          stilePdf.textContent = docPdf.querySelector('style')?.textContent || '';
+          contenitore.appendChild(stilePdf);
+          const corpoPdf = document.createElement('div');
+          corpoPdf.innerHTML = docPdf.body.innerHTML;
+          contenitore.appendChild(corpoPdf);
+          document.body.appendChild(contenitore);
+          try {
+            await html2pdf().set({
+              margin: 0,
+              filename: 'Registro_Diabety.pdf',
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+              pagebreak: { mode: ['css', 'legacy'] }
+            }).from(contenitore).save();
+          } finally {
+            document.body.removeChild(contenitore);
+          }
         }
       } else {
-        const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML }); await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
+        if (modalita === 'html') {
+          alert('La visualizzazione HTML è disponibile nella versione web.');
+        } else {
+          const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
+          await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
+        }
       }
     } catch (e) { alert("Impossibile completare la stampa."); }
   };
@@ -267,13 +308,13 @@ export default function StrumentiScreen() {
         )}
 
         <View style={styles.rowAzionePdfComplessa}>
-          <TouchableOpacity style={styles.rowPdfClickArea} onPress={esportaDocumentoMatriceStoricoPDF}>
+          <TouchableOpacity style={styles.rowPdfClickArea} onPress={() => setModalPdfVisibile(true)}>
             <View style={styles.leftAzione}>
               <View style={[styles.iconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.1)' }]}>
                 <Ionicons name="document-text-outline" size={20} color={COLORS.brandPrimary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esporta Registro PDF</Text>
+                <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esporta PDF</Text>
                 <Text style={styles.descAzione}>Genera il documento clinico identico allo storico</Text>
               </View>
             </View>
@@ -292,6 +333,43 @@ export default function StrumentiScreen() {
           </View>
         </View>
       </View>
+
+      <Modal visible={modalPdfVisibile} transparent animationType="fade" onRequestClose={() => setModalPdfVisibile(false)}>
+        <View style={styles.pdfModalOverlay}>
+          <View style={styles.pdfModalCard}>
+            <View style={styles.pdfModalHeader}>
+              <Ionicons name="document-text-outline" size={24} color={COLORS.brandPrimary} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.pdfModalTitle}>Esporta registro</Text>
+                <Text style={styles.pdfModalSubtitle}>DIABETY · Diario glicemico</Text>
+              </View>
+              <TouchableOpacity onPress={() => setModalPdfVisibile(false)} accessibilityLabel="Chiudi finestra">
+                <Ionicons name="close" size={24} color={COLORS.muted} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.pdfModalPeriodo}>Periodo selezionato: {filtroPdfSelezionato}</Text>
+            <TouchableOpacity style={styles.pdfModalOption} onPress={() => esportaDocumentoMatriceStoricoPDF('html')}>
+              <Ionicons name="eye-outline" size={22} color={COLORS.brandPrimary} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.pdfModalOptionTitle}>Visualizza HTML</Text>
+                <Text style={styles.pdfModalOptionDesc}>Apri il documento formattato nel browser</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.pdfModalOption} onPress={() => esportaDocumentoMatriceStoricoPDF('pdf')}>
+              <Ionicons name="download-outline" size={22} color={COLORS.brandSecondary} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.pdfModalOptionTitle}>Scarica PDF</Text>
+                <Text style={styles.pdfModalOptionDesc}>Salva un vero documento .pdf</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.pdfModalCancel} onPress={() => setModalPdfVisibile(false)}>
+              <Text style={styles.pdfModalCancelText}>Annulla</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Text style={styles.sectionLabel}>Manuale & Linee Guia</Text>
 
@@ -323,6 +401,17 @@ export default function StrumentiScreen() {
   );
 }
 const styles = StyleSheet.create({
+  pdfModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', padding: 20 },
+  pdfModalCard: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 22, borderWidth: 1, borderColor: COLORS.borderGlassBright, padding: 20, maxWidth: 440, width: '100%', alignSelf: 'center' },
+  pdfModalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  pdfModalTitle: { color: COLORS.onSurface, fontSize: 18, fontWeight: '700' },
+  pdfModalSubtitle: { color: COLORS.muted, fontSize: 12, marginTop: 3 },
+  pdfModalPeriodo: { color: COLORS.brandPrimary, fontSize: 13, marginBottom: 16, fontWeight: '600' },
+  pdfModalOption: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.bgUtility, padding: 15, borderRadius: 14, borderWidth: 1, borderColor: COLORS.borderGlassBright, marginBottom: 10 },
+  pdfModalOptionTitle: { color: COLORS.onSurface, fontWeight: '700', fontSize: 14 },
+  pdfModalOptionDesc: { color: COLORS.muted, fontSize: 11, marginTop: 4 },
+  pdfModalCancel: { padding: 12, alignItems: 'center' },
+  pdfModalCancelText: { color: COLORS.muted, fontWeight: '700' },
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 16, paddingTop: 20, paddingBottom: 40 },
   headerForm: { marginBottom: 20, width: '100%' },
