@@ -180,14 +180,14 @@ export default function StrumentiScreen() {
       }
     } catch (error) { alert("Impossibile completare la stampa del documento."); }
   };
-  // Registro ufficiale degli 8 punti strutturali del manuale
+  // Registro ufficiale degli 8 punti strutturali del manuale (Punti 1-4)
   const manualPoints = [
     { 
       id: 1, 
       title: "1. Registrazione dei Dati", 
       icon: "analytics-outline", 
       color: COLORS.brandPrimary,
-      content: "Registra i tuoi dati in un attimo. Nella schermata 'Inserisci' puoi selezionare Data e Ora per la registrazione dei tuoi dati. Di default l'app indicherà sempre Data e Ora attuali ma puoi comunque modificare a tuo piacimento questi parametri per aggiungere dei dati in momenti specifici del tuo registro Storico. Tramite i riquadri 'Glicemia' e 'Insulina' puoi inserire i valori corrispondenti che ti interessa registrare, nella sezione subito sotto puoi impostare il momento della giornata relativo al dato che stai registrando. Nel box 'Note' puoi inserire ulteriori informazioni che verranno registrate nel tuo Storico dei dati. L'app Diabety è stata programmata per inserire all'interno del riquadro delle 'Note' l'orario in cui stai effettuando il test cosi da tenerne traccia quando esporti il file in PDF."
+      content: "Registra i tuoi dati in un attimo. Nella schermata 'Inserisci' puoi selezionare Data e Ora per la registrazione dei tuoi dati. Di default l'app indicherà sempre Data e Ora attuali ma puoi comunque modificare a tuo piacimento questi parametri per aggiungere dei dati in moments specifici del tuo registro Storico. Tramite i riquadri 'Glicemia' e 'Insulina' puoi inserire i valori corrispondenti che ti interessa registrare, nella sezione subito sotto puoi impostare il momento della giornata relativo al dato che stai registrando. Nel box 'Note' puoi inserire ulteriori informazioni che verranno registrate nel tuo Storico dei dati. L'app Diabety è stata programmata per inserire all'interno del riquadro delle 'Note' l'orario in cui stai effettuando il test cosi da tenerne traccia quando esporti il file in PDF."
     },
     { 
       id: 2, 
@@ -215,31 +215,30 @@ export default function StrumentiScreen() {
       title: "5. Backup e Sicurezza Dati", 
       icon: "sync-outline", 
       color: COLORS.brandPrimary,
-      content: "Salva e proteggi i tuoi dati in pochi clic. Puoi esportare un file di sicurezza con tutto lo storico del tuo diario oppure caricarne uno vecchio per ripristinare i log. L'importazione sovrascrive il database attuale e richiede sempre una conferma per evitare cancellazioni involontarie."
+      content: "Salva e proteggi i tuoi dati in pochi clic. Puoi esportare un file di sicurezza con tutto lo storico del tuo diario oppure caricarne uno vecchio per ripristinare i log. L'importazione sovrascrivere il database attuale e richiede sempre una conferma per evitare cancellazioni involontarie."
     },
     { 
       id: 6, 
       title: "6. Analisi Avanzata e Grafici", 
       icon: "stats-chart-outline", 
       color: COLORS.brandSecondary,
-      content: "Controlla l'andamento della tua Glicemia. Questa sezione mostra grafici chiari con l'andamento della tua Glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito se sei a target. Nota molto importante, tutti i dati e i grafici che vedi non sono dati medici ufficiali in quanto si basano solo ed esclusivamente su dati inseriti da te nel monitoraggio della Glicemia. La funzione del grafico è basata per avvicinarsi molto alla rapresentazione di un CGM ma non lo è! Un CGM (Monitoraggio Continuo del Glucosio) è un sistema tecnologico che misura i livelli di zucchero (glucosio) nel liquido interstiziale 24 ore su 24 tramite l'utilizzo di un Sensore. Il sensore rileva il glucosio ogni pochi minuti e invia i dati in tempo reale a un ricevitore, a uno smartphone o a uno smartwatch. L'app Diabety non ha questa funzione. Tutto ciò che vedi nella sezione Grafici è puramente a scopo indicativo basato soltanto su dati inseriti da te."
+      content: "Controlla l'andamento della tua Glicemia. Questa sezione mostra grafici chiari con l'andamento della tua Glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito se sei a target. Nota molto importante, tutti i dati e i grafici che vedi non sono dati medici ufficiali in quanto si basano solo ed esclusivamente su dati inseriti da te nel monitoraggio della Glicemia. La funzione del grafico è basata per avvicinarsi molto alla rapresentazione di un CGM ma non lo è! Un CGM (Monitoraggio Continuo del Glucosio) è un sistema tecnologico che misura i livelli di zucchero (glucosio) nel liquido interstiziale 24 ore su 24 tramite l'utilizzo di un Sensore. Il sensore rileva il glucosio ogni pochi minuti e invia i dati in tempo real a un ricevitore, a uno smartphone o a uno smartwatch. L'app Diabety non ha questa function. Tutto ciò che vedi nella sezione Grafici è puramente a scopo indicativo basato soltanto su dati inseriti da te."
     },
     { 
       id: 7, 
       title: "7. Calcolatore del Bolo Insulinico", 
       icon: "calculator-outline", 
       color: COLORS.brandPrimary,
-      content: "Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro. Puoi inserire il valore della tua Glicemia con la quantitià di Carboidrati (CHO) che stai assumendo per elaborare secondo i tuoi parametri la dose di Insulina da fare. Puoi anche inserire solo il valore della Glicemia per calcolare la quantità di Insulina per la correzione della Glicemia per rientrare nel tuo target."
+      content: "Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro. Puoi inserire il valore della tua Glicemia con la quantità di Carboidrati (CHO) che stai assumendo per elaborare secondo i tuoi parametri la dose di Insulina da fare. Puoi anche inserire solo il valore della Glicemia per calcolare la quantità di Insulina per la correzione della Glicemia per rientrare nel tuo target."
     },
     { 
       id: 8, 
       title: "8. Database Alimenti e Carboidrati", 
       icon: "nutrition-outline", 
       color: COLORS.success,
-      content: "Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente. Usa la barra di ricerca per trovare l'alimento che ti interessa, impostane la quantità che stai assumendo espressa in grammi e clicca sull'icona ' + ' per aggiungerla al Piatto Virtuale. L'applicazione genererà in basso una scheda momentanea dove simulerà l'insieme del tuo pasto. Qui puoi aggiungere tutti gli alimenti relativi al pasto tenendo traccia del totale dei Carboidrati (CHO). "
+      content: "Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente. Usa la barra di ricerca per trovare l'alimento che ti interessa, impostane la quantità che stai assumendo espressa in grammi e clicca sull'icona ' + ' per aggiungerla al Piatto Virtuale. L'applicazione genererà in basso una scheda momentanea dove simulerà l'insieme del tuo pasto. Qui puoi aggiungere tutti gli alimenti relativi al pasto tenendo traccia del totale dei Carboidrati (CHO)."
     },
   ];
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
@@ -312,7 +311,7 @@ export default function StrumentiScreen() {
                 <Ionicons name="document-text-outline" size={20} color={COLORS.brandPrimary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esportane Registro PDF</Text>
+                <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esporta Registro PDF</Text>
                 <Text style={styles.descAzione}>Genera il documento clinico identico allo storico</Text>
               </View>
             </View>
@@ -335,23 +334,28 @@ export default function StrumentiScreen() {
       {/* 📚 SEZIONE GUIDA ALL'USO POSIZIONATA IN CODA COME ULTIMA SEZIONE IN ASSOLUTO */}
       <Text style={styles.sectionLabel}>Manuale & Linee Guida</Text>
 
-      {/* Rendering dinamico ad accordion indipendente dei soli 8 punti strutturali */}
+      {/* Rendering dinamico ad accordion indipendente con allineamento orizzontale fisso */}
       {manualPoints.map((point) => {
         const isOpen = expandedPointId === point.id;
 
         return (
           <View key={point.id} style={styles.accordionWrapper}>
-            {/* INTESTAZIONE ACCORDION (PULSANTE) */}
+            {/* INTESTAZIONE ACCORDION (ICONA E SCRITTA RIGIDAMENTE AFFIANCATE) */}
             <TouchableOpacity 
               style={[styles.accordionHeader, isOpen && styles.accordionHeaderActive]} 
               onPress={() => togglePoint(point.id)}
               activeOpacity={0.85}
             >
               <View style={styles.headerLeft}>
-                <View style={[styles.miniIconWrapper, { backgroundColor: isOpen ? 'rgba(255, 255, 255, 0.05)' : COLORS.borderGlass }]}>
-                  <Ionicons name={point.icon} size={16} color={point.color} />
-                </View>
-                <Text style={styles.infoBlockTitle}>{point.title}</Text>
+                <Ionicons 
+                  name={point.icon} 
+                  size={18} 
+                  color={point.color} 
+                  style={styles.iconaManualeAllineata} 
+                />
+                <Text style={styles.infoBlockTitle}>
+                  {point.title}
+                </Text>
               </View>
               <Ionicons 
                 name={isOpen ? "chevron-up" : "chevron-forward"} 
@@ -360,7 +364,7 @@ export default function StrumentiScreen() {
               />
             </TouchableOpacity>
 
-            {/* CONTENUTO COLLASSABILE (Visibile solo se espanso) */}
+            {/* CONTENUTO COLLASSABILE */}
             {isOpen && (
               <View style={styles.accordionContent}>
                 <Text style={styles.contentText}>{point.content}</Text>
@@ -373,91 +377,3 @@ export default function StrumentiScreen() {
     </ScrollView>
   );
 }
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  content: { padding: 16, paddingTop: 20, paddingBottom: 40 },
-  headerForm: { marginBottom: 20, width: '100%' },
-  title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700', color: COLORS.onSurface },
-  subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, marginTop: 4 },
-  
-  sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 22, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
-  
-  cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', overflow: 'hidden', marginBottom: 12 },
-  rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
-  rowAzioneLabel: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, cursor: 'pointer', width: '100%', boxSizing: 'border-box', borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass },
-  
-  dividerAzione: { height: 1, backgroundColor: COLORS.borderGlass, width: '100%' },
-  leftAzione: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
-  titoloAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
-  descAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: COLORS.muted, marginTop: 2 },
-
-  rowAzionePdfComplessa: { width: '100%', padding: 14, paddingTop: 12, paddingBottom: 14, flexDirection: 'column' },
-  rowPdfClickArea: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 12 },
-  
-  containerMiniFiltriPdf: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', gap: 6, paddingLeft: 2 },
-  chipMiniPdf: { flex: 1, backgroundColor: '#1A1A24', paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
-  chipMiniPdfAttiva: { backgroundColor: 'rgba(0, 229, 255, 0.08)', borderColor: COLORS.brandPrimary },
-  textMiniChipPdf: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600', color: COLORS.muted },
-  textMiniChipPdfAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
-
-  accordionWrapper: {
-    width: '100%',
-    marginBottom: 10,
-  },
-  accordionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.surfaceSecondary,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.borderGlass,
-    width: '100%'
-  },
-  accordionHeaderActive: {
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    borderColor: COLORS.borderGlassBright,
-    borderBottomWidth: 0,
-  },
-  miniIconWrapper: { 
-    width: 28, 
-    height: 28, 
-    borderRadius: 8, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    borderWidth: 1, 
-    borderColor: COLORS.borderGlass,
-    marginRight: 12
-  },
-  infoBlockTitle: { 
-    fontFamily: 'Plus Jakarta Sans', 
-    fontSize: 14, 
-    fontWeight: '800', 
-    color: COLORS.onSurface, 
-    letterSpacing: -0.2 
-  },
-  accordionContent: {
-    backgroundColor: COLORS.bgUtility,
-    padding: 16,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    borderWidth: 1,
-    borderTopWidth: 0,
-    borderColor: COLORS.borderGlass,
-    width: '100%'
-  },
-  contentText: { 
-    fontFamily: 'Plus Jakarta Sans', 
-    fontSize: 14, 
-    color: COLORS.muted, 
-    lineHeight: 22, 
-    textAlign: 'left', 
-    paddingLeft: 2 
-  },
-
-  notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
-  notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 13 }
-});
