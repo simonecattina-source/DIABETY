@@ -22,9 +22,9 @@ export default function CalcolatoreBoloScreen() {
   const [carboidratiPasto, setCarboidratiPasto] = useState('');
 
   // Parametri Personali Terapeutici Persistenti (Pre-caricati)
-  const [rapportoCHO, setRapportoCHO] = useState('10'); 
-  const [sensibilitaISF, setSensibilitaISF] = useState('40'); 
-  const [targetGlicemico, setTargetGlicemico] = useState('100'); 
+  const [rapportoCHO, setRapportoCHO] = useState('0'); 
+  const [sensibilitaISF, setSensibilitaISF] = useState('0'); 
+  const [targetGlicemico, setTargetGlicemico] = useState('0'); 
 
   // Stati per il Risultato, Pop-up e Sicurezza Blocco
   const [risultatoBolo, setRisultatoBolo] = useState<number | null>(null);
@@ -32,16 +32,26 @@ export default function CalcolatoreBoloScreen() {
   const [quotaCorrezione, setQuotaCorrezione] = useState<number>(0);
   const [mostraHelpParametri, setMostraHelpParametri] = useState(false);
   const [modificaAttiva, setModificaAttiva] = useState(false);
-  // 💾 CARICAMENTO AUTOMATICO DEI PARAMETRI SALVATI ALL'AVVIO DELLA SCHEDA
+  // Validazione rigorosa: accetta solo numeri positivi completi, non testo parziale.
+  const valorePositivoValido = (valore: string) => {
+    const testo = valore.trim();
+    if (!/^(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(testo)) return false;
+    const numero = Number(testo.replace(',', '.'));
+    return Number.isFinite(numero) && numero > 0;
+  };
+
+  // I parametri partono da zero se non esiste una configurazione valida salvata.
   useEffect(() => {
     const caricaParametriTerapeutici = async () => {
       try {
         const parametriSalvati = await AsyncStorage.getItem('glicotrack_parametri_bolo');
-        if (parametriSalvati) {
-          const parsed = JSON.parse(parametriSalvati);
-          if (parsed.rapportoCHO) setRapportoCHO(parsed.rapportoCHO);
-          if (parsed.sensibilitaISF) setSensibilitaISF(parsed.sensibilitaISF);
-          if (parsed.targetGlicemico) setTargetGlicemico(parsed.targetGlicemico);
+        if (!parametriSalvati) return;
+
+        const parsed = JSON.parse(parametriSalvati);
+        if (parsed && typeof parsed === 'object') {
+          if (typeof parsed.rapportoCHO === 'string' && valorePositivoValido(parsed.rapportoCHO)) setRapportoCHO(parsed.rapportoCHO);
+          if (typeof parsed.sensibilitaISF === 'string' && valorePositivoValido(parsed.sensibilitaISF)) setSensibilitaISF(parsed.sensibilitaISF);
+          if (typeof parsed.targetGlicemico === 'string' && valorePositivoValido(parsed.targetGlicemico)) setTargetGlicemico(parsed.targetGlicemico);
         }
       } catch (error) {
         console.log("Errore nel recupero dei parametri locali.");
@@ -50,18 +60,23 @@ export default function CalcolatoreBoloScreen() {
     caricaParametriTerapeutici();
   }, []);
 
-  // 🔐 INTERRUTTORE DI SICUREZZA: SE PASSA DA ATTIVO A DISATTIVO SALVA IN MODO PERMANENTE
+  // Salva i parametri solo se tutti e tre sono stati compilati con valori maggiori di zero.
   const gestisciCambioStatoSicurezza = async () => {
     if (modificaAttiva) {
-      const r_cho = rapportoCHO.trim() || '10';
-      const isf = sensibilitaISF.trim() || '40';
-      const target = targetGlicemico.trim() || '100';
+      if (
+        !valorePositivoValido(rapportoCHO) ||
+        !valorePositivoValido(sensibilitaISF) ||
+        !valorePositivoValido(targetGlicemico)
+      ) {
+        alert("Per salvare i parametri, inserisci valori numerici maggiori di zero in tutti e tre i campi. Usa i valori indicati dal tuo diabetologo.");
+        return;
+      }
 
       try {
         const pacchettoParametri = {
-          rapportoCHO: r_cho,
-          sensibilitaISF: isf,
-          targetGlicemico: target
+          rapportoCHO: rapportoCHO.trim(),
+          sensibilitaISF: sensibilitaISF.trim(),
+          targetGlicemico: targetGlicemico.trim()
         };
         await AsyncStorage.setItem('glicotrack_parametri_bolo', JSON.stringify(pacchettoParametri));
         setModificaAttiva(false);
@@ -74,24 +89,50 @@ export default function CalcolatoreBoloScreen() {
   };
 
   const calcolaBoloInsulinico = () => {
-    const cho = parseFloat(carboidratiPasto) || 0;
-    const glic = parseFloat(glicemiaAttuale) || 0;
-    const r_cho = parseFloat(rapportoCHO) || 10;
-    const isf = parseFloat(sensibilitaISF) || 40;
-    const target = parseFloat(targetGlicemico) || 100;
+    if (
+      !valorePositivoValido(rapportoCHO) ||
+      !valorePositivoValido(sensibilitaISF) ||
+      !valorePositivoValido(targetGlicemico)
+    ) {
+      alert("Prima di usare il calcolatore, inserisci e salva tutti e tre i parametri personali con valori maggiori di zero, secondo le indicazioni del tuo diabetologo.");
+      return;
+    }
+
+    const campiNumericiValidi = (valore: string) => valore.trim() === '' || /^\d+$/.test(valore.trim());
+    if (!campiNumericiValidi(carboidratiPasto) || !campiNumericiValidi(glicemiaAttuale)) {
+      alert("Inserisci solo numeri interi nei campi glicemia e carboidrati.");
+      return;
+    }
+
+    const cho = carboidratiPasto.trim() === '' ? 0 : Number(carboidratiPasto);
+    const glic = glicemiaAttuale.trim() === '' ? 0 : Number(glicemiaAttuale);
+    const r_cho = Number(rapportoCHO.replace(',', '.'));
+    const isf = Number(sensibilitaISF.replace(',', '.'));
+    const target = Number(targetGlicemico.replace(',', '.'));
+
+    if (!Number.isFinite(cho) || !Number.isFinite(glic) || cho < 0 || glic < 0) {
+      alert("Controlla i valori inseriti: devono essere numeri validi e non negativi.");
+      return;
+    }
 
     if (cho === 0 && glic === 0) {
       alert("Inserisci almeno il valore della glicemia o i carboidrati del pasto.");
       return;
     }
 
+    // Calcolo separato delle due componenti:
+    // - se sono inseriti solo i carboidrati, calcola la quota pasto;
+    // - se è inserita solo la glicemia, calcola la correzione rispetto al target;
+    // - se sono inseriti entrambi, somma le due componenti.
+    // La correzione è positiva solo quando la glicemia supera il target personale.
     const insulinaPasto = cho > 0 ? cho / r_cho : 0;
     const insulinaCorrezione = glic > target ? (glic - target) / isf : 0;
     const totaleTeorico = insulinaPasto + insulinaCorrezione;
 
     setQuotaPasto(Math.round(insulinaPasto * 10) / 10);
     setQuotaCorrezione(Math.round(insulinaCorrezione * 10) / 10);
-    
+
+    // Mantiene l'arrotondamento già previsto dal calcolatore.
     const totaleArrotondato = Math.round(totaleTeorico * 2) / 2;
     setRisultatoBolo(totaleArrotondato);
   };
@@ -124,7 +165,7 @@ export default function CalcolatoreBoloScreen() {
       {/* RISULTATO CENTRALIZZATO PREMIUM IN CASO DI CALCOLO ATTIVO */}
       {risultatoBolo !== null && (
         <View style={styles.cardRisultatoHighlight}>
-          <Text style={styles.labelRisultato}>Bolo Suggerito</Text>
+          <Text style={styles.labelRisultato}>Stima matematica del bolo</Text>
           <Text style={styles.valoreRisultato}>{risultatoBolo} <Text style={styles.unitaRisultato}>UI</Text></Text>
           
           <View style={styles.containerDettaglioQuote}>
@@ -134,11 +175,11 @@ export default function CalcolatoreBoloScreen() {
             </View>
             <View style={styles.dividerDettaglioVerticale} />
             <View style={styles.boxQuotaDettaglio}>
-              <Text style={styles.labelQuotaDettaglio}>Quota Correzione</Text>
+              <Text style={styles.labelQuotaDettaglio}>Correzione per target</Text>
               <Text style={styles.valoreQuotaDettaglio}>{quotaCorrezione} UI</Text>
             </View>
           </View>
-          <Text style={styles.disclaimerBolo}>* Il calcolo è arrotondato alla mezza unità. Valuta sempre i fattori esterni prima di somministrare.</Text>
+          <Text style={styles.disclaimerBolo}>* Stima teorica: non considera insulina attiva, attività fisica, malattie o altri fattori clinici. Non usarla come prescrizione; verifica sempre il piano concordato con il diabetologo.</Text>
         </View>
       )}
 
@@ -202,7 +243,7 @@ export default function CalcolatoreBoloScreen() {
 
         </View>
         <Text style={styles.subLabelSpiegazioneBolo}>
-          Pianifica e Studia i tuoi rapporti personali insieme al tuo medico e inseriscili nel riquadro specifico.
+          Inserisci tutti e tre i valori indicati dal tuo diabetologo. I campi a zero non sono validi e bloccano il calcolo.
         </Text>
       </View>
 
@@ -264,7 +305,7 @@ export default function CalcolatoreBoloScreen() {
 
               <View style={styles.infoBlockPremium}>
                 <Text style={styles.infoBlockTitle}>🎯 Target Glicemico</Text>
-                <Text style={styles.infoBlockText}>È il valore di glicemia ideale che desideri raggiungere (di solito impostato a 100 mg/dL). Il calcolatore lo usa per capire quanta insulina extra serve per far scendere la tua glicemia alta fino all'obiettivo.</Text>
+                <Text style={styles.infoBlockText}>È il valore obiettivo personale concordato con il tuo diabetologo. Il calcolatore lo usa nella formula teorica di correzione; non inserire un valore generico se non corrisponde al tuo piano terapeutico.</Text>
               </View>
             </ScrollView>
             <TouchableOpacity style={styles.btnChiudiHelp} onPress={() => setMostraHelpParametri(false)}>
@@ -284,7 +325,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700', color: COLORS.onSurface },
   subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, marginTop: 4 },
   
-  sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 14, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
+  sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 14, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   sectionLabelBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, letterSpacing: -0.2 },
   subLabelSpiegazioneBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, marginTop: 2, lineHeight: 18, textAlign: 'left' },
   rigaDatiPrincipali: { flexDirection: 'row', gap: 12, marginBottom: 16, width: '100%' },
@@ -303,7 +344,7 @@ const styles = StyleSheet.create({
   sinistraInfoParametro: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   titleParametro: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
   descParametro: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: COLORS.muted, marginTop: 1 },
-  inputParametroFisso: { backgroundColor: '#1A1A24', borderHorizontalWidth: 1, borderColor: COLORS.borderGlass, borderRadius: 10, width: 55, height: 36, textAlign: 'center', fontFamily: 'Space Grotesk', fontSize: 15, fontWeight: '700', borderWidth: 1 },
+  inputParametroFisso: { backgroundColor: '#1A1A24', borderColor: COLORS.borderGlass, borderRadius: 10, width: 55, height: 36, textAlign: 'center', fontFamily: 'Space Grotesk', fontSize: 15, fontWeight: '700', borderWidth: 1 },
   dividerParametri: { height: 1, backgroundColor: COLORS.borderGlass, width: '100%' },
 
   pulsanteDestroAzioneBolo: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, paddingVertical: 5, paddingHorizontal: 12, borderRadius: 9 },
@@ -312,7 +353,7 @@ const styles = StyleSheet.create({
   testoPulsanteDestroBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 11.5, fontWeight: '700', letterSpacing: -0.1 },
 
   cardRisultatoHighlight: { backgroundColor: 'rgba(0, 229, 255, 0.04)', borderRadius: 20, borderWidth: 1, borderColor: COLORS.brandPrimary, padding: 18, width: '100%', marginBottom: 16, alignItems: 'center' },
-  labelRisultato: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: '700', color: COLORS.brandPrimary, uppercase: true, letterSpacing: 0.5 },
+  labelRisultato: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: '700', color: COLORS.brandPrimary, textTransform: 'uppercase', letterSpacing: 0.5 },
   valoreRisultato: { fontFamily: 'Space Grotesk', fontSize: 46, fontWeight: '900', color: COLORS.onSurface, marginTop: 4 },
   unitaRisultato: { fontSize: 22, color: COLORS.brandPrimary, fontWeight: '700' },
   containerDettaglioQuote: { flexDirection: 'row', width: '100%', marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(0, 229, 255, 0.15)' },
