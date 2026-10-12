@@ -24,12 +24,15 @@ export default function Root({ children }: PropsWithChildren) {
         <style
           dangerouslySetInnerHTML={{
             __html: `
+              :root { color-scheme: dark; }
               html, body {
                 margin: 0;
                 padding: 0;
                 width: 100%;
                 height: 100%;
-                background-color: #0A0A0C;
+                min-height: 100%;
+                background: #0A0A0C !important;
+                overscroll-behavior: none;
               }
 
               body {
@@ -44,7 +47,11 @@ export default function Root({ children }: PropsWithChildren) {
                 width: 100%;
                 height: 100%;
                 min-height: 100%;
+                height: 100dvh;
               }
+
+              /* Mantiene nero il livello di navigazione e le aree non coperte. */
+              body { background-color: #0A0A0C !important; }
 
               [role="tablist"] [role="tab"] *,
               [role="heading"],
