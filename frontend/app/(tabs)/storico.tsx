@@ -153,16 +153,22 @@ export default function StoricoScreen() {
         }
         return item;
       });
-      if (datiAggiornati.length > 0) {
-        let timestampPiuRecente = 0;
-        datiAggiornati.forEach((item: any) => {
-          const ts = ottieniTimestampCompleto(item.dataTesto, "00:00");
-          if (ts > timestampPiuRecente) timestampPiuRecente = ts;
-        });
-        const limite90GiorniMs = 90 * 24 * 60 * 60 * 1000;
-        const timestampSogliaMinima = timestampPiuRecente - limite90GiorniMs;
-        datiAggiornati = datiAggiornati.filter((item: any) => ottieniTimestampCompleto(item.dataTesto, "00:00") >= timestampSogliaMinima);
-      }
+      // Stessa politica di index.tsx: conserva gli ultimi 91 giorni di calendario
+      // rispetto a oggi. Le date non riconoscibili non vengono eliminate.
+      const soglia = new Date();
+      soglia.setHours(0, 0, 0, 0);
+      soglia.setDate(soglia.getDate() - 91);
+      const timestampSoglia = soglia.getTime();
+
+      datiAggiornati = datiAggiornati.filter((item: any) => {
+        const stringaData = item?.dataTesto;
+        if (typeof stringaData !== 'string' || !/^\d{2}\/\d{2}\/\d{2}$/.test(stringaData)) return true;
+        const [giorno, mese, anno] = stringaData.split('/').map(Number);
+        const annoCompleto = anno < 50 ? 2000 + anno : 1900 + anno;
+        const data = new Date(annoCompleto, mese - 1, giorno);
+        if (data.getFullYear() !== annoCompleto || data.getMonth() !== mese - 1 || data.getDate() !== giorno) return true;
+        return data.getTime() >= timestampSoglia;
+      });
       await AsyncStorage.setItem('glicotrack_data', JSON.stringify(datiAggiornati));
       setDatiReali(datiAggiornati); setTestoNotifica('✓ Modifica salvata nel registro'); setMostraNotificaModifica(true);
       setTimeout(() => { setMostraNotificaModifica(false); setMostraModalModifica(false); setItemSelezionato(null); }, 1500);
