@@ -203,14 +203,20 @@ export default function StrumentiScreen() {
           }
           setTimeout(() => URL.revokeObjectURL(url), 60000);
         } else {
-          // html2pdf.js genera un PDF autentico a partire dal medesimo HTML dell'anteprima.
+          // Renderizza il documento in un elemento HTML reale e misurabile.
+          // Non usare position:fixed: html2canvas può catturare una pagina vuota.
           // @ts-ignore - html2pdf.js non include dichiarazioni TypeScript proprie.
           const modulo = await import('html2pdf.js');
           const html2pdf = modulo.default || modulo;
-          const contenitore = document.createElement('div');
-          // Il contenuto deve trovarsi nel viewport per essere catturato da html2canvas.
-          contenitore.style.cssText = 'position:fixed;left:0;top:0;width:1122px;background:#fff;z-index:2147483647;pointer-events:none;';
           const docPdf = new DOMParser().parseFromString(htmlTemplateHTML, 'text/html');
+          const contenitore = document.createElement('div');
+          contenitore.setAttribute('aria-hidden', 'true');
+          contenitore.style.cssText = [
+            'position:absolute', 'left:0', 'top:0', 'width:1122px',
+            'background:#ffffff', 'color:#1c1c1e', 'font-family:Arial,sans-serif',
+            'padding:0', 'margin:0', 'opacity:1', 'visibility:visible',
+            'pointer-events:none', 'z-index:9999'
+          ].join(';');
           const stilePdf = document.createElement('style');
           stilePdf.textContent = docPdf.querySelector('style')?.textContent || '';
           contenitore.appendChild(stilePdf);
@@ -219,16 +225,51 @@ export default function StrumentiScreen() {
           contenitore.appendChild(corpoPdf);
           document.body.appendChild(contenitore);
           try {
-            await html2pdf().set({
+            // Attende due frame: il browser deve completare layout e disegno
+            // prima che html2canvas fotografi la tabella.
+            await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+            if (!corpoPdf.querySelector('table') || corpoPdf.getBoundingClientRect().height < 10) {
+              throw new Error('La tabella HTML non è stata renderizzata.');
+            }
+            const operazione = html2pdf().set({
               margin: 0,
               filename: 'Registro_Diabety.pdf',
               image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+              html2canvas: {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: 1200,
+                logging: false
+              },
               jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
               pagebreak: { mode: ['css', 'legacy'] }
-            }).from(contenitore).save();
+            }).from(corpoPdf);
+            // Verifica che la cattura contenga pixel non bianchi: se fallisce,
+            // blocca il download invece di produrre un PDF apparentemente valido.
+            const canvas = await operazione.toCanvas().get('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx || canvas.width < 10 || canvas.height < 10) {
+              throw new Error('Impossibile acquisire il contenuto della tabella.');
+            }
+            const larghezza = Math.min(canvas.width, 500);
+            const altezza = Math.min(canvas.height, 500);
+            const campione = ctx.getImageData(0, 0, larghezza, altezza).data;
+            let pixelScuri = 0;
+            for (let i = 0; i < campione.length; i += 16) {
+              if (campione[i] < 235 || campione[i + 1] < 235 || campione[i + 2] < 235) {
+                pixelScuri++;
+                if (pixelScuri > 20) break;
+              }
+            }
+            if (pixelScuri <= 20) {
+              throw new Error('La cattura della tabella è risultata vuota.');
+            }
+            await operazione.save();
           } finally {
-            document.body.removeChild(contenitore);
+            contenitore.remove();
           }
         }
       } else {
@@ -239,7 +280,10 @@ export default function StrumentiScreen() {
           await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
         }
       }
-    } catch (e) { alert("Impossibile completare la stampa."); }
+    } catch (e) {
+      console.error('DIABETY: errore durante esportazione PDF', e);
+      alert('Impossibile generare il PDF: ' + (e instanceof Error ? e.message : 'errore sconosciuto'));
+    }
   };
   const manualPoints = [
     { id: 1, title: "1. Registrazione dei Dati", icon: "analytics-outline", color: COLORS.brandPrimary, content: "Registra i tuoi dati in un attimo. Nella schermata 'Inserisci' puoi selezionare Data e Ora per la registrazione dei tuoi dati. Di default l'app indicherà sempre Data e Ora attuali ma puoi comunque modificare a tuo piacimento questi parametri per aggiungere dei dati in moments specifici del tuo registro Storico. Tramite i riquadri 'Glicemia' e 'Insulina' puoi inserire i valori corrispondenti che ti interessa registrare, nella sezione subito sotto puoi impostare il momento della giornata relativo al dato che stai registrando. Nel box 'Note' puoi inserire ulteriori informazioni che verranno registrate nel tuo Storico dei dati. L'app Diabety è stata programmata per inserire all'interno del riquadro delle 'Note' l'orario in cui stai effettuando il test cosi da tenerne traccia quando esporti il file in PDF." },
