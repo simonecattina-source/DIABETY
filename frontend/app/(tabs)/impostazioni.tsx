@@ -51,7 +51,7 @@ export default function StrumentiScreen() {
   const esportaBackupJSON = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
-      if (!storicoEsistente || JSON.parse(storicoEsistente).length === 0) {
+      if (!storicoEsistente || !Array.isArray(JSON.parse(storicoEsistente)) || JSON.parse(storicoEsistente).length === 0) {
         alert("Non ci sono misurazioni salvate da esportare.");
         return;
       }
@@ -71,23 +71,71 @@ export default function StrumentiScreen() {
       }
     } catch (error) { alert("Errore durante la creazione del file di backup."); }
   };
+  // Il formato JSON rimane un array di misurazioni, compatibile con i backup esistenti.
+  const validaMisurazioneBackup = (item: any): boolean => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
+    if (typeof item.id !== 'string' || item.id.trim() === '') return false;
+    if (typeof item.glicemia !== 'number' || !Number.isInteger(item.glicemia) || item.glicemia < 1 || item.glicemia > 999) return false;
+    if (typeof item.insulina !== 'string' || !/^(?:-|\d{1,2} UI)$/.test(item.insulina)) return false;
+    if (typeof item.tipo !== 'string' || !MOMENTI_COLONNE.includes(item.tipo)) return false;
+    if (typeof item.note !== 'string') return false;
+    if (typeof item.ora !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(item.ora)) return false;
+    if (typeof item.dataTesto !== 'string' || !/^\d{2}\/\d{2}\/\d{2}$/.test(item.dataTesto)) return false;
+
+    const [giorno, mese, anno] = item.dataTesto.split('/').map(Number);
+    const annoCompleto = anno < 50 ? 2000 + anno : 1900 + anno;
+    const data = new Date(annoCompleto, mese - 1, giorno);
+    if (data.getFullYear() !== annoCompleto || data.getMonth() !== mese - 1 || data.getDate() !== giorno) return false;
+    const oggi = new Date();
+    oggi.setHours(0, 0, 0, 0);
+    return data.getTime() <= oggi.getTime();
+  };
+
   const gestisciImportazioneWeb = async (evento: any) => {
-    const file = evento.target.files?.[0];
+    const inputFile = evento.target;
+    const file = inputFile.files?.[0];
     if (!file) return;
-    const lettore = new FileReader();
-    lettore.onload = async (e: any) => {
-      try {
-        const contenutoTesto = e.target.result;
-        if (Array.isArray(JSON.parse(contenutoTesto))) {
-          const conferma = window.confirm("ATTENZIONE: L'importazione sovrascriverà tutti i dati attuali. Vuoi procedere?");
-          if (conferma) {
-            await AsyncStorage.setItem('glicotrack_data', contenutoTesto);
-            mostraMessaggioNotifica("✓ Registro ripristinato con successo!");
-          }
-        } else { alert("Il file selezionato non è un backup valido."); }
-      } catch (err) { alert("Impossibile leggere il file JSON."); }
-    };
-    lettore.readAsText(file);
+    // Permette di riselezionare lo stesso file anche dopo annullamento o errore.
+    inputFile.value = '';
+
+    try {
+      const contenutoTesto = await file.text();
+      const datiImportati: unknown = JSON.parse(contenutoTesto);
+      if (!Array.isArray(datiImportati) || datiImportati.length === 0 || !datiImportati.every(validaMisurazioneBackup)) {
+        alert('Backup non valido: il file deve contenere misurazioni complete e correttamente formattate. Lo storico attuale non è stato modificato.');
+        return;
+      }
+      const ids = datiImportati.map((item: any) => item.id);
+      if (new Set(ids).size !== ids.length) {
+        alert('Backup non valido: sono presenti identificativi duplicati. Lo storico attuale non è stato modificato.');
+        return;
+      }
+
+      // Stessa soglia usata dalla schermata Inserisci: 91 giorni di calendario rispetto a oggi.
+      const soglia = new Date();
+      soglia.setHours(0, 0, 0, 0);
+      soglia.setDate(soglia.getDate() - 91);
+      const datiValidi = datiImportati.filter((item: any) => {
+        const [giorno, mese, anno] = item.dataTesto.split('/').map(Number);
+        const annoCompleto = anno < 50 ? 2000 + anno : 1900 + anno;
+        return new Date(annoCompleto, mese - 1, giorno).getTime() >= soglia.getTime();
+      });
+      const esclusi = datiImportati.length - datiValidi.length;
+      if (datiValidi.length === 0) {
+        alert(`Il backup contiene ${datiImportati.length} misurazioni, tutte oltre il limite di 91 giorni. Nessun dato è stato sovrascritto.`);
+        return;
+      }
+
+      const conferma = window.confirm(
+        `Backup verificato.\n\nMisurazioni da ripristinare: ${datiValidi.length}\nMisurazioni escluse perché più vecchie di 91 giorni: ${esclusi}\n\nATTENZIONE: il ripristino sostituirà tutto lo storico attuale. Prima di procedere, assicurati di averne salvato un backup.\n\nVuoi continuare?`
+      );
+      if (!conferma) return;
+
+      await AsyncStorage.setItem('glicotrack_data', JSON.stringify(datiValidi));
+      mostraMessaggioNotifica(`✓ Ripristinate ${datiValidi.length} misurazioni`);
+    } catch (errore) {
+      alert('Impossibile leggere o importare il backup. Lo storico attuale non è stato modificato se la scrittura non è riuscita.');
+    }
   };
   const esportaDocumentoMatriceStoricoPDF = async () => {
     try {
