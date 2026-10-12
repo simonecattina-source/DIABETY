@@ -90,6 +90,7 @@ export default function GraficiScreen() {
   const [puntiGraficoLinea, setPuntiGraficoLinea] = useState<PuntoGiorno[]>([]);
   const [medieMomenti, setMedieMomenti] = useState<MediaMomento[]>([]);
   const [puntiGrafico24Ore, setPuntiGrafico24Ore] = useState<Punto24[]>([]);
+  const [fineFinestra24, setFineFinestra24] = useState<number>(() => Date.now());
 
   const [glicataStimata, setGlicataStimata] = useState<number>(0);
   const [glicataMmol, setGlicataMmol] = useState<number>(0);
@@ -103,6 +104,9 @@ export default function GraficiScreen() {
   useFocusEffect(
     React.useCallback(() => {
       caricaDatiECalcola();
+      // Mantiene mobile la finestra anche se la scheda resta aperta.
+      const intervallo = setInterval(() => caricaDatiECalcola(), 60_000);
+      return () => clearInterval(intervallo);
     }, [])
   );
 
@@ -115,7 +119,7 @@ export default function GraficiScreen() {
       setModalTesto("Questo box calcola in tempo reale la media aritmetica di tutte le misurazioni effettuate esclusivamente nella data corrente (dalle 00:00 ad adesso).\n\nTi permette un controllo immediato per capire se l'andamento della giornata è a target.");
     } else if (tipo === '24h') {
       setModalTitolo("Andamento sulle 24 Ore");
-      setModalTesto("Questo grafico mostra l'andamento della glicemia nella giornata di oggi.\n\nLa curva azzurra posiziona i test secondo il loro orario reale dalle 00:00 alle 24:00. Se disponibile, l’ultima misurazione di ieri viene ripetuta graficamente alle 00:00 come raccordo, senza essere conteggiata nella media di oggi.");
+      setModalTesto("Questo grafico mostra esclusivamente le misurazioni registrate nelle ultime 24 ore effettive, fino all'ora attuale.\n\nLa finestra temporale scorre automaticamente, anche oltre la mezzanotte: le nuove misurazioni entrano nel grafico secondo la data e l'ora registrate e quelle più vecchie di 24 ore escono. La Media di oggi rimane calcolata soltanto sui dati della giornata corrente.");
     } else if (tipo === 'giornaliere') {
       setModalTitolo("Andamento Medie Giornaliere");
       setModalTesto("Il grafico parte dalla prima giornata con misurazioni disponibile negli ultimi 90 giorni e arriva fino a oggi, occupando tutta la larghezza. Dopo 90 giorni diventa una finestra mobile degli ultimi 90 giorni di calendario. Le date sono distribuite secondo il calendario reale; nei giorni senza misurazioni la linea si interrompe. La fascia evidenzia l’intervallo 70–180 mg/dL.");
@@ -165,15 +169,22 @@ export default function GraficiScreen() {
       }
       const oggiElenco = elenco.filter(v => dataIndice(dataValida(v.dataTesto)!) === indiceOggi);
       setMediaOggi(oggiElenco.length ? Math.round(oggiElenco.reduce((sum,v)=>sum+v.glicemia,0)/oggiElenco.length) : 0);
-      const puntiOggi: Punto24[] = oggiElenco
-        .map(v => ({ minutiAssoluti: oraInMinuti(v.ora), glicemia: v.glicemia }))
-        .filter((v): v is Punto24 => v.minutiAssoluti !== null);
-      const ieri = elenco.filter(v => dataIndice(dataValida(v.dataTesto)!) === indiceOggi-1)
-        .map(v => ({ minutiAssoluti: oraInMinuti(v.ora), glicemia: v.glicemia }))
-        .filter((v): v is Punto24 => v.minutiAssoluti !== null)
-        .sort((a,b)=>a.minutiAssoluti-b.minutiAssoluti);
-      if (ieri.length) puntiOggi.unshift({minutiAssoluti:0,glicemia:ieri[ieri.length-1].glicemia});
-      setPuntiGrafico24Ore(puntiOggi.sort((a,b)=>a.minutiAssoluti-b.minutiAssoluti));
+      // Finestra temporale reale [adesso - 24 ore, adesso].
+      // Le coordinate sono minuti trascorsi dall'inizio della finestra,
+      // non minuti dalla mezzanotte: nessun azzeramento alle 00:00.
+      const fineFinestra = Date.now();
+      const inizioFinestra = fineFinestra - 24 * 60 * 60 * 1000;
+      const puntiMobili: Punto24[] = elenco.flatMap(v => {
+        const giorno = dataValida(v.dataTesto);
+        const minuti = oraInMinuti(v.ora);
+        if (!giorno || minuti === null) return [];
+        const istante = new Date(giorno.getFullYear(), giorno.getMonth(), giorno.getDate(),
+          Math.floor(minuti / 60), minuti % 60).getTime();
+        if (istante < inizioFinestra || istante > fineFinestra) return [];
+        return [{ minutiAssoluti: (istante - inizioFinestra) / 60000, glicemia: v.glicemia }];
+      });
+      setFineFinestra24(fineFinestra);
+      setPuntiGrafico24Ore(puntiMobili.sort((a,b) => a.minutiAssoluti - b.minutiAssoluti));
       const giorni = new Map<number, number[]>();
       for (const v of inTrimestre) {
         const idx = dataIndice(dataValida(v.dataTesto)!)-(indiceOggi-89);
@@ -228,7 +239,11 @@ export default function GraficiScreen() {
         {area ? <Path d={area} fill="url(#neonCyanGrad)"/> : null}
         {curva ? <Path d={curva} fill="none" stroke={COLORS.brandPrimary} strokeWidth={3} strokeLinecap="round"/> : null}
         {pts.map((p,i)=><G key={i}><Circle cx={p.x} cy={p.y} r={4} fill={coloreValore(p.glicemia)} stroke={COLORS.background} strokeWidth={1.5}/><SvgText x={p.x} y={Math.max(10,p.y-9)} fill={COLORS.onSurface} fontSize={9} fontWeight="800" textAnchor="middle">{p.glicemia}</SvgText></G>)}
-        {[0,6,12,18,24].map(h=><SvgText key={h} x={left+(h/24)*usable} y={bottom+24} fill={COLORS.muted} fontSize={10} fontWeight="700" textAnchor="middle">{`${String(h).padStart(2,'0')}:00`}</SvgText>)}
+        {[0,6,12,18,24].map(h => {
+          const istante = new Date(fineFinestra24 - (24-h)*60*60*1000);
+          const etichetta = `${String(istante.getHours()).padStart(2,'0')}:${String(istante.getMinutes()).padStart(2,'0')}`;
+          return <SvgText key={h} x={left+(h/24)*usable} y={bottom+24} fill={COLORS.muted} fontSize={10} fontWeight="700" textAnchor={h===0?'start':h===24?'end':'middle'}>{etichetta}</SvgText>;
+        })}
       </Svg>
     </View>;
   };
@@ -414,12 +429,12 @@ export default function GraficiScreen() {
       </View>
       <View style={[styles.cardGraficoContenitore, { marginTop: 16 }]}>
         <View style={styles.rigaTitoloGrafico}>
-          <Text style={styles.sectionLabel}>Andamento sulle 24 Ore (Oggi)</Text>
+          <Text style={styles.sectionLabel}>Andamento sulle ultime 24 ore</Text>
           <TouchableOpacity onPress={() => apriSpiegazione('24h')} style={styles.pulsanteInfoTocco}>
             <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.subLabelSpiegazione}>Curva continua collegata dall'ultima misurazione effettuata ieri sera.</Text>
+        <Text style={styles.subLabelSpiegazione}>Misurazioni delle ultime 24 ore, aggiornate dinamicamente senza azzeramento a mezzanotte.</Text>
         {puntiGrafico24Ore.length > 0 ? renderizzaGraficoLinea24Ore() : (
           <View style={{ paddingVertical: 45, alignItems: 'center', width: '100%' }}>
             <Ionicons name="time-outline" size={26} color={COLORS.muted} style={{ marginBottom: 6 }} />
