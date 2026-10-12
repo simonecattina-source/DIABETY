@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, Platform, Dimensions, TouchableOpacity, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
+import Svg, { Defs, LinearGradient, Stop, Rect, Line, Path, Circle, Text as SvgText, G } from 'react-native-svg';
 
 // 🎨 PALETTE NEON HIGH-CONTRAST PREMIUM COORDINATA
 const COLORS = {
@@ -33,20 +34,48 @@ const MOMENTI_SHORT = {
   "Dopo Cena": "22:00",
   "Notte": "24:00"
 };
+type Misurazione = { glicemia: number; dataTesto: string; ora?: string; tipo?: string };
+type Punto24 = { minutiAssoluti: number; glicemia: number };
+type PuntoGiorno = { giornoIndice: number; dataLabel: string; media: number };
+type MediaMomento = { momento: string; media: number | null };
+const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+const inizioGiorno = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const formattaData = (d: Date) => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;
+const dataValida = (s: unknown): Date | null => {
+  if (typeof s !== 'string') return null;
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(s.trim());
+  if (!match) return null;
+  const giorno = Number(match[1]), mese = Number(match[2]);
+  const n = Number(match[3]);
+  const anno = match[3].length === 4 ? n : n < 50 ? 2000+n : 1900+n;
+  const d = new Date(anno, mese-1, giorno);
+  return d.getFullYear() === anno && d.getMonth() === mese-1 && d.getDate() === giorno ? d : null;
+};
+const oraInMinuti = (s: unknown): number | null => {
+  if (typeof s !== 'string') return null;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(s.trim());
+  if (!m) return null;
+  const h = Number(m[1]), min = Number(m[2]);
+  return h >= 0 && h <= 23 && min >= 0 && min <= 59 ? h*60+min : null;
+};
+const dataIndice = (d: Date) => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+const coloreValore = (v: number) => v > 500 || v > 180 ? COLORS.error : v < 70 ? COLORS.warning : COLORS.success;
 export default function GraficiScreen() {
-  const [datiReali, setDatiReali] = useState<any[]>([]);
+  const [datiReali, setDatiReali] = useState<Misurazione[]>([]);
   const [mediaGlicemia, setMediaGlicemia] = useState<number>(0);
   const [mediaOggi, setMediaOggi] = useState<number>(0); 
   const [totaleMisurazioni, setTotaleMisurazioni] = useState<number>(0);
   const [timeInRange, setTimeInRange] = useState<number>(0);
   
   // 🛠️ COSTRUTTORE ALLINEATO: Stato unificato e sincronizzato senza errori di battitura
-  const [puntiGraficoLinea, setPuntiGraficoLinea] = useState<any[]>([]);
-  const [medieMomenti, setMedieMomenti] = useState<any[]>([]);
-  const [puntiGrafico24Ore, setPuntiGrafico24Ore] = useState<any[]>([]);
+  const [puntiGraficoLinea, setPuntiGraficoLinea] = useState<PuntoGiorno[]>([]);
+  const [medieMomenti, setMedieMomenti] = useState<MediaMomento[]>([]);
+  const [puntiGrafico24Ore, setPuntiGrafico24Ore] = useState<Punto24[]>([]);
 
   const [glicataStimata, setGlicataStimata] = useState<number>(0);
   const [glicataMmol, setGlicataMmol] = useState<number>(0);
+  const [larghezza24, setLarghezza24] = useState(0);
+  const [larghezza90, setLarghezza90] = useState(0);
 
   const [modalVisibile, setModalVisibile] = useState<boolean>(false);
   const [modalTitolo, setModalTitolo] = useState<string>("");
@@ -61,160 +90,93 @@ export default function GraficiScreen() {
   const apriSpiegazione = (tipo: string) => {
     if (tipo === 'trimestrale') {
       setModalTitolo("Panoramica Trimestrale");
-      setModalTesto("Statistiche complessive degli ultimi 90 giorni.\n\n• Media: la media aritmetica totale di tutti i test.\n• In Range (TIR): la percentuale di test rimasti all'interno dell'intervallo ideale (70 - 180 mg/dL).");
+      setModalTesto("Statistiche basate sulle misurazioni disponibili negli ultimi 90 giorni di calendario, oggi incluso.\n\n• Media: la media aritmetica totale di tutti i test.\n• In Range (TIR): la percentuale di test rimasti all'interno dell'intervallo ideale (70 - 180 mg/dL).");
     } else if (tipo === 'oggi') {
       setModalTitolo("Media di Oggi");
       setModalTesto("Questo box calcola in tempo reale la media aritmetica di tutte le misurazioni effettuate esclusivamente nella data corrente (dalle 00:00 ad adesso).\n\nTi permette un controllo immediato per capire se l'andamento della giornata è a target.");
     } else if (tipo === '24h') {
       setModalTitolo("Andamento sulle 24 Ore");
-      setModalTesto("Questo grafico mostra l'andamento della glicemia nella giornata di oggi.\n\nLa curva continua azzurra unisce cronologicamente i tuoi test. Il grafico recupera automaticamente l'ultima misurazione di ieri sera prima di mezzanotte e la usa come punto di partenza a inizio giornata.");
+      setModalTesto("Questo grafico mostra l'andamento della glicemia nella giornata di oggi.\n\nLa curva azzurra posiziona i test secondo il loro orario reale dalle 00:00 alle 24:00. Se disponibile, l’ultima misurazione di ieri viene ripetuta graficamente alle 00:00 come raccordo, senza essere conteggiata nella media di oggi.");
     } else if (tipo === 'giornaliere') {
       setModalTitolo("Andamento Medie Giornaliere");
-      setModalTesto("Questo grafico mostra il trend macro della tua media glicemica includendo tutti i 90 giorni del trimestre.\n\nLa fascia entre le due linee tratteggiate evidenzia il range ideale (70 - 180 mg/dL). Le linee tratteggiate indicano i limiti di sicurezza.");
+      setModalTesto("Il grafico copre esattamente gli ultimi 90 giorni di calendario, oggi incluso. Le date sono distribuite secondo il calendario reale; nei giorni senza misurazioni la linea si interrompe. La fascia evidenzia l’intervallo 70–180 mg/dL.");
     } else if (tipo === 'momenti') {
       setModalTitolo("Medie per Momento");
       setModalTesto("Questo grafico analizza lo storico trimestrale (90 giorni) diviso per i 7 momenti della giornata.\n\nOgni colonna mostra la media calcolata in quello specifico orario. Lo stato indica: Verde (a target), Arancione (basso/ipo) o Rosso (alto/iper). Il trattino (-) indica assenza di dati.");
     } else if (tipo === 'glicata') {
       setModalTitolo("Stima Emoglobina Glicata (HbA1c)");
-      setModalTesto("Questo modulo esegue una stima matematica predittiva della tua Emoglobina Glicata (HbA1c) basandosi sulla formula internazionale ADA (eAG) applicata a tutti i test degli ultimi 90 giorni.\n\nI binari indicano il livello di controllo metabolico:\n• Verde (< 7.0%): Ottimo controllo\n• Arancione (7.0% - 8.0%): Controllo moderato\n• Rosso (> 8.0%): Controllo insufficiente\n\nAttenzione: questo valore è puramente indicativo e matematico. Non sostituisce in alcun modo l'esame del sangue effettuato in laboratorio medico.");
+      setModalTesto("La HbA1c qui visualizzata è soltanto una stima orientativa ricavata dalla media delle misurazioni disponibili negli ultimi 90 giorni, mediante la relazione matematica eAG/HbA1c.\n\nLa frequenza e la distribuzione dei controlli possono influenzare molto il risultato: non rappresenta una previsione clinica affidabile, né sostituisce l'esame HbA1c di laboratorio o il parere del medico. I colori della barra sono indicativi e non costituiscono una valutazione clinica individuale.");
     }
     setModalVisibile(true);
   };
 
-  const parsingData = (stringaData: string) => {
-    if (!stringaData || !stringaData.includes('/')) return new Date(0);
-    const [g, m, a] = stringaData.split('/');
-    const annoCompleto = parseInt(a) < 50 ? 2000 + parseInt(a) : 1900 + parseInt(a);
-    return new Date(annoCompleto, parseInt(m) - 1, parseInt(g));
-  };
   const caricaDatiECalcola = async () => {
+    const azzera = () => {
+      setDatiReali([]); setTotaleMisurazioni(0); setMediaGlicemia(0);
+      setMediaOggi(0); setTimeInRange(0); setGlicataStimata(0);
+      setGlicataMmol(0); setPuntiGraficoLinea([]); setMedieMomenti([]);
+      setPuntiGrafico24Ore([]);
+    };
     try {
-      const datiSalvati = await AsyncStorage.getItem('glicotrack_data');
-      if (datiSalvati) {
-        const elenco = JSON.parse(datiSalvati);
-        setDatiReali(elenco);
-        setTotaleMisurazioni(elenco.length);
-
-        if (elenco.length > 0) {
-          const somma = elenco.reduce((acc: number, item: any) => acc + item.glicemia, 0);
-          const mediaCalcolata = Math.round(somma / elenco.length);
-          setMediaGlicemia(mediaCalcolata);
-
-          const stimaPercentuale = (mediaCalcolata + 46.7) / 28.7;
-          setGlicataStimata(Math.round(stimaPercentuale * 10) / 10);
-          const stimaMmol = (stimaPercentuale - 2.15) * 10.978;
-          setGlicataMmol(Math.round(stimaMmol));
-
-          const testNelRange = elenco.filter((item: any) => item.glicemia >= 70 && item.glicemia <= 180).length;
-          setTimeInRange(Math.round((testNelRange / elenco.length) * 100));
-
-          const oggiObj = new Date();
-          const ieriObj = new Date();
-          ieriObj.setDate(oggiObj.getDate() - 1);
-
-          const formattaDataTesto = (d: Date) => {
-            const g = String(d.getDate()).padStart(2, '0');
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const a = String(d.getFullYear()).slice(-2);
-            return `${g}/${m}/${a}`;
-          };
-
-          const dataOggiTesto = formattaDataTesto(oggiObj);
-          const dataIeriTesto = formattaDataTesto(ieriObj);
-
-          const logDiOggi = elenco.filter((item: any) => item.dataTesto === dataOggiTesto);
-          if (logDiOggi.length > 0) {
-            const sommaOggi = logDiOggi.reduce((acc: number, item: any) => acc + item.glicemia, 0);
-            setMediaOggi(Math.round(sommaOggi / logDiOggi.length));
-          } else {
-            setMediaOggi(0);
-          }
-
-          const logDiIeri = elenco.filter((item: any) => item.dataTesto === dataIeriTesto);
-
-          let puntiOggi = logDiOggi.map((item: any) => {
-            let ore = 12, oreMinuti = 0;
-            if (item.ora && item.ora.includes(':')) {
-              const [h, m] = item.ora.split(':');
-              ore = parseInt(h);
-              oreMinuti = parseInt(m);
-            }
-            return { minutiAssoluti: (ore * 60) + oreMinuti, glicemia: item.glicemia };
-          });
-
-          if (logDiIeri.length > 0) {
-            const logDiIeriOrdinati = logDiIeri.map((item: any) => {
-              let ore = 0, oreMinuti = 0;
-              if (item.ora && item.ora.includes(':')) {
-                const [h, m] = item.ora.split(':');
-                ore = parseInt(h);
-                oreMinuti = parseInt(m);
-              }
-              return { minutiAssoluti: (ore * 60) + oreMinuti, glicemia: item.glicemia };
-            }).sort((a: any, b: any) => a.minutiAssoluti - b.minutiAssoluti);
-
-            const ultimoControlloIeriSera = logDiIeriOrdinati[logDiIeriOrdinati.length - 1];
-            puntiOggi.unshift({ minutiAssoluti: 0, glicemia: ultimoControlloIeriSera.glicemia });
-          }
-
-          const tracciato24hFlesibile = puntiOggi.sort((a: any, b: any) => a.minutiAssoluti - b.minutiAssoluti);
-          setPuntiGrafico24Ore(tracciato24hFlesibile);
-
-          const gruppiPerGiorno: Record<string, number[]> = {};
-          elenco.forEach((item: any) => {
-            const dataChiave = item.dataTesto || "Oggi";
-            if (!gruppiPerGiorno[dataChiave]) gruppiPerGiorno[dataChiave] = [];
-            gruppiPerGiorno[dataChiave].push(item.glicemia);
-          });
-
-          const andamentoCronologico = Object.keys(gruppiPerGiorno)
-            .map(dataChiave => {
-              const valoriGiorno = gruppiPerGiorno[dataChiave];
-              const mediaGiorno = valoriGiorno.reduce((s, v) => s + v, 0) / valoriGiorno.length;
-              return { dataLabel: dataChiave, media: Math.round(mediaGiorno) };
-            })
-            .sort((a, b) => parsingData(a.dataLabel).getTime() - parsingData(b.dataLabel).getTime());
-          
-          setPuntiGraficoLinea(andamentoCronologico);
-
-          const gruppiPerMomento: Record<string, number[]> = {};
-          MOMENTI_ELENCO.forEach(m => { gruppiPerMomento[m] = []; });
-
-          elenco.forEach((item: any) => {
-            if (gruppiPerMomento[item.tipo] !== undefined) {
-              gruppiPerMomento[item.tipo].push(item.glicemia);
-            }
-          });
-
-          const calcoloMedieMomenti = MOMENTI_ELENCO.map(m => {
-            const valori = gruppiPerMomento[m];
-            const media = valori.length > 0 ? Math.round(valori.reduce((s, v) => s + v, 0) / valori.length) : 0;
-            return { momento: m, media };
-          });
-          setMedieMomenti(calcoloMedieMomenti);
-
-        } else {
-          setMediaGlicemia(0);
-          setMediaOggi(0);
-          setTimeInRange(0);
-          setGlicataStimata(0);
-          setGlicataMmol(0);
-          setPuntiGraficoLinea([]);
-          setMedieMomenti([]);
-          setPuntiGrafico24Ore([]);
-        }
+      const salvati = await AsyncStorage.getItem('glicotrack_data');
+      const parsed: unknown = salvati ? JSON.parse(salvati) : [];
+      if (!Array.isArray(parsed)) { azzera(); return; }
+      const elenco: Misurazione[] = parsed.filter((v): v is Misurazione =>
+        v !== null && typeof v === 'object' && typeof v.glicemia === 'number' &&
+        Number.isFinite(v.glicemia) && v.glicemia > 0 && dataValida(v.dataTesto) !== null
+      );
+      setDatiReali(elenco);
+      const oggi = inizioGiorno(new Date());
+      const indiceOggi = dataIndice(oggi);
+      const inTrimestre = elenco.filter(v => {
+        const d = dataValida(v.dataTesto)!;
+        const distanza = indiceOggi - dataIndice(d);
+        return distanza >= 0 && distanza < 90;
+      });
+      setTotaleMisurazioni(inTrimestre.length);
+      if (inTrimestre.length) {
+        const mediaEsatta = inTrimestre.reduce((sum,v)=>sum+v.glicemia,0) / inTrimestre.length;
+        setMediaGlicemia(Math.round(mediaEsatta));
+        setTimeInRange(Math.round(100*inTrimestre.filter(v=>v.glicemia>=70 && v.glicemia<=180).length/inTrimestre.length));
+        const stima = (mediaEsatta + 46.7) / 28.7;
+        setGlicataStimata(Math.round(stima*10)/10);
+        setGlicataMmol(Math.round((stima-2.15)*10.978));
+      } else {
+        setMediaGlicemia(0); setTimeInRange(0); setGlicataStimata(0); setGlicataMmol(0);
       }
+      const oggiElenco = elenco.filter(v => dataIndice(dataValida(v.dataTesto)!) === indiceOggi);
+      setMediaOggi(oggiElenco.length ? Math.round(oggiElenco.reduce((sum,v)=>sum+v.glicemia,0)/oggiElenco.length) : 0);
+      const puntiOggi: Punto24[] = oggiElenco
+        .map(v => ({ minutiAssoluti: oraInMinuti(v.ora), glicemia: v.glicemia }))
+        .filter((v): v is Punto24 => v.minutiAssoluti !== null);
+      const ieri = elenco.filter(v => dataIndice(dataValida(v.dataTesto)!) === indiceOggi-1)
+        .map(v => ({ minutiAssoluti: oraInMinuti(v.ora), glicemia: v.glicemia }))
+        .filter((v): v is Punto24 => v.minutiAssoluti !== null)
+        .sort((a,b)=>a.minutiAssoluti-b.minutiAssoluti);
+      if (ieri.length) puntiOggi.unshift({minutiAssoluti:0,glicemia:ieri[ieri.length-1].glicemia});
+      setPuntiGrafico24Ore(puntiOggi.sort((a,b)=>a.minutiAssoluti-b.minutiAssoluti));
+      const giorni = new Map<number, number[]>();
+      for (const v of inTrimestre) {
+        const idx = dataIndice(dataValida(v.dataTesto)!)-(indiceOggi-89);
+        if (!giorni.has(idx)) giorni.set(idx, []);
+        giorni.get(idx)!.push(v.glicemia);
+      }
+      setPuntiGraficoLinea(Array.from(giorni.entries()).map(([giornoIndice, valori]) => {
+        const d = new Date(oggi.getFullYear(),oggi.getMonth(),oggi.getDate()-(89-giornoIndice));
+        return {giornoIndice, dataLabel:formattaData(d),media:Math.round(valori.reduce((a,b)=>a+b,0)/valori.length)};
+      }).sort((a,b)=>a.giornoIndice-b.giornoIndice));
+      setMedieMomenti(MOMENTI_ELENCO.map(m => {
+        const valori = inTrimestre.filter(v=>v.tipo===m).map(v=>v.glicemia);
+        return {momento:m,media:valori.length ? Math.round(valori.reduce((a,b)=>a+b,0)/valori.length) : null};
+      }));
     } catch (e) {
-      console.log("Errore calcolo dati.");
+      console.log('Errore lettura dati grafici:', e);
+      azzera();
     }
   };
 
-  const calcolaCoordinateLineaX = (valoreGlicemia: number, altezzaGrafico: number) => {
-    const GLICEMIA_MIN = 40;
-    const GLICEMIA_MAX = 240;
-    const valoreProtetto = Math.max(GLICEMIA_MIN, Math.min(GLICEMIA_MAX, valoreGlicemia));
-    const percentuale = (valoreProtetto - GLICEMIA_MIN) / (GLICEMIA_MAX - GLICEMIA_MIN);
-    return altezzaGrafico - (percentuale * altezzaGrafico);
+  const calcolaCoordinateLineaX = (valore: number, altezza: number) => {
+    return altezza - ((Math.max(40,Math.min(500,valore))-40)/460)*altezza;
   };
 
   const generaPercorsoCurvoBezier = (punti: any[]) => {
@@ -231,144 +193,60 @@ export default function GraficiScreen() {
     return d;
   };
   const renderizzaGraficoLinea24Ore = () => {
-    if (puntiGrafico24Ore.length === 0) return null;
-    const larghezzaGrafico = Platform.OS === 'web' ? 340 : Dimensions.get('window').width - 64;
-    const altezzaGrafico = 150;
-    const margineLaterale = 25;
-    const spazioUtileX = larghezzaGrafico - (margineLaterale * 2);
-
-    const rigaSoglia180Y = calcolaCoordinateLineaX(180, altezzaGrafico);
-    const rigaSoglia70Y = calcolaCoordinateLineaX(70, altezzaGrafico);
-
-    const coordinataPunti = puntiGrafico24Ore.map((punto) => {
-      const percentualeX = punto.minutiAssoluti / 1440;
-      const x = margineLaterale + (percentualeX * spazioUtileX);
-      const y = calcolaCoordinateLineaX(punto.glicemia, altezzaGrafico);
-      return { x, y, ...punto };
-    });
-
-    const percorsoCurvaStr = generaPercorsoCurvoBezier(coordinataPunti);
-    
-    let percorsoGradienteStr = "";
-    if (coordinataPunti.length > 0) {
-      percorsoGradienteStr = percorsoCurvaStr + 
-        ` L ${coordinataPunti[coordinataPunti.length - 1].x} ${altezzaGrafico}` + 
-        ` L ${coordinataPunti[0].x} ${altezzaGrafico} Z`;
-    }
-
-    return (
-      <View style={styles.containerGraficoSvg}>
-        {/* L'altezza totale viene leggermente aumentata a 195 per accogliere l'asse X orario al suo interno */}
-        <svg width="100%" height="195" style={{ display: 'block', overflow: 'visible' }}>
-          <defs>
-            <linearGradient id="neonCyanGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={COLORS.brandPrimary} stopOpacity="0.28" />
-              <stop offset="100%" stopColor={COLORS.brandPrimary} stopOpacity="0.00" />
-            </linearGradient>
-          </defs>
-          
-          <rect x={margineLaterale} y={rigaSoglia180Y} width={spazioUtileX} height={rigaSoglia70Y - rigaSoglia180Y} fill="rgba(0, 230, 118, 0.04)" />
-          <line x1={margineLaterale} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineLaterale} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1" strokeDasharray="3 3" opacity={0.6} />
-          <text x={larghezzaGrafico - 5} y={rigaSoglia180Y + 3} fill={COLORS.error} fontSize="9" fontWeight="bold" textAnchor="end">180</text>
-          
-          <line x1={margineLaterale} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineLaterale} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1" strokeDasharray="3 3" opacity={0.6} />
-          <text x={larghezzaGrafico - 5} y={rigaSoglia70Y + 3} fill={COLORS.warning} fontSize="9" fontWeight="bold" textAnchor="end">70</text>
-          
-          {percorsoGradienteStr !== "" && <path d={percorsoGradienteStr} fill="url(#neonCyanGrad)" />}
-          {percorsoCurvaStr !== "" && <path d={percorsoCurvaStr} fill="none" stroke={COLORS.brandPrimary} strokeWidth="3" strokeLinecap="round" />}
-          
-          {coordinataPunti.map((p, i) => (
-            <g key={i}>
-              <circle cx={p.x} cy={p.y} r="4" fill={p.glicemia > 180 ? COLORS.error : p.glicemia < 70 ? COLORS.warning : COLORS.success} stroke="#0A0A0C" strokeWidth="1.5" />
-              <text x={p.x} y={p.y - 9} fill={COLORS.onSurface} fontSize="9" fontWeight="800" textAnchor="middle">{p.glicemia}</text>
-            </g>
-          ))}
-
-          {/* 🛠️ ASSE DELLE ORE EMBEDDATO: Inserito direttamente all'interno del blocco SVG. Segue millimetricamente il grafico senza allungarsi mai su PC */}
-          <g fill={COLORS.muted} fontSize="10" fontWeight="700" textAnchor="middle">
-            <text x={margineLaterale} y={altezzaGrafico + 22}>00:00</text>
-            <text x={margineLaterale + (spazioUtileX * 0.25)} y={altezzaGrafico + 22}>06:00</text>
-            <text x={margineLaterale + (spazioUtileX * 0.50)} y={altezzaGrafico + 22}>12:00</text>
-            <text x={margineLaterale + (spazioUtileX * 0.75)} y={altezzaGrafico + 22}>18:00</text>
-            <text x={larghezzaGrafico - margineLaterale} y={altezzaGrafico + 22}>24:00</text>
-          </g>
-        </svg>
-      </View>
-    );
+    if (!puntiGrafico24Ore.length) return null;
+    const width = larghezza24 || Math.max(240,Dimensions.get('window').width-64);
+    const left=25, right=25, top=18, height=150, bottom=top+height, usable=width-left-right;
+    const y=(v:number)=>top+calcolaCoordinateLineaX(v,height);
+    const pts=puntiGrafico24Ore.map(p=>({...p,x:left+p.minutiAssoluti/1440*usable,y:y(p.glicemia)}));
+    const curva=generaPercorsoCurvoBezier(pts);
+    const area=pts.length>1 ? `${curva} L ${pts[pts.length-1].x} ${bottom} L ${pts[0].x} ${bottom} Z` : '';
+    return <View style={styles.containerGraficoSvg} onLayout={e=>setLarghezza24(e.nativeEvent.layout.width)}>
+      <Svg width="100%" height={207} viewBox={`0 0 ${width} 207`}>
+        <Defs><LinearGradient id="neonCyanGrad" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor={COLORS.brandPrimary} stopOpacity={0.28}/><Stop offset="1" stopColor={COLORS.brandPrimary} stopOpacity={0}/></LinearGradient></Defs>
+        <Rect x={left} y={y(180)} width={usable} height={y(70)-y(180)} fill="rgba(0,230,118,0.04)"/>
+        {[180,70].map(v=><G key={v}><Line x1={left} y1={y(v)} x2={width-right} y2={y(v)} stroke={v===180?COLORS.error:COLORS.warning} strokeWidth={1} strokeDasharray="3 3" opacity={0.6}/><SvgText x={width-5} y={y(v)+3} fill={v===180?COLORS.error:COLORS.warning} fontSize={9} fontWeight="bold" textAnchor="end">{v}</SvgText></G>)}
+        <Line x1={left} y1={y(500)} x2={width-right} y2={y(500)} stroke={COLORS.muted} strokeWidth={0.8} opacity={0.5}/>
+        {area ? <Path d={area} fill="url(#neonCyanGrad)"/> : null}
+        {curva ? <Path d={curva} fill="none" stroke={COLORS.brandPrimary} strokeWidth={3} strokeLinecap="round"/> : null}
+        {pts.map((p,i)=><G key={i}><Circle cx={p.x} cy={p.y} r={4} fill={coloreValore(p.glicemia)} stroke={COLORS.background} strokeWidth={1.5}/><SvgText x={p.x} y={Math.max(10,p.y-9)} fill={COLORS.onSurface} fontSize={9} fontWeight="800" textAnchor="middle">{p.glicemia}</SvgText></G>)}
+        {[0,6,12,18,24].map(h=><SvgText key={h} x={left+(h/24)*usable} y={bottom+24} fill={COLORS.muted} fontSize={10} fontWeight="700" textAnchor="middle">{`${String(h).padStart(2,'0')}:00`}</SvgText>)}
+      </Svg>
+    </View>;
   };
 
   const renderizzaGraficoLineaGiorni = () => {
-    if (puntiGraficoLinea.length === 0) return null;
-    const larghezzaGrafico = Platform.OS === 'web' ? 340 : Dimensions.get('window').width - 64;
-    const altezzaGrafico = 150;
-    const margineLaterale = 20;
-    const spazioUtileX = larghezzaGrafico - (margineLaterale * 2);
-
-    const rigaSoglia180Y = calcolaCoordinateLineaX(180, altezzaGrafico);
-    const rigaSoglia70Y = calcolaCoordinateLineaX(70, altezzaGrafico);
-
-    const coordinataPunti = puntiGraficoLinea.map((punto, indice) => {
-      const x = margineLaterale + (indice * (spazioUtileX / (puntiGraficoLinea.length - 1 || 1)));
-      const y = calcolaCoordinateLineaX(punto.media, altezzaGrafico);
-      return { x, y, ...punto };
-    });
-
-    const percorsoCurvaStr = generaPercorsoCurvoBezier(coordinataPunti);
-    
-    let percorsoGradienteStr = "";
-    if (coordinataPunti.length > 0) {
-      percorsoGradienteStr = percorsoCurvaStr + 
-        ` L ${coordinataPunti[coordinataPunti.length - 1].x} ${altezzaGrafico}` + 
-        ` L ${coordinataPunti[0].x} ${altezzaGrafico} Z`;
+    if (!puntiGraficoLinea.length) return null;
+    const width=larghezza90 || Math.max(240,Dimensions.get('window').width-64);
+    const left=27,right=27,top=18,height=150,bottom=top+height,usable=width-left-right;
+    const y=(v:number)=>top+calcolaCoordinateLineaX(v,height);
+    const pts=puntiGraficoLinea.map(p=>({...p,x:left+p.giornoIndice/89*usable,y:y(p.media)}));
+    const segmenti: typeof pts[]=[];
+    for (const p of pts) {
+      const precedente=segmenti[segmenti.length-1];
+      if (!precedente || !precedente.length || p.giornoIndice-precedente[precedente.length-1].giornoIndice>1) segmenti.push([p]);
+      else precedente.push(p);
     }
-
-    return (
-      <View style={styles.containerGraficoSvg}>
-        <svg width="100%" height="195" style={{ display: 'block', overflow: 'visible' }}>
-          <defs>
-            <linearGradient id="neonPurpleGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={COLORS.brandSecondary} stopOpacity="0.25" />
-              <stop offset="100%" stopColor={COLORS.brandSecondary} stopOpacity="0.00" />
-            </linearGradient>
-          </defs>
-          
-          <rect x={margineLaterale} y={rigaSoglia180Y} width={spazioUtileX} height={rigaSoglia70Y - rigaSoglia180Y} fill="rgba(0, 230, 118, 0.03)" />
-          <line x1={margineLaterale} y1={rigaSoglia180Y} x2={larghezzaGrafico - margineLaterale} y2={rigaSoglia180Y} stroke={COLORS.error} strokeWidth="1" strokeDasharray="3 3" opacity={0.5} />
-          <text x={larghezzaGrafico - 5} y={rigaSoglia180Y + 3} fill={COLORS.error} fontSize="9" fontWeight="bold" textAnchor="end">180</text>
-          
-          <line x1={margineLaterale} y1={rigaSoglia70Y} x2={larghezzaGrafico - margineLaterale} y2={rigaSoglia70Y} stroke={COLORS.warning} strokeWidth="1" strokeDasharray="3 3" opacity={0.5} />
-          <text x={larghezzaGrafico - 5} y={rigaSoglia70Y + 3} fill={COLORS.warning} fontSize="9" fontWeight="bold" textAnchor="end">70</text>
-          
-          {percorsoGradienteStr !== "" && <path d={percorsoGradienteStr} fill="url(#neonPurpleGrad)" />}
-          {percorsoCurvaStr !== "" && <path d={percorsoCurvaStr} fill="none" stroke={COLORS.brandSecondary} strokeWidth="3" strokeLinecap="round" />}
-          
-          {coordinataPunti.map((p, i) => {
-            const nascondiScrittaValore = coordinataPunti.length > 15 && i % 3 !== 0;
-            const colorePuntoTrimestre = p.media > 180 ? COLORS.error : p.media < 70 ? COLORS.warning : COLORS.success;
-            return (
-              <g key={`macro-${i}`}>
-                <circle cx={p.x} cy={p.y} r="3.5" fill={colorePuntoTrimestre} stroke="#0A0A0C" strokeWidth="1.5" />
-                {!nascondiScrittaValore && (
-                  <text x={p.x} y={p.y - 9} fill={COLORS.onSurface} fontSize="9" fontWeight="800" textAnchor="middle">{p.media}</text>
-                )}
-              </g>
-            );
-          })}
-
-          {/* 🛠️ ASSE DELLE DATE EMBEDDATO: Sincronizzato con precisione millimetrica all'interno dell'SVG macro trend */}
-          <g fill={COLORS.muted} fontSize="10" fontWeight="700" textAnchor="middle">
-            {puntiGraficoLinea.map((p, i) => {
-              const mostraData = i === 0 || i === Math.floor(puntiGraficoLinea.length / 2) || i === puntiGraficoLinea.length - 1;
-              if (!mostraData) return null;
-              
-              const posPercentuale = i / (puntiGraficoLinea.length - 1 || 1);
-              const xPos = margineLaterale + (posPercentuale * spazioUtileX);
-              return <text key={`lbl-${i}`} x={xPos} y={altezzaGrafico + 22}>{p.dataLabel.slice(0, 5)}</text>;
-            })}
-          </g>
-        </svg>
-      </View>
-    );
+    const oggi=inizioGiorno(new Date());
+    const passoDate = width < 400 ? 15 : 10;
+    const ticks=Array.from({length:Math.floor(89/passoDate)+1},(_,i)=>i*passoDate).concat(89);
+    return <View style={styles.containerGraficoSvg} onLayout={e=>setLarghezza90(e.nativeEvent.layout.width)}>
+      <Svg width="100%" height={207} viewBox={`0 0 ${width} 207`}>
+        <Defs><LinearGradient id="neonPurpleGrad" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor={COLORS.brandSecondary} stopOpacity={0.25}/><Stop offset="1" stopColor={COLORS.brandSecondary} stopOpacity={0}/></LinearGradient></Defs>
+        <Rect x={left} y={y(180)} width={usable} height={y(70)-y(180)} fill="rgba(0,230,118,0.03)"/>
+        {[180,70].map(v=><G key={v}><Line x1={left} y1={y(v)} x2={width-right} y2={y(v)} stroke={v===180?COLORS.error:COLORS.warning} strokeWidth={1} strokeDasharray="3 3" opacity={0.5}/><SvgText x={width-5} y={y(v)+3} fill={v===180?COLORS.error:COLORS.warning} fontSize={9} fontWeight="bold" textAnchor="end">{v}</SvgText></G>)}
+        <Line x1={left} y1={y(500)} x2={width-right} y2={y(500)} stroke={COLORS.muted} strokeWidth={0.8} opacity={0.5}/>
+        {segmenti.map((seg,i)=>{
+          const path=generaPercorsoCurvoBezier(seg);
+          const area=seg.length>1 ? `${path} L ${seg[seg.length-1].x} ${bottom} L ${seg[0].x} ${bottom} Z` : '';
+          return <G key={i}>{area ? <Path d={area} fill="url(#neonPurpleGrad)"/> : null}{seg.length>1 ? <Path d={path} fill="none" stroke={COLORS.brandSecondary} strokeWidth={3} strokeLinecap="round"/> : null}</G>;
+        })}
+        {pts.map((p,i)=><G key={i}><Circle cx={p.x} cy={p.y} r={3.5} fill={coloreValore(p.media)} stroke={COLORS.background} strokeWidth={1.5}/>{p.giornoIndice%passoDate===0 ? <SvgText x={p.x} y={Math.max(10,p.y-9)} fill={COLORS.onSurface} fontSize={9} fontWeight="800" textAnchor="middle">{p.media}</SvgText> : null}</G>)}
+        {ticks.map(idx=>{
+          const d=new Date(oggi.getFullYear(),oggi.getMonth(),oggi.getDate()-(89-idx));
+          return <SvgText key={idx} x={left+idx/89*usable} y={bottom+24} fill={COLORS.muted} fontSize={width<380?8:9} fontWeight="700" textAnchor="middle">{`${d.getDate()} ${MESI[d.getMonth()]}`}</SvgText>;
+        })}
+      </Svg>
+    </View>;
   };
 
   const renderizzaGraficoColonneMomenti = () => {
@@ -380,12 +258,12 @@ export default function GraficiScreen() {
       <View style={styles.containerGraficoSvg}>
         <View style={styles.rigaColonneContainer}>
           {medieMomenti.map((m, i) => {
-            const altezzaCalcolata = m.media > 0 ? Math.min(altezzaMassimaColonna, (m.media / valoreMassimoScala) * altezzaMassimaColonna) : 4;
-            const coloreColonna = m.media === 0 ? "#1F1F29" : m.media > 180 ? COLORS.error : m.media < 70 ? COLORS.warning : COLORS.success;
+            const altezzaCalcolata = m.media !== null ? Math.min(altezzaMassimaColonna, ((m.media ?? 0) / valoreMassimoScala) * altezzaMassimaColonna) : 4;
+            const coloreColonna = m.media === null ? "#1F1F29" : m.media > 180 ? COLORS.error : m.media < 70 ? COLORS.warning : COLORS.success;
 
             return (
               <View key={i} style={styles.singolaColonnaWrapper}>
-                <Text style={[styles.valoreColonnaTesto, { color: m.media === 0 ? COLORS.muted : COLORS.onSurface }]}>{m.media > 0 ? m.media : '-'}</Text>
+                <Text style={[styles.valoreColonnaTesto, { color: m.media === null ? COLORS.muted : COLORS.onSurface }]}>{m.media !== null ? m.media : '-'}</Text>
                 <View style={[styles.colonnaRettangolo, { height: altezzaCalcolata, backgroundColor: coloreColonna }]} />
                 <Text style={styles.etichettaColonnaMomento}>{MOMENTI_SHORT[m.momento as keyof typeof MOMENTI_SHORT]}</Text>
               </View>
@@ -439,7 +317,7 @@ export default function GraficiScreen() {
             <View style={[styles.infoBoxStatMini, { borderLeftColor: mediaGlicemia > 180 ? COLORS.error : mediaGlicemia < 70 ? COLORS.warning : mediaGlicemia === 0 ? COLORS.borderGlass : COLORS.success }]}>
               <Text style={styles.statLabel} numberOfLines={1}>Media</Text>
               <Text style={[styles.statValueMini, { color: mediaGlicemia > 180 ? COLORS.error : mediaGlicemia < 70 ? COLORS.warning : mediaGlicemia === 0 ? COLORS.muted : COLORS.success }]}>
-                {mediaGlicemia > 0 ? `${mediaGlicemia}` : '-'} <Text style={styles.unitaMisuraSub}>mg</Text>
+                {totaleMisurazioni > 0 ? `${mediaGlicemia}` : '-'} {totaleMisurazioni > 0 ? <Text style={styles.unitaMisuraSub}>mg/dL</Text> : null}
               </Text>
             </View>
             
@@ -524,7 +402,7 @@ export default function GraficiScreen() {
             <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.subLabelSpiegazione}>Valore trimestrale predittivo calcolato su formula eAG (ADA).</Text>
+        <Text style={styles.subLabelSpiegazione}>Stima orientativa dai test disponibili negli ultimi 90 giorni; non sostituisce il laboratorio.</Text>
         
         {totaleMisurazioni > 0 ? (
           <View style={styles.containerInterfacciaGlicata}>
