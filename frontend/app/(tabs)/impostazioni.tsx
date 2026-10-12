@@ -1,28 +1,25 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform, LayoutAnimation, UIManager, Modal } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, SectionList, Platform, Modal, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
-// Abilita LayoutAnimation per Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+// 🎨 PALETTE AD ALTO CONTRASTO CON AZZURRO CYAN NEON PER IL PULSANTE PDF COORDINATO
 const COLORS = {
   background: "#0A0A0C",        
-  surfaceSecondary: "#13131A",  
-  brandPrimary: "#00E5FF",      
-  brandSecondary: "#7D52FF",    
-  onSurface: "#FFFFFF",         
+  surfaceSecondary: "#13131A",  // Nero profondo tech per i contenitori
+  brandPrimary: "#00E5FF",
+  brandSecondary: "#7D52FF",
+  bgUtility: "#1A1A24",      // Azzurro Cyan elettrico neon coordinato
+  onSurface: "#FFFFFF",         // Bianco purissimo ultra-nitido
   muted: "#7E7E86",             
-  success: "#00E676",           
-  warning: "#FF9100",           
-  error: "#FF5252",             
+  success: "#00E676",           // Verde smeraldo Oled
+  warning: "#FF9100",           // Arancione vivo
+  error: "#FF5252",             // Rosso corallo neon
   borderGlass: "rgba(255, 255, 255, 0.08)",
-  borderGlassBright: "rgba(255, 255, 255, 0.15)",
-  bgUtility: "#1A1A24",         
-  borderUtility: "#3A3A4A"      
+  borderGlassBright: "rgba(255, 255, 255, 0.15)"
 };
 
 const MOMENTI_COLONNE = [
@@ -30,113 +27,171 @@ const MOMENTI_COLONNE = [
   "Prima Pranzo", "Dopo Pranzo", "Merenda", 
   "Prima Cena", "Dopo Cena", "Notte"
 ];
-export default function StrumentiScreen() {
-  const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
-  const [filtroPdfSelezionato, setFiltroPdfSelezionato] = useState<string>('Tutti');
+export default function StoricoScreen() {
+  const [filtroAttivo, setFiltroAttivo] = useState<'7' | '14' | '30' | '90' | 'all'>('all');
+  const [datiReali, setDatiReali] = useState<any[]>([]);
+
+  const [itemSelezionato, setItemSelezionato] = useState<any | null>(null);
+  const [modGlicemia, setModGlicemia] = useState('');
+  const [modInsulina, setModInsulina] = useState('');
+  const [modNote, setModNote] = useState('');
+  const [modMomento, setModMomento] = useState('');
+  
+  const [modDataISO, setModDataISO] = useState('');
+  const [modOraText, setModOraText] = useState('');
+
+  const [mostraHelpPDF, setMostraHelpPDF] = useState(false);
   const [modalPdfVisibile, setModalPdfVisibile] = useState(false);
-  const [expandedPointId, setExpandedPointId] = useState<number | null>(null);
+  const [mostraModalModifica, setMostraModalModifica] = useState(false);
+  const [mostraNotificaModifica, setMostraNotificaModifica] = useState(false);
+  const [testoNotifica, setTestoNotifica] = useState('✓ Modifica salvata nel registro');
 
-  const mostraMessaggioNotifica = (testo: string) => {
-    setStatoNotifica(testo);
-    setTimeout(() => setStatoNotifica(null), 3500);
-  };
+  const [mostraConfermaSvuota, setMostraConfermaSvuota] = useState(false);
+  const [mostraNotificaSvuotato, setMostraNotificaSvuotato] = useState(false);
 
-  const togglePoint = (id: number) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    if (expandedPointId === id) {
-      setExpandedPointId(null);
-    } else {
-      setExpandedPointId(id);
+  useFocusEffect(
+    React.useCallback(() => {
+      caricaDatiLocali();
+    }, [])
+  );
+
+  const caricaDatiLocali = async () => {
+    try {
+      const datiSalvati = await AsyncStorage.getItem('glicotrack_data');
+      if (datiSalvati) {
+        setDatiReali(JSON.parse(datiSalvati));
+      }
+    } catch (e) {
+      console.log("Errore nel caricamento dei dati.");
     }
   };
-  const esportaBackupJSON = async () => {
+  const cancellaTuttoStorico = async () => {
     try {
-      const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
-      if (!storicoEsistente || !Array.isArray(JSON.parse(storicoEsistente)) || JSON.parse(storicoEsistente).length === 0) {
-        alert("Non ci sono misurazioni salvate da esportare.");
-        return;
-      }
-      if (Platform.OS === 'web') {
-        const blob = new Blob([storicoEsistente], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'backup_diabety_diario.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-        mostraMessaggioNotifica("✓ Backup scaricato correttamente");
-      } else {
-        const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(storicoEsistente)}`;
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(dataUri, { dialogTitle: 'Salva il tuo Backup Diabety' });
-        } else {
-          alert("La condivisione non è supportata su questo dispositivo.");
-        }
-      }
-    } catch (error) { alert("Errore durante la creazione del file di backup."); }
+      await AsyncStorage.removeItem('glicotrack_data');
+      setDatiReali([]);
+      setMostraNotificaSvuotato(true);
+      setTimeout(() => { setMostraNotificaSvuotato(false); }, 3000);
+    } catch (e) {
+      alert("Impossibile cancellare i dati.");
+    }
   };
-  // Il formato JSON rimane un array di misurazioni, compatibile con i backup esistenti.
-  const validaMisurazioneBackup = (item: any): boolean => {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
-    if (typeof item.id !== 'string' || item.id.trim() === '') return false;
-    if (typeof item.glicemia !== 'number' || !Number.isInteger(item.glicemia) || item.glicemia < 1 || item.glicemia > 999) return false;
-    if (typeof item.insulina !== 'string' || !/^(?:-|\d{1,2} UI)$/.test(item.insulina)) return false;
-    if (typeof item.tipo !== 'string' || !MOMENTI_COLONNE.includes(item.tipo)) return false;
-    if (typeof item.note !== 'string') return false;
-    if (typeof item.ora !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(item.ora)) return false;
-    if (typeof item.dataTesto !== 'string' || !/^\d{2}\/\d{2}\/\d{2}$/.test(item.dataTesto)) return false;
 
-    const [giorno, mese, anno] = item.dataTesto.split('/').map(Number);
-    const annoCompleto = anno < 50 ? 2000 + anno : 1900 + anno;
-    const data = new Date(annoCompleto, mese - 1, giorno);
-    if (data.getFullYear() !== annoCompleto || data.getMonth() !== mese - 1 || data.getDate() !== giorno) return false;
+  const confermaCancellaTutto = async () => {
+    setMostraConfermaSvuota(false);
+    await cancellaTuttoStorico();
+  };
+
+  const ottieniTimestampCompleto = (stringaData: string, stringaOra: string) => {
+    let giorno = 0, mese = 0, annoCompleto = 0;
+    if (stringaData === "Oggi") {
+      const d = new Date();
+      giorno = d.getDate(); mese = d.getMonth(); annoCompleto = d.getFullYear();
+    } else if (stringaData && stringaData.includes('/')) {
+      const [g, m, a] = stringaData.split('/');
+      giorno = parseInt(g); mese = parseInt(m) - 1;
+      annoCompleto = parseInt(a) < 50 ? 2000 + parseInt(a) : 1900 + parseInt(a);
+    } else {
+      return 0;
+    }
+    let ore = 0, minuti = 0;
+    if (stringaOra && stringaOra.includes(':')) {
+      const [h, min] = stringaOra.split(':');
+      ore = parseInt(h); minuti = parseInt(min);
+    }
+    return new Date(annoCompleto, mese, giorno, ore, minuti).getTime();
+  };
+
+  const rientraNelFiltro = (stringaData: string) => {
+    if (filtroAttivo === 'all') return true;
     const oggi = new Date();
-    oggi.setHours(0, 0, 0, 0);
-    return data.getTime() <= oggi.getTime();
+    const dataInizioOggi = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate()).getTime();
+    const timestampMisurazione = ottieniTimestampCompleto(stringaData, "00:00");
+    const differenzaGiorni = (dataInizioOggi - timestampMisurazione) / (1000 * 60 * 60 * 24);
+    return differenzaGiorni <= parseInt(filtroAttivo) && differenzaGiorni >= -1;
+  };
+  const eliminaSingoloItem = async () => {
+    if (!itemSelezionato) return;
+    try {
+      const datiRimanenti = datiReali.filter(item => item.id !== itemSelezionato.id);
+      await AsyncStorage.setItem('glicotrack_data', JSON.stringify(datiRimanenti));
+      setDatiReali(datiRimanenti);
+      setTestoNotifica('✕ Misurazione eliminata dal registro');
+      setMostraNotificaModifica(true);
+      setTimeout(() => {
+        setMostraNotificaModifica(false); setMostraModalModifica(false); setItemSelezionato(null);
+      }, 1300);
+    } catch (e) {
+      alert("Errore durante l'eliminazione.");
+    }
   };
 
-  const gestisciImportazioneWeb = async (evento: any) => {
-    const inputFile = evento.target;
-    const file = inputFile.files?.[0];
-    if (!file) return;
-    // Permette di riselezionare lo stesso file anche dopo annullamento o errore.
-    inputFile.value = '';
+  const apriModificaItem = (item: any) => {
+    setItemSelezionato(item);
+    setModGlicemia(item.glicemia.toString());
+    setModInsulina(item.insulina ? item.insulina.replace(' UI', '').replace('-', '') : '');
+    setModMomento(item.tipo || 'Prima Colazione');
+    setModOraText(item.ora || '12:00');
+    const testoNotePulito = item.note ? item.note.replace(/^\[\d{2}:\d{2}\]\s*/, '') : '';
+    setModNote(testoNotePulito);
+    if (item.dataTesto && item.dataTesto.includes('/')) {
+      const [g, m, a] = item.dataTesto.split('/'); setModDataISO(`20${a}-${m}-${g}`);
+    } else {
+      const d = new Date();
+      setModDataISO(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+    }
+    setTestoNotifica('✓ Modifica salvata nel registro');
+    setMostraNotificaModifica(false); setMostraModalModifica(true);
+  };
 
+  const salvaModificaItem = async () => {
+    const valoreGlicemia = parseInt(modGlicemia);
+    if (!valoreGlicemia || isNaN(valoreGlicemia)) {
+      alert("Inserisci un valore di glicemia valido."); return;
+    }
+    const [aaaa, mm, gg] = modDataISO.split('-');
+    const dataRiconvertita = `${gg}/${mm}/${aaaa.slice(-2)}`;
+    const noteConOrarioFuso = modNote.trim() ? `[${modOraText}] ${modNote.trim()}` : `[${modOraText}]`;
     try {
-      const contenutoTesto = await file.text();
-      const datiImportati: unknown = JSON.parse(contenutoTesto);
-      if (!Array.isArray(datiImportati) || datiImportati.length === 0 || !datiImportati.every(validaMisurazioneBackup)) {
-        alert('Backup non valido: il file deve contenere misurazioni complete e correttamente formattate. Lo storico attuale non è stato modificato.');
-        return;
-      }
-      const ids = datiImportati.map((item: any) => item.id);
-      if (new Set(ids).size !== ids.length) {
-        alert('Backup non valido: sono presenti identificativi duplicati. Lo storico attuale non è stato modificato.');
-        return;
-      }
-
-      // Stessa soglia usata dalla schermata Inserisci: 91 giorni di calendario rispetto a oggi.
+      let datiAggiornati = datiReali.map(item => {
+        if (item.id === itemSelezionato.id) {
+          return { ...item, glicemia: valoreGlicemia, insulina: modInsulina ? `${modInsulina} UI` : '-', tipo: modMomento, note: noteConOrarioFuso, ora: modOraText, dataTesto: dataRiconvertita };
+        }
+        return item;
+      });
+      // Stessa politica di index.tsx: conserva gli ultimi 91 giorni di calendario
+      // rispetto a oggi. Le date non riconoscibili non vengono eliminate.
       const soglia = new Date();
       soglia.setHours(0, 0, 0, 0);
       soglia.setDate(soglia.getDate() - 91);
-      const datiValidi = datiImportati.filter((item: any) => {
-        const [giorno, mese, anno] = item.dataTesto.split('/').map(Number);
+      const timestampSoglia = soglia.getTime();
+
+      datiAggiornati = datiAggiornati.filter((item: any) => {
+        const stringaData = item?.dataTesto;
+        if (typeof stringaData !== 'string' || !/^\d{2}\/\d{2}\/\d{2}$/.test(stringaData)) return true;
+        const [giorno, mese, anno] = stringaData.split('/').map(Number);
         const annoCompleto = anno < 50 ? 2000 + anno : 1900 + anno;
-        return new Date(annoCompleto, mese - 1, giorno).getTime() >= soglia.getTime();
+        const data = new Date(annoCompleto, mese - 1, giorno);
+        if (data.getFullYear() !== annoCompleto || data.getMonth() !== mese - 1 || data.getDate() !== giorno) return true;
+        return data.getTime() >= timestampSoglia;
       });
-      const esclusi = datiImportati.length - datiValidi.length;
-      if (datiValidi.length === 0) {
-        alert(`Il backup contiene ${datiImportati.length} misurazioni, tutte oltre il limite di 91 giorni. Nessun dato è stato sovrascritto.`);
-        return;
-      }
+      await AsyncStorage.setItem('glicotrack_data', JSON.stringify(datiAggiornati));
+      setDatiReali(datiAggiornati); setTestoNotifica('✓ Modifica salvata nel registro'); setMostraNotificaModifica(true);
+      setTimeout(() => { setMostraNotificaModifica(false); setMostraModalModifica(false); setItemSelezionato(null); }, 1500);
+    } catch (e) { alert("Errore durante il salvataggio."); }
+  };
 
-      const conferma = window.confirm(
-        `Backup verificato.\n\nMisurazioni da ripristinare: ${datiValidi.length}\nMisurazioni escluse perché più vecchie di 91 giorni: ${esclusi}\n\nATTENZIONE: il ripristino sostituirà tutto lo storico attuale. Prima di procedere, assicurati di averne salvato un backup.\n\nVuoi continuare?`
-      );
-      if (!conferma) return;
-
-      await AsyncStorage.setItem('glicotrack_data', JSON.stringify(datiValidi));
-      mostraMessaggioNotifica(`✓ Ripristinate ${datiValidi.length} misurazioni`);
-    } catch (errore) {
-      alert('Impossibile leggere o importare il backup. Lo storico attuale non è stato modificato se la scrittura non è riuscita.');
-    }
+  const ottieniDatiSezionati = () => {
+    const sezioni: Record<string, any[]> = {};
+    const datiFiltratiTemporali = datiReali.filter(item => rientraNelFiltro(item.dataTesto || "Oggi"));
+    datiFiltratiTemporali.forEach(item => {
+      const dataChiave = item.dataTesto || "Oggi"; if (!sezioni[dataChiave]) sezioni[dataChiave] = []; sezioni[dataChiave].push(item);
+    });
+    return Object.keys(sezioni)
+      .sort((a, b) => ottieniTimestampCompleto(b, "00:00") - ottieniTimestampCompleto(a, "00:00")) 
+      .map(chiave => {
+        const elementiGiornoOrdinati = sezioni[chiave].sort((itemA, itemB) => ottieniTimestampCompleto(chiave, itemB.ora || "00:00") - ottieniTimestampCompleto(chiave, itemA.ora || "00:00"));
+        return { title: chiave, data: elementiGiornoOrdinati };
+      }).filter(s => s.data.length > 0);
   };
   const esportaDocumentoMatriceStoricoPDF = async (modalita: 'html' | 'pdf') => {
     setModalPdfVisibile(false);
@@ -145,8 +200,8 @@ export default function StrumentiScreen() {
       let dati = storicoEsistente ? JSON.parse(storicoEsistente) : [];
       if (dati.length === 0) { alert("Non ci sono dati disponibili nel diario per generare il report."); return; }
 
-      if (filtroPdfSelezionato !== 'Tutti') {
-        const giorniFiltro = parseInt(filtroPdfSelezionato); const oggi = new Date(); const dataInizioOggi = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate()).getTime();
+      if (filtroAttivo !== 'all') {
+        const giorniFiltro = parseInt(filtroAttivo); const oggi = new Date(); const dataInizioOggi = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate()).getTime();
         dati = dati.filter((item: any) => {
           if (!item.dataTesto || !item.dataTesto.includes('/')) return false;
           const [g, m, a] = item.dataTesto.split('/'); const tsItem = new Date(parseInt(a) < 50 ? 2000 + parseInt(a) : 1900 + parseInt(a), parseInt(m) - 1, parseInt(g)).getTime();
@@ -355,100 +410,77 @@ export default function StrumentiScreen() {
       alert('Impossibile generare il PDF: ' + (e instanceof Error ? e.message : 'errore sconosciuto'));
     }
   };
-  const manualPoints = [
-    { id: 1, title: "1. Registrazione dei Dati", icon: "analytics-outline", color: COLORS.brandPrimary, content: "Registra i tuoi dati in un attimo. Nella schermata 'Inserisci' puoi selezionare Data e Ora per la registrazione dei tuoi dati. Di default l'app indicherà sempre Data e Ora attuali ma puoi comunque modificare a tuo piacimento questi parametri per aggiungere dei dati in moments specifici del tuo registro Storico. Tramite i riquadri 'Glicemia' e 'Insulina' puoi inserire i valori corrispondenti che ti interessa registrare, nella sezione subito sotto puoi impostare il momento della giornata relativo al dato che stai registrando. Nel box 'Note' puoi inserire ulteriori informazioni che verranno registrate nel tuo Storico dei dati. L'app Diabety è stata programmata per inserire all'interno del riquadro delle 'Note' l'orario in cui stai effettuando il test cosi da tenerne traccia quando esporti il file in PDF." },
-    { id: 2, title: "2. Target Colorati", icon: "color-filter-outline", color: COLORS.success, content: "Monitora istantaneamente il tuo stato metabolico tramite la codifica dinamica dei colori di sicurezza:\n• Verde (Euglicemia): Valori compresi nel range ideale tra 70 e 180 mg/dL.\n• Arancione (Ipoglicemia): Rilevazioni critiche inferiori a 70 mg/dL.\n• Rosso (Iperglicemia): Rilevazioni elevate superiori a 180 mg/dL." },
-    { id: 3, title: "3. Archivio e Auto-Pulizia", icon: "trash-outline", color: COLORS.onSurface, content: "L'applicazione applica un algoritmo rigoroso di conservazione locale calcolato su una finestra mobile di 90 giorni rispetto al record più recente. I vecchi dati vengono eliminati automaticamente per ottimizzare la memoria del dispositivo: ricordati di salvare periodicamente un file di backup per non perderli. L'Eliminazione dei vecchi dati non significa perdere 'Tutti i dati' ma si intende perdere la singola misurazione registrata a partire da 90 giorni precedenti la data attuale." },
-    { id: 4, title: "4. Esportazione dei File", icon: "document-text-outline", color: COLORS.brandPrimary, content: "Genera esportazioni del tuo Diario in formato PDF con layout panoramico, speculare al tuo registro clinico. Puoi selezionare un periodo specifico di 7, 14, 30 o 90 giorni (oppure includere l'intero storico) per personalizzare l'intervallo del documento, ottimizzando la visualizzazione dei parametri per la tua prossima consultazione specialistica." },
-    { id: 5, title: "5. Backup e Sicurezza Dati", icon: "sync-outline", color: COLORS.brandPrimary, content: "Salva e proteggi i tuoi dati in pochi clic. Puoi esportare un file di sicurezza con tutto lo storico del tuo diario oppure caricarne uno vecchio per ripristinare i log. L'importazione sovrascrive il database attuale e richiede sempre una conferma per evitare cancellazioni involontarie." },
-    { id: 6, title: "6. Analisi Avanzata e Grafici", icon: "stats-chart-outline", color: COLORS.brandSecondary, content: "Controlla l'andamento della tua Glicemia. Questa sezione mostra grafici chiari con l'andamento della tua Glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito si sei a target. Nota molto importante, tutti i dati e i grafici che vedi non sono dati medici ufficiali in quanto si basano solo ed esclusivamente su dati inseriti da te nel monitoraggio della Glicemia. La funzione del grafico è basata per avvicinarsi molto alla rapresentazione di un CGM ma non lo è! Un CGM (Monitoraggio Continuo del Glucosio) è un sistema tecnologico che misura i livelli di zucchero (glucosio) nel liquido interstiziale 24 ore su 24 tramite l'utilizzo di un Sensore. Il sensore rileva il glucosio ogni pochi minuti e invia i dati in tempo real a un ricevitore, a uno smartphone o a uno smartwatch. L'app Diabety non ha questa function. Tutto ciò che vedi nella sezione Grafici è puramente a scopo indicativo basato soltanto su dati inseriti da te." },
-    { id: 7, title: "7. Calcolatore del Bolo Insulinico", icon: "calculator-outline", color: COLORS.brandPrimary, content: "Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro. Puoi inserire il valore della tua Glicemia con la quantità di Carboidrati (CHO) che stai assumendo per elaborare secondo i tuoi parametri la dose di Insulina da fare. Puoi anche inserire solo il valore della Glicemia per calcolare la quantità di Insulina per la correzione della Glicemia per rientrare nel tuo target." },
-    { id: 8, title: "8. Database Alimenti e Carboidrati", icon: "nutrition-outline", color: COLORS.success, content: "Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente. Usa la barra di ricerca per trovare l'alimento che ti interessa, impostane la quantità che stai assumendo espressa in grammi e clicca sull'icona ' + ' per aggiungerla al Piatto Virtuale. L'applicazione genererà in basso una scheda momentanea dove simulerà l'insieme del tuo pasto. Qui puoi aggiungere tutti gli alimenti relativi al pasto tenendo traccia del totale dei Carboidrati (CHO)." }
-  ];
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.headerForm}>
-        <Text style={styles.title}>Centro Strumenti</Text>
-        <Text style={styles.subtitle}>Gestione database e informazioni mediche dell'app</Text>
+    <View style={styles.container}>
+      
+      {/* 🏷️ HEADER OPERATIVO AGGIORNATO CON ICONA ED ETICHETTA CIANO NEON */}
+      <View style={styles.header}>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+          <Text style={styles.title}>Storico</Text>
+          <TouchableOpacity style={styles.infoHelpButton} onPress={() => setMostraHelpPDF(true)}>
+            <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{flexDirection:'row', gap: 8}}>
+          {datiReali.length > 0 && (
+            <TouchableOpacity style={styles.exportButtonSvuotaMinimal} onPress={() => setMostraConfermaSvuota(true)}>
+              <Text style={styles.exportTextSvuotaRed}>Svuota</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.exportButtonPDFAcrobatNeon} onPress={() => setModalPdfVisibile(true)}>
+            <Ionicons name="document-text-outline" size={16} color={COLORS.brandPrimary} />
+            <Text style={styles.exportTextPDFAcrobatNeon}>Esporta PDF</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {statoNotifica && (
-        <View style={styles.notificaTendina}>
-          <Text style={styles.notificaTesto}>{statoNotifica}</Text>
+      {mostraNotificaSvuotato && (
+        <View style={[styles.notificaTendinaGenerale, { backgroundColor: '#092414', borderColor: COLORS.success }]}>
+          <Text style={[styles.notificaTesto, { color: COLORS.success }]}>✓ Intero diario glicemico svuotato</Text>
         </View>
       )}
 
-      <Text style={styles.sectionLabel}>Manutenzione e Report</Text>
-      <View style={styles.cardAzioni}>
-        <TouchableOpacity style={styles.rowAzione} onPress={esportaBackupJSON}>
-          <View style={styles.leftAzione}>
-            <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
-              <Ionicons name="cloud-download-outline" size={20} color={COLORS.onSurface} />
-            </View>
-            <View>
-              <Text style={styles.titoloAzione}>Esporta Backup</Text>
-              <Text style={styles.descAzione}>Salva un file JSON con tutto lo storico dei log</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
-        </TouchableOpacity>
-
-        {Platform.OS === 'web' ? (
-          <label style={styles.rowAzioneLabel}>
-            <View style={styles.leftAzione}>
-              <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
-                <Ionicons name="cloud-upload-outline" size={20} color={COLORS.onSurface} />
-              </View>
-              <View>
-                <Text style={styles.titoloAzione}>Importa Backup</Text>
-                <Text style={styles.descAzione}>Ripristina il database caricando un file JSON</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
-            <input type="file" accept=".json" onChange={gestisciImportazioneWeb} style={{ display: 'none' }} />
-          </label>
-        ) : (
-          <TouchableOpacity style={styles.rowAzione}>
-            <View style={styles.leftAzione}>
-              <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
-                <Ionicons name="cloud-upload-outline" size={20} color={COLORS.onSurface} />
-              </View>
-              <View>
-                <Text style={styles.titoloAzione}>Importa Backup</Text>
-                <Text style={styles.descAzione}>Ripristina il database caricando un file JSON</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+      <View style={styles.filterBar}>
+        {[
+          { id: '7', etichetta: '7 GG' }, { id: '14', etichetta: '14 GG' }, { id: '30', etichetta: '30 GG' }, { id: '90', etichetta: '90 GG' }, { id: 'all', etichetta: 'Tutti' }
+        ].map((f) => (
+          <TouchableOpacity key={f.id} style={[styles.filterButton, filtroAttivo === f.id && styles.filterButtonActiveNeon]} onPress={() => setFiltroAttivo(f.id as any)}>
+            <Text style={[styles.filterButtonText, filtroAttivo === f.id && styles.filterButtonTextActiveNeon]}>{f.etichetta}</Text>
           </TouchableOpacity>
-        )}
-
-        <View style={styles.rowAzionePdfComplessa}>
-          <TouchableOpacity style={styles.rowPdfClickArea} onPress={() => setModalPdfVisibile(true)}>
-            <View style={styles.leftAzione}>
-              <View style={[styles.iconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.1)' }]}>
-                <Ionicons name="document-text-outline" size={20} color={COLORS.brandPrimary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esporta PDF</Text>
-                <Text style={styles.descAzione}>Genera il documento clinico identico allo storico</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.brandPrimary} />
-          </TouchableOpacity>
-
-          <View style={styles.containerMiniFiltriPdf}>
-            {['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'].map((intervallo) => {
-              const attivo = filtroPdfSelezionato === intervallo;
-              return (
-                <TouchableOpacity key={intervallo} style={[styles.chipMiniPdf, attivo && styles.chipMiniPdfAttiva]} onPress={() => setFiltroPdfSelezionato(intervallo)}>
-                  <Text style={[styles.textMiniChipPdf, attivo && styles.textMiniChipPdfAttivo]}>{intervallo}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+        ))}
       </View>
 
+      <SectionList
+        sections={ottieniDatiSezionati()}
+        keyExtractor={(item) => item.id}
+        renderSectionHeader={({ section: { title } }) => <Text style={styles.sectionHeader}>{title}</Text>}
+        renderItem={({ item }) => (
+          <TouchableOpacity style={styles.row} onPress={() => apriModificaItem(item)} activeOpacity={0.7}>
+            <View style={styles.timelineContainer}>
+              <View style={[styles.timelineDot, { backgroundColor: item.glicemia > 180 ? COLORS.error : item.glicemia < 70 ? COLORS.warning : COLORS.success }]} />
+              <View style={styles.timelineLine} />
+            </View>
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.valoreGlicemia}>{item.glicemia} <Text style={styles.unitaMisura}>mg/dL</Text></Text>
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                  <Text style={styles.oraTest}>{item.ora}</Text>
+                  <Ionicons name="pencil-sharp" size={12} color={COLORS.muted} />
+                </View>
+              </View>
+              <Text style={styles.tipoPasto}>{item.tipo} {item.insulina !== '-' ? `• Insulina: ${item.insulina}` : ''}</Text>
+              {item.note ? <Text style={styles.noteTest}>{item.note}</Text> : null}
+            </View>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={
+          <View style={{padding: 40, alignItems: 'center'}}>
+            <Text style={{color: COLORS.muted, fontFamily: 'Plus Jakarta Sans'}}>Nessuna misurazione salvata in questo intervallo di tempo.</Text>
+          </View>
+        }
+        contentContainerStyle={styles.listContent}
+      />
       <Modal visible={modalPdfVisibile} transparent animationType="fade" onRequestClose={() => setModalPdfVisibile(false)}>
         <View style={styles.pdfModalOverlay}>
           <View style={styles.pdfModalCard}>
@@ -462,7 +494,7 @@ export default function StrumentiScreen() {
                 <Ionicons name="close" size={24} color={COLORS.muted} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.pdfModalPeriodo}>Periodo selezionato: {filtroPdfSelezionato}</Text>
+            <Text style={styles.pdfModalPeriodo}>Periodo selezionato: {({'all':'Tutti','7':'7 GG','14':'14 GG','30':'30 GG','90':'90 GG'} as Record<string,string>)[filtroAttivo]}</Text>
             <TouchableOpacity style={styles.pdfModalOption} onPress={() => esportaDocumentoMatriceStoricoPDF('html')}>
               <Ionicons name="eye-outline" size={22} color={COLORS.brandPrimary} />
               <View style={{ flex: 1, marginLeft: 12 }}>
@@ -486,33 +518,107 @@ export default function StrumentiScreen() {
         </View>
       </Modal>
 
-      <Text style={styles.sectionLabel}>Manuale & Linee Guia</Text>
-
-      {manualPoints.map((point) => {
-        const isOpen = expandedPointId === point.id;
-        return (
-          <View key={point.id} style={styles.accordionWrapper}>
-            <TouchableOpacity 
-              style={[styles.accordionHeader, isOpen && styles.accordionHeaderActive]} 
-              onPress={() => togglePoint(point.id)}
-              activeOpacity={0.85}
-            >
-              <View style={styles.headerLeft}>
-                <Ionicons name={point.icon} size={18} color={point.color} style={styles.iconaManualeAllineata} />
-                <Text style={styles.infoBlockTitle}>{point.title}</Text>
+      {/* ℹ️ POPUP MODAL INFORMATIVO HELP ACCORDATO PERFETTAMENTE NELLA GRAFICA ALLA HOME */}
+      <Modal visible={mostraHelpPDF} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlayCentrato}>
+          <View style={styles.modalContentHelp}>
+            <Text style={styles.modalTitleHelp}>Guida e Funzionalità</Text>
+            
+            <View style={styles.helpSectionRow}>
+              <View style={[styles.helpIconBox, { backgroundColor: 'rgba(0, 229, 255, 0.08)' }]}>
+                <Ionicons name="document-text" size={18} color={COLORS.brandPrimary} />
               </View>
-              <Ionicons name={isOpen ? "chevron-up" : "chevron-forward"} size={18} color={isOpen ? point.color : COLORS.muted} />
-            </TouchableOpacity>
+              <View style={styles.helpTextContainer}>
+                <Text style={styles.helpSectionHeader}>Esportazione Report PDF</Text>
+                <Text style={styles.helpSectionBody}>
+                  Cliccando sul pulsante <Text style={{fontWeight: '700', color: COLORS.brandPrimary}}>"Esporta PDF"</Text> potrai scaricare il documento clinico temporale.{"\n"}
+                  Il sistema esporterà in modo intelligente solo l'intervallo di tempo che hai selezionato nella barra dei filtri (7, 14, 30, 90 giorni o Tutti).
+                </Text>
+              </View>
+            </View>
 
-            {isOpen && (
-              <View style={styles.accordionContent}>
-                <Text style={styles.contentText}>{point.content}</Text>
+            <View style={styles.helpSectionRow}>
+              <View style={[styles.helpIconBox, { backgroundColor: '#0C232B' }]}>
+                <Ionicons name="pencil-sharp" size={18} color={COLORS.brandPrimary} />
+              </View>
+              <View style={styles.helpTextContainer}>
+                <Text style={styles.helpSectionHeader}>Modifica e Cancellazione</Text>
+                <Text style={styles.helpSectionBody}>
+                  Puoi correggere, variare o eliminare definitivamente qualsiasi misurazione salvata nel diario.{"\n"}
+                  Ti basta toccare l'icona della <Text style={{fontWeight: '700', color: COLORS.brandPrimary}}>matita</Text> posizionata a destra di ogni singolo record cronologico nella lista.
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.btnChiudiHelp} onPress={() => setMostraHelpPDF(false)}>
+              <Text style={styles.btnChiudiHelpText}>Ho capito</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* POPUP MODAL DI MODIFICA */}
+      <Modal visible={mostraModalModifica} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Gestisci Misurazione</Text>
+            <ScrollView style={{maxHeight: 280}} showsVerticalScrollIndicator={false}>
+              <Text style={styles.inputLabel}>Data del Test</Text>
+              {Platform.OS === 'web' ? (
+                <input type="date" value={modDataISO} onChange={(e) => setModDataISO(e.target.value)} style={{ fontFamily: 'sans-serif', fontSize: '14px', fontWeight: '600', color: '#00E5FF', backgroundColor: '#13131A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 10px', marginBottom: '8px', width: '100%', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }} />
+              ) : ( <TextInput style={styles.textInput} value={modDataISO} onChangeText={setModDataISO} /> )}
+
+              <Text style={styles.inputLabel}>Orario del Test (Verrà scritto nelle note)</Text>
+              {Platform.OS === 'web' ? (
+                <input type="time" value={modOraText} onChange={(e) => setModOraText(e.target.value)} style={{ fontFamily: 'sans-serif', fontSize: '14px', fontWeight: '600', color: '#00E5FF', backgroundColor: '#13131A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 10px', marginBottom: '8px', width: '100%', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }} />
+              ) : ( <TextInput style={styles.textInput} value={modOraText} onChangeText={setModOraText} /> )}
+
+              <Text style={styles.inputLabel}>Glicemia (mg/dL)</Text>
+              <TextInput style={styles.textInput} keyboardType="numeric" value={modGlicemia} onChangeText={setModGlicemia} maxLength={3} />
+              <Text style={styles.inputLabel}>Insulina (Unità UI)</Text>
+              <TextInput style={styles.textInput} keyboardType="numeric" value={modInsulina} onChangeText={setModInsulina} placeholder="Nessuna" maxLength={2} />
+              <Text style={styles.inputLabel}>Note / Pasti</Text>
+              <TextInput style={styles.textInput} value={modNote} onChangeText={setModNote} />
+
+              <Text style={styles.inputLabel}>Momento della Giornata</Text>
+              <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4}}>
+                {MOMENTI_COLONNE.map(m => (
+                  <TouchableOpacity key={m} style={[styles.chipMomento, modMomento === m && styles.chipMomentoAttiva]} onPress={() => setModMomento(m)}>
+                    <Text style={[styles.chipMomentoText, modMomento === m && styles.chipMomentoTextAttiva]}>{m}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            {mostraNotificaModifica && (
+              <View style={[styles.notificaTendina, testoNotifica.includes('eliminata') && {backgroundColor: '#1C1314', borderColor: COLORS.error}]}>
+                <Text style={[styles.notificaTesto, testoNotifica.includes('eliminata') && {color: COLORS.error}]}>{testoNotifica}</Text>
               </View>
             )}
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.btnAnnulla} onPress={() => setMostraModalModifica(false)}><Text style={styles.btnAnnullaText}>Chiudi</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btnElimina} onPress={eliminaSingoloItem}><Ionicons name="trash-outline" size={14} color="#FFF" style={{marginRight: 4}} /><Text style={styles.btnEliminaText}>Elimina</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btnSalva} onPress={salvaModificaItem}><Text style={styles.btnSalvaText}>Salva</Text></TouchableOpacity>
+            </View>
           </View>
-        );
-      })}
-    </ScrollView>
+        </View>
+      </Modal>
+
+      {/* CONFIRMA CANCELLAZIONE */}
+      <Modal visible={mostraConfermaSvuota} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlayCentrato}>
+          <View style={styles.modalContentSvuota}>
+            <View style={styles.iconaAvvisoContainer}><Ionicons name="alert-circle" size={40} color={COLORS.error} /></View>
+            <Text style={styles.modalTitleSvuota}>Svuotare il Diario?</Text>
+            <Text style={styles.modalSubtitleSvuota}>Sei sicuro di voler cancellare l'intero storico delle misurazioni? Questa azione è irreversibile.</Text>
+            <View style={styles.modalActionsSvuota}>
+              <TouchableOpacity style={styles.btnAnnullaSvuota} onPress={() => setMostraConfermaSvuota(false)}><Text style={styles.btnAnnullaTextSvuota}>Annulla</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btnConfermaSvuota} onPress={confermaCancellaTutto}><Text style={styles.btnConfermaTextSvuota}>Svuota Tutto</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 const styles = StyleSheet.create({
@@ -527,67 +633,83 @@ const styles = StyleSheet.create({
   pdfModalOptionDesc: { color: COLORS.muted, fontSize: 11, marginTop: 4 },
   pdfModalCancel: { padding: 12, alignItems: 'center' },
   pdfModalCancelText: { color: COLORS.muted, fontWeight: '700' },
-  container: { flex: 1, backgroundColor: COLORS.background },
-  content: { padding: 16, paddingTop: 20, paddingBottom: 40 },
-  headerForm: { marginBottom: 20, width: '100%' },
+
+  container: { flex: 1, backgroundColor: COLORS.background, paddingTop: 15 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 },
   title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700', color: COLORS.onSurface },
-  subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, marginTop: 4 },
-  
-  sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 22, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  
-  cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', overflow: 'hidden', marginBottom: 12 },
-  rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
-  rowAzioneLabel: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, cursor: 'pointer', width: '100%', boxSizing: 'border-box', borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass },
-  
-  dividerAzione: { height: 1, backgroundColor: COLORS.borderGlass, width: '100%' },
-  leftAzione: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
-  titoloAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
-  descAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: COLORS.muted, marginTop: 2 },
+  infoHelpButton: { padding: 4, justifyContent: 'center', alignItems: 'center' },
+  exportButtonSvuotaMinimal: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#13131A', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255, 82, 82, 0.15)' },
+  exportTextSvuotaRed: { fontFamily: 'Plus Jakarta Sans', color: COLORS.error, fontWeight: '600', fontSize: 14 },
 
-  rowAzionePdfComplessa: { width: '100%', padding: 14, paddingTop: 12, paddingBottom: 14, flexDirection: 'column' },
-  rowPdfClickArea: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 12 },
-  
-  containerMiniFiltriPdf: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', gap: 6, paddingLeft: 2 },
-  chipMiniPdf: { flex: 1, backgroundColor: '#1A1A24', paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
-  chipMiniPdfAttiva: { backgroundColor: 'rgba(0, 229, 255, 0.08)', borderColor: COLORS.brandPrimary },
-  textMiniChipPdf: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600', color: COLORS.muted },
-  textMiniChipPdfAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
+  // STYLE AGGIORNATO AL LOOK PREMIUM NEON AZZURRO CYAN COERENTE AL TARGET BRAND
+  exportButtonPDFAcrobatNeon: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: "rgba(0, 229, 255, 0.05)", 
+    paddingVertical: 8, 
+    paddingHorizontal: 12, 
+    borderRadius: 12, 
+    gap: 6, 
+    borderWidth: 1, 
+    borderColor: "#00E5FF" 
+  },
+  exportTextPDFAcrobatNeon: { fontFamily: 'Plus Jakarta Sans', color: "#00E5FF", fontWeight: '700', fontSize: 14 },
 
-  accordionWrapper: { width: '100%', marginBottom: 10 },
-  accordionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.surfaceSecondary,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.borderGlass,
-    width: '100%'
-  },
-  accordionHeaderActive: {
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    borderColor: COLORS.borderGlassBright,
-    borderBottomWidth: 0,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 8 },
-  iconaManualeAllineata: { marginRight: 10 },
-  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '800', color: COLORS.onSurface, letterSpacing: -0.2, flex: 1 },
-  accordionContent: {
-    backgroundColor: COLORS.bgUtility,
-    padding: 16,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    borderWidth: 1,
-    borderTopWidth: 0,
-    borderColor: COLORS.borderGlass,
-    width: '100%'
-  },
-  contentText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: COLORS.muted, lineHeight: 22, textAlign: 'left', paddingLeft: 2 },
+  filterBar: { flexDirection: 'row', paddingHorizontal: 16, gap: 5, marginBottom: 16 },
+  filterButton: { flex: 1, backgroundColor: COLORS.surfaceSecondary, paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
+  filterButtonActiveNeon: { backgroundColor: "#0C232B", borderColor: COLORS.brandPrimary, borderWidth: 1 },
+  filterButtonText: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600', color: COLORS.muted },
+  filterButtonTextActiveNeon: { color: COLORS.brandPrimary, fontWeight: '700' },
+  listContent: { paddingHorizontal: 16, paddingBottom: 110 }, 
+  sectionHeader: { fontFamily: 'Plus Jakarta Sans', fontSize: 16, fontWeight: '700', color: COLORS.onSurface, backgroundColor: COLORS.background, paddingVertical: 8 },
+  row: { flexDirection: 'row', minHeight: 90 },
+  timelineContainer: { width: 24, alignItems: 'center' },
+  timelineDot: { width: 12, height: 12, borderRadius: 6, marginTop: 18, zIndex: 2 },
+  timelineLine: { position: 'absolute', top: 30, bottom: 0, width: 2, backgroundColor: COLORS.surfaceSecondary, zIndex: 1 },
+  card: { flex: 1, backgroundColor: COLORS.surfaceSecondary, borderRadius: 12, padding: 12, marginBottom: 12, marginLeft: 8, borderWidth: 1, borderColor: COLORS.borderGlass },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  valoreGlicemia: { fontFamily: 'Space Grotesk', fontSize: 22, fontWeight: '700', color: COLORS.onSurface },
+  unitaMisura: { fontSize: 12, color: COLORS.muted, fontWeight: '400' },
+  oraTest: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted },
+  tipoPasto: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: COLORS.onSurface, marginTop: 4, fontWeight: '500' },
+  noteTest: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, marginTop: 4, fontStyle: 'italic' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 16 },
+  modalContent: { backgroundColor: '#111116', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: COLORS.borderGlass },
+  modalTitle: { fontFamily: 'Space Grotesk', fontSize: 20, fontWeight: '700', color: COLORS.onSurface, marginBottom: 8 },
+  inputLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: '600', color: COLORS.muted, marginTop: 10, marginBottom: 4, textAlign: 'left', alignSelf: 'flex-start' },
+  textInput: { backgroundColor: '#1C1C24', borderRadius: 10, padding: 10, fontSize: 14, color: COLORS.onSurface, marginBottom: 4, textAlign: 'left', width: '100%', borderWidth: 1, borderColor: COLORS.borderGlass },
+  chipMomento: { backgroundColor: '#1C1C24', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, borderColor: 'transparent' },
+  chipMomentoAttiva: { backgroundColor: '#0C232B', borderWidth: 1, borderColor: COLORS.brandPrimary },
+  chipMomentoText: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted },
+  chipMomentoTextAttiva: { color: COLORS.brandPrimary, fontWeight: '700' },
+  modalActions: { flexDirection: 'row', gap: 8, marginTop: 24 },
+  btnAnnulla: { flex: 1, backgroundColor: '#1C1C24', padding: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
+  btnAnnullaText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '600', color: COLORS.onSurface },
+  btnElimina: { flex: 1.2, backgroundColor: '#FF5252', padding: 12, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
+  btnEliminaText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '600', color: '#FFF' },
+  btnSalva: { flex: 1.2, backgroundColor: COLORS.brandPrimary, padding: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  btnSalvaText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '600', color: '#0A0A0C' },
+  notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 15, alignItems: 'center' },
+  notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 14 },
+  modalOverlayCentrato: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalContentSvuota: { backgroundColor: '#111116', borderRadius: 24, padding: 24, width: '100%', maxWidth: 340, alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
+  iconaAvvisoContainer: { marginBottom: 12, backgroundColor: '#240F10', padding: 10, borderRadius: 999 },
+  modalTitleSvuota: { fontFamily: 'Space Grotesk', fontSize: 20, fontWeight: '700', color: COLORS.onSurface, marginBottom: 8 },
+  modalSubtitleSvuota: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: COLORS.muted, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  modalActionsSvuota: { flexDirection: 'row', gap: 12, width: '100%' },
+  btnAnnullaSvuota: { flex: 1, backgroundColor: '#1C1C24', paddingVertical: 12, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
+  btnAnnullaTextSvuota: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '600', color: COLORS.onSurface },
+  btnConfermaSvuota: { flex: 1, backgroundColor: '#FF5252', paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
+  btnConfermaTextSvuota: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '600', color: '#FFF' },
+  notificaTendinaGenerale: { padding: 12, borderRadius: 12, borderWidth: 1, marginHorizontal: 16, marginBottom: 12, alignItems: 'center' },
 
-  notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
-  notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 13 }
+  modalContentHelp: { backgroundColor: '#111116', borderRadius: 24, padding: 24, width: '100%', maxWidth: 360, alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
+  modalTitleHelp: { fontFamily: 'Space Grotesk', fontSize: 20, fontWeight: '800', color: COLORS.onSurface, marginBottom: 24, alignSelf: 'flex-start', letterSpacing: -0.3 },
+  helpSectionRow: { flexDirection: 'row', width: '100%', gap: 14, marginBottom: 20, alignItems: 'flex-start' },
+  helpIconBox: { padding: 8, borderRadius: 10, justifyContent: 'center', alignItems: 'center', width: 34, height: 34 },
+  helpTextContainer: { flex: 1, alignItems: 'flex-start' },
+  helpSectionHeader: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginBottom: 4 },
+  helpSectionBody: { fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, color: COLORS.muted, lineHeight: 22, textAlign: 'left' },
+  btnChiudiHelp: { marginTop: 10, backgroundColor: '#1A1A24', borderWidth: 1, borderColor: COLORS.borderGlass, paddingVertical: 12, borderRadius: 12, width: '100%', alignItems: 'center' },
+  btnChiudiHelpText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface }
 });
-
