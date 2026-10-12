@@ -1,14 +1,11 @@
 import { Tabs } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { Platform, View } from "react-native";
+import { Platform } from "react-native";
 
 import { usesNativeTabs } from "@/src/navigation";
-import { useTheme } from "@/src/theme";
 
 export default function TabsLayout() {
-  const { colors } = useTheme();
-
   // 🎨 PALETTE NEON HIGH-CONTRAST SINFONICA ED OLED OPTIMIZED
   const DESIGN_NEON = {
     backgroundBar: "#0A0A0C",      // Nero Oled profondo per la barra
@@ -41,7 +38,7 @@ export default function TabsLayout() {
         </NativeTabs.Trigger>
         
         <NativeTabs.Trigger name="grafici">
-          <NativeTabs.Trigger.Icon sf="chart.bar.xaxis.asending" />
+          <NativeTabs.Trigger.Icon sf="chart.bar.xaxis.ascending" />
           <NativeTabs.Trigger.Label>Grafici</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         
@@ -135,12 +132,7 @@ export default function TabsLayout() {
         options={{
           title: "Impostazioni",
           tabBarIcon: ({ color, size }) => (
-            <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-              <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </View>
+            <Ionicons name="settings-outline" size={size} color={color} />
           ),
         }}
       />
