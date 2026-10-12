@@ -1,12 +1,19 @@
 {
   "app_name": "Diabety",
-  "personality": "1 iOS-Native Clean",
-  "personality_one_liner": "A clinical, highly readable, and zero-friction tracking interface that prioritizes immediate data entry and clear status visibility.",
+  "personality": "OLED Dark Neon / clinical-readable",
+  "personality_one_liner": "DIABETY: diario glicemico offline-first, rapido, leggibile, con card scure e accenti neon, grafici e strumenti di esportazione.",
   "project_status": {
-    "current_iteration": "6",
+    "current_iteration": "7",
     "architecture_type": "Expo (React Native) iOS-Optimized Mobile Frontend + Python Backend",
     "storage_system": "Offline-First Local Async Storage (glicotrack_data) with Native JSON Backup and Restore Capabilities",
-    "design_system_sync": "Fully unified across Tabs, Insertion, History, and Analytics using High-Contrast OLED Dark Neon standards."
+    "design_system_sync": "OLED Dark Neon come interfaccia attuale; i token light sono mantenuti come riferimento legacy, non prova che il tema chiaro sia attivo.",
+    "target_platforms": [
+      "Expo / React Native Web",
+      "Android",
+      "iOS"
+    ],
+    "delivery_workflow": "GitHub main → Vercel web build (Expo export); distribuzione mobile futura",
+    "architecture_note": "Il frontend salva le misurazioni localmente in AsyncStorage. La presenza del backend Python nel repository non implica che il diario venga sincronizzato con esso."
   },
   "color": {
     "light": {
@@ -96,7 +103,10 @@
   "shadow_tier": {
     "elevation": 4,
     "shadowColor": "#000000",
-    "shadowOffset": { "width": 0, "height": 4 },
+    "shadowOffset": {
+      "width": 0,
+      "height": 4
+    },
     "shadowOpacity": 0.4,
     "shadowRadius": 6
   },
@@ -111,38 +121,94 @@
       "inactiveTintColor": "#636366"
     },
     "tabs": [
-      { "name": "index", "title": "Inserisci", "icon": "add-circle" },
-      { "name": "storico", "title": "Storico", "icon": "list" }
-    ]
+      {
+        "name": "index",
+        "title": "Inserisci",
+        "icon": "Ionicons; verificare icona esatta nel file _layout.tsx"
+      },
+      {
+        "name": "storico",
+        "title": "Storico",
+        "icon": "Ionicons; verificare icona esatta nel file _layout.tsx"
+      },
+      {
+        "name": "grafici",
+        "title": "Grafici",
+        "icon": "Ionicons; verificare icona esatta nel file _layout.tsx"
+      },
+      {
+        "name": "alimenti",
+        "title": "Alimenti",
+        "icon": "Ionicons; verificare icona esatta nel file _layout.tsx"
+      },
+      {
+        "name": "bolo",
+        "title": "Bolo",
+        "icon": "Ionicons; verificare icona esatta nel file _layout.tsx"
+      },
+      {
+        "name": "impostazioni",
+        "title": "Impostazioni",
+        "icon": "Ionicons; verificare icona esatta nel file _layout.tsx"
+      }
+    ],
+    "platform_note": "I nomi e le route devono corrispondere ai file reali e alla configurazione corrente di _layout.tsx; distinguere maiuscole/minuscole nei percorsi."
   },
   "backup_and_restore_specification": {
     "export_mechanism": "Converts the full local AsyncStorage array into a standardized shareable JSON file using expo-sharing, allowing the user to securely save their raw database to iOS Files, Email, or personal iCloud/Drive storage.",
     "import_mechanism": "Utilizes native document pickers to read a previously exported Diabety JSON state file, validates the data structure parameters, and rewrites it safely into the local AsyncStorage container.",
     "conflict_resolution": "Total override upon user confirmation. Replaces the current active phone state with the uploaded backup file to prevent duplicate record collisions.",
-    "privacy_tier": "Absolute. 100% offline. The developer has zero access to data transfer states; files remain strictly in the user's custody."
+    "privacy_tier": "Absolute. 100% offline. The developer has zero access to data transfer states; files remain strictly in the user's custody.",
+    "web_export": "Download JSON tramite Blob e anchor browser.",
+    "web_import": "Input HTML type=file accept=.json dentro una card cliccabile; leggere e validare prima di qualsiasi sovrascrittura.",
+    "web_validation": "Array non vuoto, record completi, id univoci, glicemia intera 1–999, insulina/ora/data/momento validi; conferma esplicita prima della sostituzione.",
+    "retention_on_restore": "Il codice Impostazioni esaminato esclude i record oltre 91 giorni dalla data corrente e mostra il numero di esclusi.",
+    "native_note": "Non assumere che la scelta/importazione di file su Android/iOS sia già implementata: verificare il codice nativo prima di dichiararla disponibile.",
+    "privacy_note": "Dati nel dispositivo e backup esportati sotto controllo dell’utente; evitare affermazioni assolute sulla privacy dei servizi terzi usati per condividere il file."
   },
   "core_features_and_logic": {
     "glucose_thresholds": {
-      "hypoglycemia": { "limit": "<70", "color": "#FF9100", "state": "warning" },
-      "target_range": { "limit": "70-180", "color": "#00E676", "state": "success" },
-      "hyperglycemia": { "limit": ">180", "color": "#FF5252", "state": "error" }
+      "hypoglycemia": {
+        "limit": "<70",
+        "color": "#FF9100",
+        "state": "warning"
+      },
+      "target_range": {
+        "limit": "70-180",
+        "color": "#00E676",
+        "state": "success"
+      },
+      "hyperglycemia": {
+        "limit": ">180",
+        "color": "#FF5252",
+        "state": "error"
+      },
+      "note": "Intervalli visivi orientativi: arancione <70, verde 70–180 inclusi, rosso >180 mg/dL; non rappresentano target individualizzati."
     },
     "hba1c_estimation_algorithm": {
       "formula_used": "ADA / eAG international standard formula: HbA1c = (Average Glucose + 46.7) / 28.7",
       "conversion_mmol_mol": "IFCC calculation: (HbA1c - 2.15) * 10.978",
       "data_pool": "Evaluates all historical logging elements restricted to a moving 90-day window",
       "control_tiers": {
-        "optimal": { "range": "<7.0%", "color": "#00E676", "label": "Ottimo controllo" },
-        "moderate": { "range": "7.0% - 8.0%", "color": "#FF9100", "label": "Controllo moderato" },
-        "insufficient": { "range": ">8.0%", "color": "#FF5252", "label": "Controllo insufficiente" }
-      }
+        "implementation_reference": "Nella schermata Grafici esaminata: <5,7% Ottimale; 5,7–6,4% Nella norma; 6,5–7,0% Da monitorare; >7,0% Elevato. Sono etichette illustrative, non giudizi clinici o obiettivi personalizzati."
+      },
+      "medical_disclaimer": "Stima dai valori registrati, non sostituisce esame HbA1c di laboratorio o parere medico."
     },
     "timeline_continuity_logic": {
-      "graph_24h_start_point": "Automatically fetches the final measurement recorded on the previous day before midnight and injects it at minute 00:00 to provide a continuous, seamless connection trend-line"
+      "graph_24h_mode": "Finestra mobile temporale delle ultime 24 ore rispetto all’ora attuale, NON giorno corrente 00:00–24:00.",
+      "window_start": "Adesso meno 24 ore",
+      "window_end": "Adesso",
+      "timestamp_source": "Combinazione della dataTesto (gg/mm/aa) e ora (HH:mm) registrate per ogni misurazione.",
+      "selection": "Includere solo timestamp reali nella finestra [inizio, fine], ordinati per data/ora; nessun punto artificiale a mezzanotte.",
+      "updates": "Ricalcolare al focus della scheda e periodicamente ogni minuto mentre la schermata resta aperta.",
+      "x_axis": "Distribuzione temporale proporzionale all’intervallo mobile di 24 ore, con etichette riferite al tempo reale.",
+      "title": "Andamento sulle ultime 24 ore",
+      "independence": "La card Media di oggi resta basata solo sulle misurazioni del giorno corrente."
     },
     "data_storage_policy": {
       "rolling_window_days": 91,
-      "action": "Automatic purge filter executed during saves and modifications to enforce privacy and storage efficiency"
+      "action": "Automatic purge filter executed during saves and modifications to enforce privacy and storage efficiency",
+      "note": "Verificare la regola esatta per ogni schermata: nel codice esaminato il ripristino usa una soglia di 91 giorni, mentre le statistiche trimestrali usano 90 giorni di calendario incluso oggi. Non confondere le due finestre."
     }
   },
   "screens": [
@@ -174,14 +240,88 @@
         "empty": "Fallback informational text state blocks 'Nessun dato inserito' inside empty charts.",
         "error": "Silent catch-block logging if local storage read operations fail."
       },
-      "layout": "Header: Section title 'Analisi e Grafici'. Top layout row utilizes a rigid proportional grid split: Left column panel spans 2/3 width housing the 'Panoramica Trimestrale (90 GG)' which encapsulates two adjacent horizontal sub-boxes representing 'Media' and 'In Range (TIR)'. Right column panel spans 1/3 width hosting an isolated independent analytics block reporting the absolute arithmetic 'Media di Oggi' for the current day. Below the header grid, four independent card containers (surfaceSecondary) stack vertically. Card 1: 'Andamento sulle 24 Ore (Oggi)' showing continuous blood sugar data points via inline SVG line maps. Card 2: 'Andamento Medie Giornaliere' visualizing macroscopic 90-day multi-day charts. Card 3: 'Medie per Momento della Giornata' mapping an active horizontal 7-column histogram grid reflecting historical time slots. Card 4: 'Stima Emoglobina Glicata (HbA1c)' utilizing a dynamic horizontal progress gauge indicator tracking metabolic quality tiers."
+      "layout": "Titolo 'Analisi e Grafici'. Riga superiore: Trimestre (90 GG) a sinistra (TIR, media glicemica), Media di oggi a destra. Card successive: 'Andamento sulle ultime 24 ore' con asse temporale mobile e curva SVG cyan; 'Andamento Medie Giornaliere' su 90 giorni, con interruzioni nei giorni senza dati; 'Medie per Momento della Giornata' con sette barre orizzontali; 'Stima Emoglobina Glicata (HbA1c)' con indicatore e legenda. Info modal per ogni sezione.",
+      "graph_24h": "Finestra dinamica ultime 24 ore, senza azzeramento alle 00:00; conserva colori dei punti, fasce 70/180 e scala verticale 40–500 mg/dL.",
+      "data_refresh": "Rilettura AsyncStorage al focus; finestra temporale aggiornata periodicamente mentre aperta.",
+      "stats": "Trimestre: ultimi 90 giorni di calendario incluso oggi; Media di oggi: solo data corrente.",
+      "moments": "7 momenti rappresentati: Prima/Dopo Colazione, Prima/Dopo Pranzo, Prima/Dopo Cena, Notte."
+    },
+    {
+      "name": "Alimenti",
+      "route": "app/(tabs)/alimenti.tsx",
+      "purpose": "Ricerca alimenti, carboidrati, quantità, piatto virtuale e supporto al conteggio CHO.",
+      "design": "Card scure, categorie e righe leggibili, ricerca e CTA coerenti con i colori neon.",
+      "behavior_notes": "Verificare nel codice corrente l’effettiva persistenza di preferiti e piatto virtuale, e il supporto grammi/ml; non assumere feature non confermate.",
+      "data_source": "Database locale alimenti in frontend/constants/alimenti_database.json (nello snapshot del repository disponibile)."
+    },
+    {
+      "name": "Bolo",
+      "route": "app/(tabs)/bolo.tsx",
+      "purpose": "Calcolatore orientativo di bolo pasto e correzione basato su parametri personali concordati con il medico.",
+      "design": "Campi numerici e riepilogo ben separati; avvisi e unità di misura sempre leggibili.",
+      "behavior_notes": "Parametri citati nel manuale: rapporto insulina/carboidrati I:CHO, sensibilità ISF e target. Validare gli input, non suggerire dosi senza parametri; verificare la logica implementata nel file effettivamente pubblicato.",
+      "medical_disclaimer": "Non sostituisce prescrizione o valutazione del medico."
+    },
+    {
+      "name": "Impostazioni",
+      "route": "app/(tabs)/impostazioni.tsx",
+      "purpose": "Pannello di controllo per manutenzione, report e manuale integrato.",
+      "header": {
+        "title": "Pannello di controllo",
+        "subtitle": "Gestione database e informazioni mediche dell'app"
+      },
+      "maintenance_layout": {
+        "section": "Manutenzione e Report",
+        "row_1": "Due card affiancate di pari dimensioni: Esporta Backup (cyan) e Importa Backup (viola).",
+        "export_card": {
+          "border": "1 px",
+          "border_color": "#226C83",
+          "background": "#11162B",
+          "radius": 16
+        },
+        "import_card": {
+          "border": "1 px visibile e arrotondato come Esporta Backup",
+          "border_color": "#6946AD",
+          "background": "#17132C",
+          "radius": 16,
+          "web_implementation": "HTML label con input type=file; usare CSS border: 1px solid #6946AD oppure contenitore React Native con bordo reale, evitando borderWidth su elemento DOM non interpretato come CSS."
+        },
+        "row_2": "Card Esporta PDF a tutta larghezza con chip 7 GG, 14 GG, 30 GG, 90 GG, Tutti.",
+        "pdf_modal": "Scelta tra Visualizza HTML e Scarica PDF."
+      },
+      "manual": {
+        "section": "Manuale & Linee Guida",
+        "layout": "Otto card neon in due colonne; apertura del testo integrale in modal.",
+        "order": [
+          "Registrazione dei Dati",
+          "Target Colorati",
+          "Calcolatore del Bolo Insulinico",
+          "Database Alimenti e Carboidrati",
+          "Archivio e Auto-Pulizia",
+          "Analisi Avanzata e Grafici",
+          "Esportazione dei File",
+          "Backup e Sicurezza Dati"
+        ],
+        "preservation": "Mantenere integralmente i testi guida già presenti e la numerazione coerente."
+      }
     }
   ],
   "medical_pdf_export_specification": {
     "orientation": "Landscape (Orizzontale)",
     "structure": "Professional 10-column nested header table layout",
     "intended_recipient": "Designed for clinical review and printing for medical practitioners/endocrinologists",
-    "rendering_algorithm": "Processes data in strict 4-day blocks per page table structures, dynamically embedding target inline styles to bypass native safety blocks on iOS Safari architectures."
+    "rendering_algorithm": "Processes data in strict 4-day blocks per page table structures, dynamically embedding target inline styles to bypass native safety blocks on iOS Safari architectures.",
+    "actual_web_flow": "Nel file Impostazioni esaminato: generazione HTML con tabella A4 landscape; misurazione dell’altezza reale per suddividere giornate indivisibili; conversione PDF pagina per pagina con html2pdf.js, evitando pagine bianche.",
+    "actual_native_flow": "expo-print per produrre PDF e expo-sharing per condividerlo.",
+    "report_filters": [
+      "7 GG",
+      "14 GG",
+      "30 GG",
+      "90 GG",
+      "Tutti"
+    ],
+    "data_layout": "Intestazione con Data, Parametro e nove momenti; per ogni data righe Glicemia, Insulina, Note.",
+    "legacy_conflict": "Le precedenti regole «10 colonne» e «blocchi fissi di 4 giorni» sono storiche e non corrispondono al flusso PDF web esaminato; prevale la paginazione dinamica per altezza reale."
   },
   "historical_changelog_and_modifications": [
     {
@@ -219,16 +359,107 @@
     {
       "scope": "Backup Strategy (Iteration 6)",
       "action": "Shifted cloud architectural layout specs toward a zero-risk 100% offline Native JSON state file import/export utility mapped via expo-sharing vectors."
+    },
+    {
+      "scope": "Grafici / 24h",
+      "action": "Sostituita la giornata fissa 00:00–24:00 con finestra mobile ultime 24 ore; titolo definitivo Andamento sulle ultime 24 ore; aggiornamento periodico e al focus."
+    },
+    {
+      "scope": "Impostazioni / Manutenzione",
+      "action": "Due card affiancate Esporta/Importa Backup, card PDF con filtri e modal HTML/PDF; bordo Importa viola coerente con gli altri riquadri."
+    },
+    {
+      "scope": "Impostazioni / Manuale",
+      "action": "Otto card in due colonne, contenuti completi in modal, ordine personalizzato."
+    },
+    {
+      "scope": "Documentazione / 360°",
+      "action": "Esteso design_guidelines.json a tutte le sezioni, UX, logica dati, privacy, piattaforme, PDF, accessibilità, verifica e release."
     }
   ],
   "instructions_to_main_agent": [
-    "Design specifically for iOS (iPhone optimized) natively, do not build web-based UI paradigms. No hover states.",
-    "Implement both Light and Dark mode strictly using the provided color tokens in the JSON.",
-    "On the 'Inserimento' screen, dynamically color the Glucose text input based on the value (<70 warning/orange, >180 error/red).",
-    "Use side-by-side horizontal row grid allocations (affiancati) for Glicemia and Insulina blocks inside the Inserimento module layout.",
-    "The timeline in the 'Storico' screen must have visual connecting lines between items of the same day. Use the status colors (warning, error, success) for the timeline dots.",
-    "The 'Grafici' dashboard layouts must render using purely native parameters or native SVG tags to eliminate third-party bundling bottlenecks, ensuring native multi-platform compatibility and structural safety.",
-    "PDF Export must generate a landscape PDF with a professional 10-column nested header table parsing strictly in 4-day structural blocks per page, as explicitly requested by the user. Use expo-print and expo-sharing.",
-    "Integrate native JSON import/export document handlers using expo-sharing frameworks to facilitate raw offline backup states."
-  ]
+    "Prima di modificare, leggere il file TSX corrente della schermata interessata.",
+    "Rispettare il perimetro esatto della richiesta e preservare ogni funzione non coinvolta.",
+    "Consegnare il file completo e validare la sintassi prima di proporlo per GitHub.",
+    "Design corrente OLED Dark Neon; usare token esistenti e rispettare il supporto web e mobile.",
+    "Grafico 24h: finestra mobile reale, senza reset a mezzanotte; titolo «Andamento sulle ultime 24 ore».",
+    "Media di oggi indipendente: solo misurazioni della data corrente.",
+    "Grafici SVG leggibili e responsive; colori per soglie <70, 70–180, >180 mg/dL.",
+    "Importa Backup: bordo viola realmente visibile anche nel DOM web; non rompere input file.",
+    "Conservare integralmente gli otto testi del manuale e il loro ordine concordato.",
+    "Backup JSON: validazione, conferma e nessuna sovrascrittura accidentale.",
+    "PDF: mantenere paginazione dinamica senza pagine bianche; verificare HTML e PDF.",
+    "Non confondere le regole di conservazione dati (91 giorni) con le analisi trimestrali (90 giorni).",
+    "Le stime glicemiche e HbA1c sono indicative e non sostituiscono il medico.",
+    "Non dichiarare feature o test non verificati nel codice/deploy corrente."
+  ],
+  "document_metadata": {
+    "version": "7.0",
+    "updated_on": "2026-10-12",
+    "scope": "Guida completa 360°: design, UX, funzionalità, dati, report, piattaforme, sicurezza e manutenzione",
+    "authority": "Documento di riferimento progettuale aggiornato dalle versioni TSX disponibili e dalle decisioni dell’utente; non certifica il deploy GitHub/Vercel",
+    "change_policy": "Conservare comportamenti funzionanti; intervenire soltanto sulle parti richieste; verificare sintassi TSX e compilazione prima del rilascio."
+  },
+  "visual_components_and_accessibility": {
+    "cards": "Sfondo scuro, bordo da 1 px visibile, radius 12–20 px secondo componente, padding coerente, nessun bordo mancante.",
+    "buttons": "Area tocco adeguata, feedback activeOpacity, testo leggibile; i controlli devono compiere azioni reali.",
+    "icons": "Ionicons; colori di stato coerenti con la palette.",
+    "charts": "react-native-svg; etichette e numeri leggibili anche su schermi stretti; gestire stato vuoto.",
+    "modals": "Sfondo scurito, titolo, contenuto scorrevole quando lungo, pulsante Chiudi/Annulla accessibile.",
+    "responsive": "Supportare mobile e web desktop, evitare overflow e sovrapposizioni in griglie affiancate.",
+    "contrast": "Non comunicare stati soltanto tramite colore; mostrare anche valore e testo.",
+    "fonts": "Space Grotesk per titoli e numeri principali; Plus Jakarta Sans per testi e descrizioni; fallback se font non caricato."
+  },
+  "data_model_and_integrity": {
+    "storage_key": "glicotrack_data",
+    "storage_type": "AsyncStorage JSON array",
+    "record_fields_observed": [
+      "id",
+      "glicemia",
+      "insulina",
+      "tipo",
+      "note",
+      "ora",
+      "dataTesto"
+    ],
+    "date_format": "dd/mm/yy",
+    "time_format": "HH:mm",
+    "data_rules": "Non modificare nomi campi o chiave storage senza migrazione; backup e grafici dipendono da questi campi.",
+    "import_safety": "Convalida integrale prima della scrittura, conferma esplicita di sovrascrittura, nessuna mutazione per file invalidi.",
+    "offline_first": "Nessun login o cloud sync presunto per il diario.",
+    "privacy": "I dati glicemici sono sensibili; non inviare a terze parti senza consenso esplicito."
+  },
+  "platform_and_release": {
+    "repository": "github.com/simonecattina-source/creazio-app",
+    "frontend": "Expo + React Native + Expo Router + TypeScript",
+    "web_hosting": "Vercel",
+    "build_command_observed": "npx expo export (eseguito nel processo Vercel)",
+    "target_mobile": [
+      "Android",
+      "iOS"
+    ],
+    "platform_differences": "Web: Blob, file input HTML, html2pdf.js. Native: expo-print, expo-sharing; verificare picker per import.",
+    "pre_commit_checks": [
+      "Validità JSON tramite json.load/JSON.parse",
+      "Validità TSX tramite parser o build",
+      "Non introdurre errori di sintassi tra gli elementi di array/oggetti",
+      "Non alterare funzionalità non richieste",
+      "Verificare resa responsive e visibilità bordi",
+      "Testare export/import e PDF con dati reali e senza dati",
+      "Verificare build Vercel dopo commit"
+    ],
+    "delivery": "Fornire file completo scaricabile, non patch parziali; modifiche minimali e dichiarate."
+  },
+  "documentation_accuracy": {
+    "source_of_truth": "File effettivamente pubblicati su GitHub; i file locali esaminati sono snapshot e potrebbero non corrispondere al commit attivo.",
+    "known_conflicts": [
+      "Specifiche originali iOS-only vs presenza reale di Expo Web e Vercel",
+      "Modalità light definita nei token vs UI attuale prevalentemente dark",
+      "Vecchio grafico da mezzanotte vs nuova finestra mobile 24h",
+      "Vecchie descrizioni del PDF a blocchi fissi vs paginazione dinamica",
+      "Importazione nativa descritta come disponibile nel vecchio JSON ma da verificare",
+      "Titolo aggiornato «Andamento sulle ultime 24 ore»"
+    ],
+    "verification_note": "Questo documento è una specifica di progetto, non un report di test end-to-end."
+  }
 }
