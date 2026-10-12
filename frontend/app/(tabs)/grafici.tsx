@@ -60,6 +60,25 @@ const oraInMinuti = (s: unknown): number | null => {
 };
 const dataIndice = (d: Date) => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
 const coloreValore = (v: number) => v > 500 || v > 180 ? COLORS.error : v < 70 ? COLORS.warning : COLORS.success;
+// Quadrante neon compatto, condiviso dalle due statistiche superiori.
+function QuadranteNeon({ valore, colore, testo, dimensione = 76 }: { valore: number; colore: string; testo: string; dimensione?: number }) {
+  const r = 31;
+  const circonferenza = 2 * Math.PI * r;
+  const progress = Math.max(0, Math.min(100, valore));
+  return (
+    <View style={{ width: dimensione, height: dimensione, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={dimensione} height={dimensione} viewBox="0 0 80 80">
+        <Circle cx="40" cy="40" r={r} stroke="#273052" strokeWidth="8" fill="#0A1024" />
+        <Circle cx="40" cy="40" r={r} stroke={colore} strokeWidth="8" fill="none"
+          strokeLinecap="round" strokeDasharray={`${circonferenza * progress / 100} ${circonferenza}`}
+          rotation={-90} origin="40,40" />
+      </Svg>
+      <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: colore, fontSize: 17, fontWeight: '900', fontFamily: 'Space Grotesk' }} numberOfLines={1}>{testo}</Text>
+      </View>
+    </View>
+  );
+}
 export default function GraficiScreen() {
   const [datiReali, setDatiReali] = useState<Misurazione[]>([]);
   const [mediaGlicemia, setMediaGlicemia] = useState<number>(0);
@@ -347,47 +366,49 @@ export default function GraficiScreen() {
       </Modal>
       
       <View style={styles.rigaCardSuperioriContainer}>
-        <View style={styles.cardSuperioreDueTerzi}>
+        <View style={[styles.cardSuperioreDueTerzi, styles.cardNeonTrimestre]}>
           <View style={styles.rigaTitoloGrafico}>
             <Text style={styles.sectionLabel} numberOfLines={1}>Trimestre (90 GG)</Text>
             <TouchableOpacity onPress={() => apriSpiegazione('trimestrale')} style={styles.pulsanteInfoTocco}>
-              <Ionicons name="information-circle-outline" size={16} color={COLORS.brandSecondary} />
+              <Ionicons name="information-circle-outline" size={17} color="#AA7AFF" />
             </TouchableOpacity>
           </View>
-          
-          <View style={styles.rigaBoxInterniTrimestre}>
-            <View style={[styles.infoBoxStatMini, { borderLeftColor: mediaGlicemia > 180 ? COLORS.error : mediaGlicemia < 70 ? COLORS.warning : mediaGlicemia === 0 ? COLORS.borderGlass : COLORS.success }]}>
-              <Text style={styles.statLabel} numberOfLines={1}>Media</Text>
-              <Text style={[styles.statValueMini, { color: mediaGlicemia > 180 ? COLORS.error : mediaGlicemia < 70 ? COLORS.warning : mediaGlicemia === 0 ? COLORS.muted : COLORS.success }]}>
-                {totaleMisurazioni > 0 ? `${mediaGlicemia}` : '-'} {totaleMisurazioni > 0 ? <Text style={styles.unitaMisuraSub}>mg/dL</Text> : null}
-              </Text>
+          <View style={styles.rigaQuadranteTrimestre}>
+            <View style={styles.quadranteColonna}>
+              <QuadranteNeon valore={totaleMisurazioni ? timeInRange : 0}
+                colore={totaleMisurazioni === 0 ? '#596078' : timeInRange >= 70 ? COLORS.success : timeInRange >= 50 ? COLORS.warning : COLORS.error}
+                testo={totaleMisurazioni ? `${timeInRange}%` : '-'} />
+              <Text style={styles.testoSottoQuadrante}>In range</Text>
             </View>
-            
-            <View style={[styles.infoBoxStatMini, { borderLeftColor: totaleMisurazioni === 0 ? COLORS.borderGlass : timeInRange >= 70 ? COLORS.success : timeInRange >= 50 ? COLORS.warning : COLORS.error }]}>
-              <Text style={styles.statLabel} numberOfLines={1}>In Range</Text>
-              <Text style={[styles.statValueMini, { color: totaleMisurazioni === 0 ? COLORS.muted : timeInRange >= 70 ? COLORS.success : timeInRange >= 50 ? COLORS.warning : COLORS.error }]}>
-                {totaleMisurazioni > 0 ? `${timeInRange}%` : '-'}
+            <View style={styles.datiLateraliNeon}>
+              <Text style={styles.labelNeonPiccola}>MEDIA GLICEMICA</Text>
+              <Text style={[styles.valoreNeonGrande, { color: totaleMisurazioni ? coloreValore(mediaGlicemia) : COLORS.muted }]} numberOfLines={1}>
+                {totaleMisurazioni ? mediaGlicemia : '-'}
+              </Text>
+              <Text style={styles.unitaNeon}>mg/dL</Text>
+              <Text style={[styles.statoNeon, { color: totaleMisurazioni ? coloreValore(mediaGlicemia) : COLORS.muted }]} numberOfLines={1}>
+                {!totaleMisurazioni ? 'Nessun dato' : mediaGlicemia < 70 ? 'Sotto il range' : mediaGlicemia > 180 ? 'Sopra il range' : 'Nel range'}
               </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.cardSuperioreUnTerzo}>
+        <View style={[styles.cardSuperioreUnTerzo, styles.cardNeonOggi]}>
           <View style={styles.rigaTitoloGrafico}>
-            <Text style={styles.sectionLabel} numberOfLines={1}>Media Oggi</Text>
+            <Text style={styles.sectionLabel} numberOfLines={1}>Media di oggi</Text>
             <TouchableOpacity onPress={() => apriSpiegazione('oggi')} style={styles.pulsanteInfoTocco}>
-              <Ionicons name="information-circle-outline" size={16} color={COLORS.brandPrimary} />
+              <Ionicons name="information-circle-outline" size={17} color={COLORS.brandPrimary} />
             </TouchableOpacity>
           </View>
-          
-          <View style={styles.containerBoxInternoOggi}>
-            <View style={[styles.infoBoxStatOggiCompatto, { borderLeftColor: mediaOggi > 180 ? COLORS.error : mediaOggi < 70 ? COLORS.warning : mediaOggi === 0 ? COLORS.borderGlass : COLORS.success }]}>
-              <Text style={styles.statLabel} numberOfLines={1}>Media</Text>
-              <Text style={[styles.statValueOggiCentrale, { color: mediaOggi > 180 ? COLORS.error : mediaOggi < 70 ? COLORS.warning : mediaOggi === 0 ? COLORS.muted : COLORS.success }]}>
-                {mediaOggi > 0 ? `${mediaOggi}` : '-'}
-              </Text>
-              <Text style={styles.unitaMisuraSub}>{mediaOggi > 0 ? 'mg/dL' : 'no test'}</Text>
-            </View>
+          <View style={styles.contenutoOggiNeon}>
+            <QuadranteNeon dimensione={76}
+              valore={mediaOggi ? Math.min(100, mediaOggi / 250 * 100) : 0}
+              colore={mediaOggi ? coloreValore(mediaOggi) : '#596078'}
+              testo={mediaOggi ? String(mediaOggi) : '-'} />
+            <Text style={styles.unitaNeon}>mg/dL</Text>
+            <Text style={[styles.statoNeon, { color: mediaOggi ? coloreValore(mediaOggi) : COLORS.muted }]} numberOfLines={1}>
+              {!mediaOggi ? 'Nessun dato' : mediaOggi < 70 ? 'Sotto il range' : mediaOggi > 180 ? 'Sopra il range' : 'Nel range'}
+            </Text>
           </View>
         </View>
       </View>
@@ -532,6 +553,17 @@ const styles = StyleSheet.create({
   subLabelSpiegazione: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, marginTop: 4, marginBottom: 16 },
   rigaCardSuperioriContainer: { flexDirection: 'row', width: '100%', gap: 10, marginBottom: 16 },
   cardSuperioreDueTerzi: { flex: 2, backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: COLORS.borderGlass, justifyContent: 'space-between' },
+  cardNeonTrimestre: { backgroundColor: '#0E1329', borderColor: '#7551C5', borderRadius: 16, padding: 10, minWidth: 0 },
+  cardNeonOggi: { backgroundColor: '#0B1529', borderColor: '#1A9FC0', borderRadius: 16, padding: 10, minWidth: 0 },
+  rigaQuadranteTrimestre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', marginTop: 5, gap: 3 },
+  quadranteColonna: { alignItems: 'center', flexShrink: 0 },
+  testoSottoQuadrante: { fontSize: 9, color: '#B4A9D4', marginTop: 0, fontFamily: 'Plus Jakarta Sans' },
+  datiLateraliNeon: { flex: 1, minWidth: 0, justifyContent: 'center', alignItems: 'center' },
+  labelNeonPiccola: { fontSize: 8, color: '#AAA4D1', fontWeight: '700', textAlign: 'center' },
+  valoreNeonGrande: { fontFamily: 'Space Grotesk', fontSize: 24, fontWeight: '900', marginTop: 1 },
+  unitaNeon: { fontSize: 9, color: '#AEB8D4', fontFamily: 'Plus Jakarta Sans' },
+  statoNeon: { fontSize: 9, fontWeight: '800', marginTop: 3, textAlign: 'center' },
+  contenutoOggiNeon: { alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   rigaBoxInterniTrimestre: { flexDirection: 'row', gap: 6, marginTop: 10, width: '100%' },
   infoBoxStatMini: { flex: 1, backgroundColor: '#020204', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.borderGlass, borderLeftWidth: 3, alignItems: 'flex-start', minHeight: 65 },
   cardSuperioreUnTerzo: { flex: 1, backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: COLORS.borderGlass, justifyContent: 'space-between' },
