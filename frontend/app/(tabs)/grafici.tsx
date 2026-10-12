@@ -99,7 +99,7 @@ export default function GraficiScreen() {
       setModalTesto("Questo grafico mostra l'andamento della glicemia nella giornata di oggi.\n\nLa curva azzurra posiziona i test secondo il loro orario reale dalle 00:00 alle 24:00. Se disponibile, l’ultima misurazione di ieri viene ripetuta graficamente alle 00:00 come raccordo, senza essere conteggiata nella media di oggi.");
     } else if (tipo === 'giornaliere') {
       setModalTitolo("Andamento Medie Giornaliere");
-      setModalTesto("Il grafico copre esattamente gli ultimi 90 giorni di calendario, oggi incluso. Le date sono distribuite secondo il calendario reale; nei giorni senza misurazioni la linea si interrompe. La fascia evidenzia l’intervallo 70–180 mg/dL.");
+      setModalTesto("Il grafico parte dalla prima giornata con misurazioni disponibile negli ultimi 90 giorni e arriva fino a oggi, occupando tutta la larghezza. Dopo 90 giorni diventa una finestra mobile degli ultimi 90 giorni di calendario. Le date sono distribuite secondo il calendario reale; nei giorni senza misurazioni la linea si interrompe. La fascia evidenzia l’intervallo 70–180 mg/dL.");
     } else if (tipo === 'momenti') {
       setModalTitolo("Medie per Momento");
       setModalTesto("Questo grafico analizza lo storico trimestrale (90 giorni) diviso per i 7 momenti della giornata.\n\nOgni colonna mostra la media calcolata in quello specifico orario. Lo stato indica: Verde (a target), Arancione (basso/ipo) o Rosso (alto/iper). Il trattino (-) indica assenza di dati.");
@@ -219,7 +219,12 @@ export default function GraficiScreen() {
     const width=larghezza90 || Math.max(240,Dimensions.get('window').width-64);
     const left=27,right=27,top=18,height=150,bottom=top+height,usable=width-left-right;
     const y=(v:number)=>top+calcolaCoordinateLineaX(v,height);
-    const pts=puntiGraficoLinea.map(p=>({...p,x:left+p.giornoIndice/89*usable,y:y(p.media)}));
+    // L’asse X parte dal primo giorno misurato nel trimestre e termina sempre oggi.
+    // Dopo 90 giorni il limite sinistro resta il primo giorno della finestra mobile.
+    const primoIndice = Math.max(0, Math.min(89, puntiGraficoLinea[0].giornoIndice));
+    const durata = Math.max(1, 89 - primoIndice);
+    const posizioneX = (indice: number) => left + (indice - primoIndice) / durata * usable;
+    const pts=puntiGraficoLinea.map(p=>({...p,x:posizioneX(p.giornoIndice),y:y(p.media)}));
     const segmenti: typeof pts[]=[];
     for (const p of pts) {
       const precedente=segmenti[segmenti.length-1];
@@ -227,8 +232,13 @@ export default function GraficiScreen() {
       else precedente.push(p);
     }
     const oggi=inizioGiorno(new Date());
-    const passoDate = width < 400 ? 15 : 10;
-    const ticks=Array.from({length:Math.floor(89/passoDate)+1},(_,i)=>i*passoDate).concat(89);
+    // Etichette regolari e adattive: pochi giorni = più dettagli, 90 giorni = meno etichette.
+    const giorniVisibili = 89 - primoIndice;
+    const intervalli = width < 400 ? 4 : 8;
+    const passoDate = Math.max(1, Math.ceil(giorniVisibili / intervalli));
+    const ticks = Array.from({length:Math.floor(giorniVisibili/passoDate)+1},(_,i)=>primoIndice+i*passoDate);
+    if (ticks[ticks.length-1] !== 89) ticks.push(89);
+    const etichette = ticks.filter((idx,i)=>i===0 || i===ticks.length-1 || (89-idx)/durata*usable>=35);
     return <View style={styles.containerGraficoSvg} onLayout={e=>setLarghezza90(e.nativeEvent.layout.width)}>
       <Svg width="100%" height={207} viewBox={`0 0 ${width} 207`}>
         <Defs><LinearGradient id="neonPurpleGrad" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor={COLORS.brandSecondary} stopOpacity={0.25}/><Stop offset="1" stopColor={COLORS.brandSecondary} stopOpacity={0}/></LinearGradient></Defs>
@@ -240,10 +250,10 @@ export default function GraficiScreen() {
           const area=seg.length>1 ? `${path} L ${seg[seg.length-1].x} ${bottom} L ${seg[0].x} ${bottom} Z` : '';
           return <G key={i}>{area ? <Path d={area} fill="url(#neonPurpleGrad)"/> : null}{seg.length>1 ? <Path d={path} fill="none" stroke={COLORS.brandSecondary} strokeWidth={3} strokeLinecap="round"/> : null}</G>;
         })}
-        {pts.map((p,i)=><G key={i}><Circle cx={p.x} cy={p.y} r={3.5} fill={coloreValore(p.media)} stroke={COLORS.background} strokeWidth={1.5}/>{p.giornoIndice%passoDate===0 ? <SvgText x={p.x} y={Math.max(10,p.y-9)} fill={COLORS.onSurface} fontSize={9} fontWeight="800" textAnchor="middle">{p.media}</SvgText> : null}</G>)}
-        {ticks.map(idx=>{
+        {pts.map((p,i)=><G key={i}><Circle cx={p.x} cy={p.y} r={3.5} fill={coloreValore(p.media)} stroke={COLORS.background} strokeWidth={1.5}/>{(p.giornoIndice-primoIndice)%passoDate===0 ? <SvgText x={p.x} y={Math.max(10,p.y-9)} fill={COLORS.onSurface} fontSize={9} fontWeight="800" textAnchor="middle">{p.media}</SvgText> : null}</G>)}
+        {etichette.map(idx=>{
           const d=new Date(oggi.getFullYear(),oggi.getMonth(),oggi.getDate()-(89-idx));
-          return <SvgText key={idx} x={left+idx/89*usable} y={bottom+24} fill={COLORS.muted} fontSize={width<380?8:9} fontWeight="700" textAnchor="middle">{`${d.getDate()} ${MESI[d.getMonth()]}`}</SvgText>;
+          return <SvgText key={idx} x={posizioneX(idx)} y={bottom+24} fill={COLORS.muted} fontSize={width<380?8:9} fontWeight="700" textAnchor={idx===primoIndice?'start':idx===89?'end':'middle'}>{`${d.getDate()} ${MESI[d.getMonth()]}`}</SvgText>;
         })}
       </Svg>
     </View>;
