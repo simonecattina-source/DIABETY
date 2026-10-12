@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   riempimentoAttivoBarra: { height: '100%', borderRadius: 6 },
   
   // 📐 INTERVENTO: Allineamento orizzontale legenda limiti HbA1c
-  rigaLegendaGlicataLimiti: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8 }
+  rigaLegendaGlicataLimiti: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 8 },
   cardHbPremium: { backgroundColor: '#0C0E20', borderColor: '#5940AD', borderRadius: 20, padding: 18 },
   titoloHbRiga: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 9, paddingRight: 8 },
   titoloHbTesto: { flexShrink: 1, fontSize: 14, lineHeight: 20 },
