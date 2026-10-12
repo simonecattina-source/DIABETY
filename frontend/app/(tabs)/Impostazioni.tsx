@@ -81,7 +81,7 @@ export default function StrumentiScreen() {
 
   // 📂 IMPORTA BACKUP JSON
   const gestisciImportazioneWeb = async (evento: any) => {
-    const file = evento.target.files?.[0];
+    const file = evento.target.files?.[0]; // <-- Corretto! Ripristinato [0]
     if (!file) return;
 
     const lettore = new FileReader();
@@ -180,6 +180,7 @@ export default function StrumentiScreen() {
       }
     } catch (error) { alert("Impossibile completare la stampa del documento."); }
   };
+
   // Registro ufficiale degli 8 punti strutturali del manuale (Punti 1-4)
   const manualPoints = [
     { 
