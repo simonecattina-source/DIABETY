@@ -20,6 +20,10 @@ const COLORS = {
 
 // Ordiniamo alfabeticamente l'array importato per garantire una ricerca utente ottimale
 const DATABASE_ALIMENTI = [...DATABASE_ALIMENTI_ESTERNO].sort((a, b) => a.nome.localeCompare(b.nome));
+// Solo i valori che coincidono con le verifiche documentate sono mostrati senza ≈.
+// Tutti gli altri sono indicativi: il JSON conserva esclusivamente i valori numerici.
+const ID_CHO_VERIFICATI = new Set(['37', '40', '50', '54']);
+const valoreIndicativo = (id: string) => !ID_CHO_VERIFICATI.has(id);
 const STORAGE_PREFERITI = 'diabety_alimenti_preferiti_v1';
 const STORAGE_PIATTO = 'diabety_alimenti_piatto_v1';
 const normalizzaRicerca = (testo: string) => testo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('it').trim();
@@ -150,6 +154,7 @@ export default function AlimentiScreen() {
 
   // 🧮 CALCOLO MATEMATICO DEL TOTALE DEI CARBOIDRATI CUMULATIVI DEL PIATTO LIVE
   const totaleChoPiatto = piattoSelezionato.reduce((acc, item) => acc + item.choTotali, 0).toFixed(1);
+  const piattoIndicativo = piattoSelezionato.some(item => valoreIndicativo(item.alimentoId));
 
   const alimentiFiltrati = DATABASE_ALIMENTI.filter(alimento => {
     const corrispondeRicerca = normalizzaRicerca(alimento.nome).includes(normalizzaRicerca(ricerca));
@@ -181,6 +186,7 @@ export default function AlimentiScreen() {
             </TouchableOpacity>
           )}
         </View>
+        <Text style={styles.notaValoriIndicativi}>≈ valore CHO indicativo, non verificato per questo alimento</Text>
       </View>
 
       {/* 🏷️ BARRA DELLE CATEGORIE ORIZZONTALE IN STILE CHIPS NEON */}
@@ -230,7 +236,7 @@ export default function AlimentiScreen() {
                       <Ionicons name={preferiti.includes(item.id) ? 'star' : 'star-outline'} size={21} color={preferiti.includes(item.id) ? '#FFD54F' : COLORS.muted} />
                     </TouchableOpacity>
                   </View>
-                  <Text style={styles.etichettaValoreBase}>Valore base: {item.cho100g}g CHO / 100g</Text>
+                  <Text style={styles.etichettaValoreBase}>Valore base: {valoreIndicativo(item.id) ? '≈ ' : ''}{item.cho100g} g CHO / 100 g</Text>
                 </View>
 
                 <View style={styles.boxRiquadroInputDestra}>
@@ -259,7 +265,7 @@ export default function AlimentiScreen() {
               <View style={styles.rigaDettaglioValore}>
                 <Text style={styles.etichettaRisultatoCHO}>CHO parziali per questo peso:</Text>
                 <Text style={[styles.valoreCalcolatoCho, grammiValore > 0 && { color: COLORS.brandPrimary }]}>
-                  {choCalcolati} <Text style={styles.unitaChoSub}>g CHO</Text>
+                  {valoreIndicativo(item.id) ? '≈ ' : ''}{choCalcolati} <Text style={styles.unitaChoSub}>g CHO</Text>
                 </Text>
               </View>
             </View>
@@ -299,7 +305,7 @@ export default function AlimentiScreen() {
                   accessibilityLabel={`Grammi di ${item.nome}`}
                 />
                 <Text style={styles.unitaGrammiPiatto}>g</Text>
-                <Text style={styles.choCiboPiatto}>{item.choTotali.toFixed(1)} CHO</Text>
+                <Text style={styles.choCiboPiatto}>{valoreIndicativo(item.alimentoId) ? '≈ ' : ''}{item.choTotali.toFixed(1)} CHO</Text>
                 <TouchableOpacity
                   style={styles.btnRimuoviCiboSingolo}
                   onPress={() => rimuoviDalPiatto(item.idUnico, item.alimentoId)}
@@ -314,7 +320,7 @@ export default function AlimentiScreen() {
           {/* 🧮 BLOCCO TOTALE MATEMATICO DEL PASTO COMPLESSIVO */}
           <View style={styles.rigaTotaleCumulativoFinale}>
             <Text style={styles.etichettaTotalePiatto}>Totale Carboidrati Piatto:</Text>
-            <Text style={styles.valoreTotalePiatto}>{totaleChoPiatto} <Text style={styles.unitaTotalePiatto}>g CHO</Text></Text>
+            <Text style={styles.valoreTotalePiatto}>{piattoIndicativo ? '≈ ' : ''}{totaleChoPiatto} <Text style={styles.unitaTotalePiatto}>g CHO</Text></Text>
           </View>
         </View>
       )}
@@ -328,6 +334,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700', color: COLORS.onSurface },
   subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, marginTop: 4 },
   
+  notaValoriIndicativi: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, color: COLORS.muted, marginTop: 8 },
   boxInputRicerca: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceSecondary, borderRadius: 12, paddingHorizontal: 12, height: 44, marginTop: 14, borderWidth: 1, borderColor: COLORS.borderGlass },
   inputRicercaTesto: { flex: 1, color: COLORS.onSurface, fontFamily: 'Plus Jakarta Sans', fontSize: 14, paddingVertical: 4 },
   
