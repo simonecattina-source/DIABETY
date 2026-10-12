@@ -368,7 +368,7 @@ export default function StrumentiScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.headerForm}>
-        <Text style={styles.title}>Centro Strumenti</Text>
+        <Text style={styles.title}>Pannello di controllo</Text>
         <Text style={styles.subtitle}>Gestione database e informazioni mediche dell'app</Text>
       </View>
 
@@ -379,73 +379,48 @@ export default function StrumentiScreen() {
       )}
 
       <Text style={styles.sectionLabel}>Manutenzione e Report</Text>
-      <View style={styles.cardAzioni}>
-        <TouchableOpacity style={styles.rowAzione} onPress={esportaBackupJSON}>
-          <View style={styles.leftAzione}>
-            <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
-              <Ionicons name="cloud-download-outline" size={20} color={COLORS.onSurface} />
-            </View>
-            <View>
-              <Text style={styles.titoloAzione}>Esporta Backup</Text>
-              <Text style={styles.descAzione}>Salva un file JSON con tutto lo storico dei log</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+      <View style={styles.controlCenterGrid}>
+        <TouchableOpacity style={[styles.controlTile, styles.controlExport]} onPress={esportaBackupJSON} activeOpacity={0.85}>
+          <Ionicons name="cloud-download-outline" size={27} color={COLORS.brandPrimary} />
+          <Text style={styles.controlTileTitle}>Esporta Backup</Text>
+          <Text style={styles.controlTileDesc}>Salva i tuoi dati</Text>
+          <View style={styles.controlTileArrow}><Ionicons name="arrow-forward" size={17} color={COLORS.brandPrimary} /></View>
         </TouchableOpacity>
-
         {Platform.OS === 'web' ? (
-          <label style={styles.rowAzioneLabel}>
-            <View style={styles.leftAzione}>
-              <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
-                <Ionicons name="cloud-upload-outline" size={20} color={COLORS.onSurface} />
-              </View>
-              <View>
-                <Text style={styles.titoloAzione}>Importa Backup</Text>
-                <Text style={styles.descAzione}>Ripristina il database caricando un file JSON</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+          <label style={styles.controlImportLabel}>
+            <Ionicons name="cloud-upload-outline" size={27} color="#B080FF" />
+            <Text style={styles.controlTileTitle}>Importa Backup</Text>
+            <Text style={styles.controlTileDesc}>Ripristina lo storico</Text>
+            <View style={styles.controlTileArrow}><Ionicons name="arrow-forward" size={17} color="#B080FF" /></View>
             <input type="file" accept=".json" onChange={gestisciImportazioneWeb} style={{ display: 'none' }} />
           </label>
         ) : (
-          <TouchableOpacity style={styles.rowAzione}>
-            <View style={styles.leftAzione}>
-              <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
-                <Ionicons name="cloud-upload-outline" size={20} color={COLORS.onSurface} />
-              </View>
-              <View>
-                <Text style={styles.titoloAzione}>Importa Backup</Text>
-                <Text style={styles.descAzione}>Ripristina il database caricando un file JSON</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+          <TouchableOpacity style={[styles.controlTile, styles.controlImport]} activeOpacity={0.85}>
+            <Ionicons name="cloud-upload-outline" size={27} color="#B080FF" />
+            <Text style={styles.controlTileTitle}>Importa Backup</Text>
+            <Text style={styles.controlTileDesc}>Ripristina lo storico</Text>
+            <View style={styles.controlTileArrow}><Ionicons name="arrow-forward" size={17} color="#B080FF" /></View>
           </TouchableOpacity>
         )}
-
-        <View style={styles.rowAzionePdfComplessa}>
-          <TouchableOpacity style={styles.rowPdfClickArea} onPress={() => setModalPdfVisibile(true)}>
-            <View style={styles.leftAzione}>
-              <View style={[styles.iconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.1)' }]}>
-                <Ionicons name="document-text-outline" size={20} color={COLORS.brandPrimary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esporta PDF</Text>
-                <Text style={styles.descAzione}>Genera il documento clinico identico allo storico</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.brandPrimary} />
-          </TouchableOpacity>
-
-          <View style={styles.containerMiniFiltriPdf}>
-            {['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'].map((intervallo) => {
-              const attivo = filtroPdfSelezionato === intervallo;
-              return (
-                <TouchableOpacity key={intervallo} style={[styles.chipMiniPdf, attivo && styles.chipMiniPdfAttiva]} onPress={() => setFiltroPdfSelezionato(intervallo)}>
-                  <Text style={[styles.textMiniChipPdf, attivo && styles.textMiniChipPdfAttivo]}>{intervallo}</Text>
-                </TouchableOpacity>
-              );
-            })}
+      </View>
+      <View style={styles.controlPdf}>
+        <TouchableOpacity style={styles.controlPdfHeader} onPress={() => setModalPdfVisibile(true)} activeOpacity={0.85}>
+          <Ionicons name="document-text-outline" size={25} color={COLORS.brandPrimary} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.controlPdfTitle}>Esporta PDF</Text>
+            <Text style={styles.controlPdfDesc}>Report del diario glicemico</Text>
           </View>
+          <Ionicons name="arrow-forward" size={19} color={COLORS.brandPrimary} />
+        </TouchableOpacity>
+        <View style={styles.controlPdfFilters}>
+          {['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'].map(intervallo => {
+            const attivo = filtroPdfSelezionato === intervallo;
+            return (
+              <TouchableOpacity key={intervallo} style={[styles.controlFilter, attivo && styles.controlFilterActive]} onPress={() => setFiltroPdfSelezionato(intervallo)}>
+                <Text style={[styles.controlFilterText, attivo && styles.controlFilterTextActive]} numberOfLines={1}>{intervallo}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
@@ -486,36 +461,106 @@ export default function StrumentiScreen() {
         </View>
       </Modal>
 
-      <Text style={styles.sectionLabel}>Manuale & Linee Guia</Text>
-
-      {manualPoints.map((point) => {
-        const isOpen = expandedPointId === point.id;
-        return (
-          <View key={point.id} style={styles.accordionWrapper}>
-            <TouchableOpacity 
-              style={[styles.accordionHeader, isOpen && styles.accordionHeaderActive]} 
-              onPress={() => togglePoint(point.id)}
-              activeOpacity={0.85}
-            >
-              <View style={styles.headerLeft}>
-                <Ionicons name={point.icon} size={18} color={point.color} style={styles.iconaManualeAllineata} />
-                <Text style={styles.infoBlockTitle}>{point.title}</Text>
+      <Text style={styles.sectionLabel}>Manuale & Linee Guida</Text>
+      <Text style={styles.guideSubtitle}>Scopri come usare al meglio DIABETY</Text>
+      <View style={styles.guideGrid}>
+        {manualPoints.map(point => {
+          const palette: Record<number, string> = {
+            1: '#00E5FF', 2: '#00E676', 3: '#B080FF', 4: '#00E5FF',
+            5: '#FFB347', 6: '#B080FF', 7: '#00E5FF', 8: '#00E676'
+          };
+          const color = palette[point.id];
+          const subtitles: Record<number, string> = {
+            1: 'Come inserire le misurazioni',
+            2: 'Colori e intervalli glicemici',
+            3: 'Gestione dello storico',
+            4: 'Report e documenti',
+            5: 'Protezione dei dati',
+            6: 'Analisi e statistiche',
+            7: 'Uso del calcolatore',
+            8: 'Alimenti e carboidrati'
+          };
+          return (
+            <TouchableOpacity key={point.id} style={[styles.guideTile, { borderColor: color }]}
+              onPress={() => setExpandedPointId(point.id)} activeOpacity={0.85}>
+              <View style={styles.guideTileTop}>
+                <View style={[styles.guideIcon, { backgroundColor: color + '18', borderColor: color }]}>
+                  <Ionicons name={point.icon as any} size={24} color={color} />
+                </View>
+                <Ionicons name="chevron-forward-circle-outline" size={23} color={color} />
               </View>
-              <Ionicons name={isOpen ? "chevron-up" : "chevron-forward"} size={18} color={isOpen ? point.color : COLORS.muted} />
+              <Text style={[styles.guideNumber, { color }]}>{point.id}</Text>
+              <Text style={styles.guideTitle} numberOfLines={3}>{point.title.replace(/^\d+\. /, '')}</Text>
+              <Text style={styles.guideDesc} numberOfLines={2}>{subtitles[point.id]}</Text>
             </TouchableOpacity>
-
-            {isOpen && (
-              <View style={styles.accordionContent}>
-                <Text style={styles.contentText}>{point.content}</Text>
-              </View>
-            )}
+          );
+        })}
+      </View>
+      <Modal visible={expandedPointId !== null} transparent animationType="fade"
+        onRequestClose={() => setExpandedPointId(null)}>
+        <View style={styles.guideModalOverlay}>
+          <View style={styles.guideModalCard}>
+            {manualPoints.filter(p => p.id === expandedPointId).map(point => (
+              <React.Fragment key={point.id}>
+                <View style={styles.guideModalHeader}>
+                  <View style={styles.guideModalIcon}>
+                    <Ionicons name={point.icon as any} size={25} color={point.color} />
+                  </View>
+                  <Text style={styles.guideModalTitle}>{point.title}</Text>
+                  <TouchableOpacity onPress={() => setExpandedPointId(null)} accessibilityLabel="Chiudi guida">
+                    <Ionicons name="close-circle-outline" size={27} color={COLORS.muted} />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView style={styles.guideModalScroll} showsVerticalScrollIndicator>
+                  <Text style={styles.guideModalBody}>{point.content}</Text>
+                </ScrollView>
+              </React.Fragment>
+            ))}
+            <TouchableOpacity style={styles.guideModalClose} onPress={() => setExpandedPointId(null)}>
+              <Text style={styles.guideModalCloseText}>Chiudi</Text>
+            </TouchableOpacity>
           </View>
-        );
-      })}
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
 const styles = StyleSheet.create({
+  controlCenterGrid: { flexDirection: 'row', gap: 10, width: '100%', marginBottom: 10 },
+  controlTile: { flex: 1, minWidth: 0, minHeight: 144, borderRadius: 16, padding: 13, borderWidth: 1, backgroundColor: '#11162B' },
+  controlExport: { borderColor: '#226C83' },
+  controlImport: { backgroundColor: '#17132C', borderColor: '#6946AD' },
+  controlImportLabel: { flex: 1, minWidth: 0, minHeight: 144, display: 'flex', flexDirection: 'column', padding: 13, borderRadius: 16, borderWidth: 1, backgroundColor: '#17132C', borderColor: '#6946AD', cursor: 'pointer', boxSizing: 'border-box' },
+  controlTileTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '700', marginTop: 9, fontFamily: 'Plus Jakarta Sans' },
+  controlTileDesc: { color: '#9CA7C1', fontSize: 11, marginTop: 4, fontFamily: 'Plus Jakarta Sans' },
+  controlTileArrow: { alignSelf: 'flex-end', marginTop: 'auto', paddingTop: 8 },
+  controlPdf: { backgroundColor: '#0E1A27', borderWidth: 1, borderColor: '#168A8F', borderRadius: 16, padding: 13, marginBottom: 12 },
+  controlPdfHeader: { flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 13 },
+  controlPdfTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', fontFamily: 'Plus Jakarta Sans' },
+  controlPdfDesc: { color: '#A5B3C7', fontSize: 11, marginTop: 3, fontFamily: 'Plus Jakarta Sans' },
+  controlPdfFilters: { flexDirection: 'row', gap: 5 },
+  controlFilter: { flex: 1, minWidth: 0, alignItems: 'center', paddingVertical: 9, paddingHorizontal: 1, backgroundColor: '#1A2435', borderRadius: 9, borderWidth: 1, borderColor: '#303A4F' },
+  controlFilterActive: { backgroundColor: '#123E48', borderColor: '#00DFFF' },
+  controlFilterText: { color: '#A7B3CB', fontSize: 10, fontWeight: '600' },
+  controlFilterTextActive: { color: '#00E5FF', fontWeight: '800' },
+  guideSubtitle: { color: '#9BA6C3', fontSize: 12, marginTop: -4, marginBottom: 13 },
+  guideGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
+  guideTile: { width: '48%', minHeight: 164, backgroundColor: '#10152A', borderWidth: 1, borderRadius: 16, padding: 12 },
+  guideTileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  guideIcon: { width: 43, height: 43, borderRadius: 11, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  guideNumber: { fontSize: 12, fontWeight: '800', marginTop: 6 },
+  guideTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '800', marginTop: 2, fontFamily: 'Plus Jakarta Sans' },
+  guideDesc: { color: '#A9B4D0', fontSize: 10, marginTop: 5, fontFamily: 'Plus Jakarta Sans' },
+  guideModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.84)', padding: 16, justifyContent: 'center' },
+  guideModalCard: { backgroundColor: '#0D1429', borderColor: '#7650C8', borderWidth: 1, borderRadius: 20, padding: 17, maxHeight: '85%', width: '100%', maxWidth: 540, alignSelf: 'center' },
+  guideModalHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#29334F' },
+  guideModalIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#17223A', alignItems: 'center', justifyContent: 'center' },
+  guideModalTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '800', flex: 1 },
+  guideModalScroll: { flexGrow: 0, marginVertical: 16 },
+  guideModalBody: { color: '#D3DAED', fontSize: 14, lineHeight: 23, fontFamily: 'Plus Jakarta Sans' },
+  guideModalClose: { backgroundColor: '#123B68', borderWidth: 1, borderColor: '#00A8FF', padding: 12, alignItems: 'center', borderRadius: 12 },
+  guideModalCloseText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
+
   pdfModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', padding: 20 },
   pdfModalCard: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 22, borderWidth: 1, borderColor: COLORS.borderGlassBright, padding: 20, maxWidth: 440, width: '100%', alignSelf: 'center' },
   pdfModalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
