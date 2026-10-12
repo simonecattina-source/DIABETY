@@ -1,3 +1,259 @@
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// 🎨 PALETTE COLORI ELEVATA PER MASSIMO STACCO IN DARK MODE
+const COLORS = {
+  background: "#0A0A0C",        
+  surfaceSecondary: "#13131A",  // Nero profondo tech per i contenitori
+  brandPrimary: "#00E5FF",      // Azzurro Cyan elettrico neon coordinato
+  onSurface: "#FFFFFF",         // Bianco purissimo ultra-nitido
+  muted: "#7E7E86",             
+  success: "#00E676",           // Verde smeraldo Oled
+  warning: "#FF9100",           // Arancione vivo
+  error: "#FF5252",             // Rosso corallo neon
+  borderGlass: "rgba(255, 255, 255, 0.08)",
+  borderGlassBright: "rgba(255, 255, 255, 0.15)", // Bordo ad alto contrasto per i box principali
+  bgUtility: "#1A1A24",         
+  borderUtility: "#3A3A4A"      
+};
+
+const MOMENTI = [
+  "Prima Colazione", "Dopo Colazione", "Spuntino", 
+  "Prima Pranzo", "Dopo Pranzo", "Merenda", 
+  "Prima Cena", "Dopo Cena", "Notte"
+];
+export default function InserimentoScreen() {
+  const ottieniDataOdiernaISO = () => {
+    const oggi = new Date();
+    const g = String(oggi.getDate()).padStart(2, '0');
+    const m = String(oggi.getMonth() + 1).padStart(2, '0');
+    const a = oggi.getFullYear();
+    return `${a}-${m}-${g}`;
+  };
+
+  const ottieniOraCorrente = () => {
+    const oggi = new Date();
+    const ore = String(oggi.getHours()).padStart(2, '0');
+    const minuti = String(oggi.getMinutes()).padStart(2, '0');
+    return `${ore}:${minuti}`;
+  };
+
+  const [dataISO, setDataISO] = useState(ottieniDataOdiernaISO());
+  const [oraInserita, setOraInserita] = useState(ottieniOraCorrente());
+  const [glicemia, setGlicemia] = useState('');
+  const [insulina, setInsulina] = useState('');
+  const [momentoSelezionato, setMomentoSelezionato] = useState('Prima Colazione');
+  const [note, setNote] = useState('');
+  const [mostraNotifica, setMostraNotifica] = useState(false);
+  const [mostraModalInfo, setMostraModalInfo] = useState(false);
+  const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (glicemia === '' && insulina === '' && note === '') {
+        setOraInserita(ottieniOraCorrente());
+      }
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [glicemia, insulina, note]);
+
+  const ottieniDataFormattataStorico = (stringaISO: string) => {
+    if (!stringaISO) return "";
+    const parti = stringaISO.split('-');
+    if (parti.length !== 3 || parti.some((parte) => !parte)) return "";
+    const [anno, mese, giorno] = parti;
+    return `${giorno}/${mese}/${anno.slice(-2)}`;
+  };
+
+  const ottieniTimestampDalTesto = (stringaData: string) => {
+    if (!stringaData || !stringaData.includes('/')) return 0;
+    const [giorno, mese, anno] = stringaData.split('/');
+    const giornoNum = Number(giorno);
+    const meseNum = Number(mese);
+    const annoNum = Number(anno);
+    if (![giornoNum, meseNum, annoNum].every(Number.isFinite)) return 0;
+    const annoCompleto = annoNum < 50 ? 2000 + annoNum : 1900 + annoNum;
+    const data = new Date(annoCompleto, meseNum - 1, giornoNum);
+    if (data.getFullYear() !== annoCompleto || data.getMonth() !== meseNum - 1 || data.getDate() !== giornoNum) return 0;
+    return data.getTime();
+  };
+
+  const ottieniColoreGlicemia = () => {
+    if (!/^\d+$/.test(glicemia)) return COLORS.onSurface;
+    const valore = Number(glicemia);
+    if (!Number.isFinite(valore) || valore <= 0) return COLORS.onSurface;
+    if (valore < 70) return COLORS.warning;
+    if (valore > 180) return COLORS.error;
+    return COLORS.success;
+  };
+  const salvaMisurazione = async () => {
+    if (!/^\d{1,3}$/.test(glicemia) || Number(glicemia) <= 0) {
+      alert("Inserisci un valore di glicemia valido in mg/dL.");
+      return;
+    }
+
+    if (insulina !== '' && !/^\d{1,2}$/.test(insulina)) {
+      alert("Inserisci l'insulina come numero intero di UI oppure lascia il campo vuoto.");
+      return;
+    }
+
+    const dataParsata = /^\d{4}-\d{2}-\d{2}$/.test(dataISO)
+      ? new Date(`${dataISO}T00:00:00`)
+      : null;
+    const dataValida = dataParsata !== null
+      && !Number.isNaN(dataParsata.getTime())
+      && `${dataParsata.getFullYear()}-${String(dataParsata.getMonth() + 1).padStart(2, '0')}-${String(dataParsata.getDate()).padStart(2, '0')}` === dataISO;
+    if (!dataValida || dataISO > ottieniDataOdiernaISO()) {
+      alert("Inserisci una data valida, non successiva a oggi.");
+      return;
+    }
+
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(oraInserita)) {
+      alert("Inserisci un orario valido nel formato HH:MM.");
+      return;
+    }
+
+    if (salvataggioInCorso) return;
+    setSalvataggioInCorso(true);
+
+    try {
+      const noteConOrarioFuso = note.trim()
+        ? `[${oraInserita}] ${note.trim()}`
+        : `[${oraInserita}]`;
+
+      const nuovaMisurazione = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        glicemia: Number(glicemia),
+        insulina: insulina ? `${insulina} UI` : '-',
+        tipo: momentoSelezionato,
+        note: noteConOrarioFuso,
+        ora: oraInserita,
+        dataTesto: ottieniDataFormattataStorico(dataISO)
+      };
+
+      const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
+      const datiLetti = storicoEsistente ? JSON.parse(storicoEsistente) : [];
+      if (!Array.isArray(datiLetti)) {
+        throw new Error('Il formato dello storico salvato non è valido.');
+      }
+
+      let elencoDati = [nuovaMisurazione, ...datiLetti];
+
+      // Mantiene la cancellazione automatica: conserva le misurazioni entro 91 giorni
+      // rispetto alla data della misurazione più recente presente nello storico.
+      if (elencoDati.length > 0) {
+        let timestampPiuRecente = 0;
+        elencoDati.forEach((item: any) => {
+          const ts = ottieniTimestampDalTesto(item?.dataTesto ?? '');
+          if (ts > timestampPiuRecente) timestampPiuRecente = ts;
+        });
+
+        const limite91GiorniMs = 91 * 24 * 60 * 60 * 1000;
+        const timestampSogliaMinima = timestampPiuRecente - limite91GiorniMs;
+
+        elencoDati = elencoDati.filter((item: any) => {
+          const tsItem = ottieniTimestampDalTesto(item?.dataTesto ?? '');
+          // Non eliminare automaticamente record con data non riconoscibile.
+          return tsItem === 0 || tsItem >= timestampSogliaMinima;
+        });
+      }
+
+      await AsyncStorage.setItem('glicotrack_data', JSON.stringify(elencoDati));
+
+      setGlicemia('');
+      setInsulina('');
+      setNote('');
+      setOraInserita(ottieniOraCorrente());
+      setMostraNotifica(true);
+      setTimeout(() => setMostraNotifica(false), 3000);
+    } catch (error) {
+      alert("Impossibile salvare i dati localmente. I dati precedenti non sono stati eliminati.");
+    } finally {
+      setSalvataggioInCorso(false);
+    }
+  };
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      
+      {/* 🏷️ INTESTAZIONE CON TITOLO E TASTO INFO ANCORATO DI FIANCO A DESTRA */}
+      <View style={styles.headerForm}>
+        <Text style={styles.title}>Inserisci Nuovi Dati</Text>
+        <TouchableOpacity style={styles.infoButtonMinimal} onPress={() => setMostraModalInfo(true)} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
+          <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
+        </TouchableOpacity>
+      </View>
+      
+      {/* 📅⏰ RIGHE TEMPORALI */}
+      <View style={styles.containerRigaTemporale}>
+        <View style={styles.dataCardSinistra}>
+          <Text style={styles.labelLeft}>Data del Test</Text>
+          {Platform.OS === 'web' ? (
+            <input
+              type="date"
+              value={dataISO}
+              max={ottieniDataOdiernaISO()} 
+              onChange={(e) => setDataISO(e.target.value)}
+              style={{
+                fontFamily: 'sans-serif', fontSize: '15px', fontWeight: '600', color: '#FFFFFF', 
+                backgroundColor: '#13131A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px',
+                padding: '6px 10px', marginTop: '4px', width: 'auto', display: 'inline-block', outline: 'none', cursor: 'pointer'
+              }}
+            />
+          ) : (
+            <TextInput
+              style={[styles.timeInputBackup, { width: 124 }]}
+              value={dataISO}
+              onChangeText={setDataISO}
+              placeholder="AAAA-MM-GG"
+              placeholderTextColor={COLORS.muted}
+              maxLength={10}
+              accessibilityLabel="Data del test nel formato AAAA-MM-GG"
+            />
+          )}
+        </View>
+
+        <View style={styles.dataCardSinistra}>
+          <Text style={styles.labelLeft}>Orario del Test</Text>
+          {Platform.OS === 'web' ? (
+            <input
+              type="time"
+              value={oraInserita}
+              onChange={(e) => setOraInserita(e.target.value)}
+              style={{
+                fontFamily: 'sans-serif', fontSize: '15px', fontWeight: '600', color: '#FFFFFF', 
+                backgroundColor: '#13131A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px',
+                padding: '6px 10px', marginTop: '4px', width: 'auto', display: 'inline-block', outline: 'none', cursor: 'pointer'
+              }}
+            />
+          ) : (
+            <TextInput style={styles.timeInputBackup} value={oraInserita} onChangeText={setOraInserita} maxLength={5} />
+          )}
+        </View>
+      </View>
+
+      <View style={styles.rigaDatiPrincipali}>
+        <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
+          <Text style={styles.labelLeftHighlight}>Glicemia (mg/dL)</Text>
+          <TextInput
+            style={[styles.glicemiaInput, { color: ottieniColoreGlicemia() }]}
+            placeholder="00"
+            placeholderTextColor="#636366" 
+            keyboardType="numeric"
+            value={glicemia}
+            onChangeText={setGlicemia}
+            maxLength={3}
+          />
+        </View>
+
+        <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
+          <Text style={styles.labelLeftHighlight}>Insulina (Unità UI)</Text>
+          <TextInput
+            style={styles.insulinaInput}
+            placeholder="0"
+            placeholderTextColor="#636366" 
+            keyboardType="numeric"
+            value={insulina}
             onChangeText={setInsulina}
             maxLength={2}
           />
