@@ -3,12 +3,16 @@ import { StyleSheet, Text, View, TouchableOpacity, SectionList, Platform, Modal,
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import * as Print from 'expo-print';
 
 // 🎨 PALETTE AD ALTO CONTRASTO CON AZZURRO CYAN NEON PER IL PULSANTE PDF COORDINATO
 const COLORS = {
   background: "#0A0A0C",        
   surfaceSecondary: "#13131A",  // Nero profondo tech per i contenitori
-  brandPrimary: "#00E5FF",      // Azzurro Cyan elettrico neon coordinato
+  brandPrimary: "#00E5FF",
+  brandSecondary: "#7D52FF",
+  bgUtility: "#1A1A24",      // Azzurro Cyan elettrico neon coordinato
   onSurface: "#FFFFFF",         // Bianco purissimo ultra-nitido
   muted: "#7E7E86",             
   success: "#00E676",           // Verde smeraldo Oled
@@ -37,6 +41,7 @@ export default function StoricoScreen() {
   const [modOraText, setModOraText] = useState('');
 
   const [mostraHelpPDF, setMostraHelpPDF] = useState(false);
+  const [modalPdfVisibile, setModalPdfVisibile] = useState(false);
   const [mostraModalModifica, setMostraModalModifica] = useState(false);
   const [mostraNotificaModifica, setMostraNotificaModifica] = useState(false);
   const [testoNotifica, setTestoNotifica] = useState('✓ Modifica salvata nel registro');
@@ -188,40 +193,221 @@ export default function StoricoScreen() {
         return { title: chiave, data: elementiGiornoOrdinati };
       }).filter(s => s.data.length > 0);
   };
-  const generaEDesportaPDF = () => {
-    let corpoHtmlCompleto = ""; const sezioniDati = ottieniDatiSezionati();
-    for (let i = 0; i < sezioniDati.length; i += 4) {
-      const bloccoQuattroGiorni = sezioniDati.slice(i, i + 4); let righeTabellaBlocco = "";
-      bloccoQuattroGiorni.forEach(sezione => {
-        const rigaGlicemie: Record<string, string> = {}; const rigaInsuline: Record<string, string> = {}; const rigaNote: Record<string, string> = {};
-        MOMENTI_COLONNE.forEach(m => { rigaGlicemie[m] = "-"; rigaInsuline[m] = "-"; rigaNote[m] = "-"; });
-        sezione.data.forEach(item => {
-          if (MOMENTI_COLONNE.includes(item.tipo)) {
-            let colore = '#34C759'; if (item.glicemia > 180) colore = '#FF3B30'; if (item.glicemia < 70) colore = '#FF9F0A';
-            rigaGlicemie[item.tipo] = `<span style="color: ${colore}; font-weight: bold;">${item.glicemia} mg/dL</span>`;
-            rigaInsuline[item.tipo] = item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : "-";
-            rigaNote[item.tipo] = item.note ? `<span style="font-style: italic; color: #555;">${item.note}</span>` : "-";
-          }
+  const esportaDocumentoMatriceStoricoPDF = async (modalita: 'html' | 'pdf') => {
+    setModalPdfVisibile(false);
+    try {
+      const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
+      let dati = storicoEsistente ? JSON.parse(storicoEsistente) : [];
+      if (dati.length === 0) { alert("Non ci sono dati disponibili nel diario per generare il report."); return; }
+
+      if (filtroAttivo !== 'all') {
+        const giorniFiltro = parseInt(filtroAttivo); const oggi = new Date(); const dataInizioOggi = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate()).getTime();
+        dati = dati.filter((item: any) => {
+          if (!item.dataTesto || !item.dataTesto.includes('/')) return false;
+          const [g, m, a] = item.dataTesto.split('/'); const tsItem = new Date(parseInt(a) < 50 ? 2000 + parseInt(a) : 1900 + parseInt(a), parseInt(m) - 1, parseInt(g)).getTime();
+          const diff = (dataInizioOggi - tsItem) / (1000 * 60 * 60 * 24); return diff <= giorniFiltro && diff >= -1;
         });
-        let trGlicemieHtml = ""; let trInsulineHtml = ""; let trNoteHtml = "";
-        MOMENTI_COLONNE.forEach(m => { trGlicemieHtml += `<td>${rigaGlicemie[m]}</td>`; trInsulineHtml += `<td>${rigaInsuline[m]}</td>`; trNoteHtml += `<td>${rigaNote[m]}</td>`; });
-        righeTabellaBlocco += `<tr><td class="cell-data" rowspan="3">${sezione.title}</td><td class="cell-label">Glicemia</td>${trGlicemieHtml}</tr><tr><td class="cell-label">Insulina</td>${trInsulineHtml}</tr><tr class="row-separator"><td class="cell-label">Note</td>${trNoteHtml}</tr>`;
-      });
-      const rigaInterruzionePagina = (i + 4 < sezioniDati.length) ? 'style="page-break-after: always;"' : '';
-      const htmlTitoloIntestazione = (i === 0) ? `<h1>Diabety - Registro Storico Giornaliero</h1>` : `<div style="height: 10px;"></div>`;
-      corpoHtmlCompleto += `<div class="pagina-pdf" ${rigaInterruzionePagina}>${htmlTitoloIntestazione}<table><thead><tr><th>Data</th><th>Parametro</th><th>Prima Colazione</th><th>Dopo Colazione</th><th>Spuntino</th><th>Prima Pranzo</th><th>Dopo Pranzo</th><th>Merenda</th><th>Prima Cena</th><th>Dopo Cena</th><th>Notte</th></tr></thead><tbody>${righeTabellaBlocco}</tbody></table></div>`;
-    }
-
-    const htmlTemplate = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Registro_Glicemico_Diabety</title><style>@page { size: landscape; margin: 10mm; } body { font-family: sans-serif; color: #1c1c1e; padding: 0; margin: 0; background: #ffffff; } .pagina-pdf { box-sizing: border-box; width: 100%; } h1 { font-size: 20px; color: #0A66C2; margin: 0 0 12px 0; font-weight: bold; border-bottom: 2px solid #0A66C2; padding-bottom: 5px; } table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 5px; } th, td { border: 1px solid #c7c7cc; padding: 7px 5px; font-size: 10.5px; text-align: center; vertical-align: middle; word-wrap: break-word; } th { background-color: #f2f2f7; font-weight: bold; font-size: 9.5px; text-transform: uppercase; } .cell-data { font-weight: bold; background-color: #f0f5fa; color: #0A66C2; font-size: 11px; width: 75px; } .cell-label { font-weight: 600; background-color: #f2f2f7; text-align: left; padding-left: 6px; width: 85px; } .row-separator td { background-color: #ffffff; }</style></head><body>${corpoHtmlCompleto || '<div class="pagina-pdf"><h1>Diabety - Registro Storico Giornaliero</h1><table><tbody><tr><td>Nessun dato registrato nel periodo selezionato.</td></tr></tbody></table></div>'}</body></html>`;
-
-    if (Platform.OS === 'web' && /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-      try {
-        const blobFile = new Blob([htmlTemplate], { type: 'text/html;charset=utf-8;' }); const urlBlob = URL.createObjectURL(blobFile); const linkDownloadVirtuale = document.createElement('a'); linkDownloadVirtuale.href = urlBlob; linkDownloadVirtuale.setAttribute('download', 'Registro_Glicemico_Diabety.html'); document.body.appendChild(linkDownloadVirtuale); linkDownloadVirtuale.click(); document.body.removeChild(linkDownloadVirtuale); URL.revokeObjectURL(urlBlob);
-      } catch (errore) {
-        const finestraFallback = window.open('', '_blank'); if (finestraFallback) { finestraFallback.document.write(htmlTemplate); finestraFallback.document.close(); }
       }
-    } else {
-      const finestraStampa = window.open('', '_blank'); if (finestraStampa) { finestraStampa.document.write(htmlTemplate); finestraStampa.document.close(); finestraStampa.onload = () => { finestraStampa.focus(); finestraStampa.print(); }; }
+
+      if (dati.length === 0) { alert(`Nessun dato registrato nell'intervallo selezionato.`); return; }
+
+      // L'ordine dell'array salvato viene mantenuto: la prima registrazione inserita vince.
+      const sezioni: Record<string, any[]> = {};
+      dati.forEach((item: any) => { const k = item.dataTesto || "Oggi"; if (!sezioni[k]) sezioni[k] = []; sezioni[k].push(item); });
+
+      const sezioniOrdinate = Object.keys(sezioni).sort((a, b) => {
+        const [gA, mA, anA] = a.split('/'); const [gB, mB, anB] = b.split('/');
+        return new Date(parseInt(anB) < 50 ? 2000+parseInt(anB) : 1900+parseInt(anB), parseInt(mB)-1, parseInt(gB)).getTime() - new Date(parseInt(anA) < 50 ? 2000+parseInt(anA) : 1900+parseInt(anA), parseInt(mA)-1, parseInt(gA)).getTime();
+      }).map(ch => ({ title: ch, data: sezioni[ch] }));
+
+      // Ogni giornata rimane un gruppo indivisibile di tre righe.
+      // La paginazione viene calcolata misurando l'altezza reale della tabella nel browser.
+      const righePerGiorno: string[] = [];
+      sezioniOrdinate.forEach(sez => {
+        let righe = "";
+          const rG: Record<string, string> = {}; const rI: Record<string, string> = {}; const rN: Record<string, string> = {};
+          MOMENTI_COLONNE.forEach(m => { rG[m] = "-"; rI[m] = "-"; rN[m] = "-"; });
+          const momentiGiaInseriti = new Set<string>();
+          sez.data.forEach(item => {
+            if (MOMENTI_COLONNE.includes(item.tipo) && !momentiGiaInseriti.has(item.tipo)) {
+              momentiGiaInseriti.add(item.tipo);
+              let col = '#34C759'; if (item.glicemia > 180) col = '#FF3B30'; if (item.glicemia < 70) col = '#FF9F0A';
+              rG[item.tipo] = `<span style="color: ${col}; font-weight: bold;">${item.glicemia} mg/dL</span>`;
+              rI[item.tipo] = item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : "-";
+              rN[item.tipo] = item.note ? `<span style="font-style: italic; color: #555;">${String(item.note).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}</span>` : "-";
+            }
+          });
+          let tG = ""; let tI = ""; let tN = "";
+          MOMENTI_COLONNE.forEach(m => { tG += `<td>${rG[m]}</td>`; tI += `<td>${rI[m]}</td>`; tN += `<td>${rN[m]}</td>`; });
+          righe += `<tr><td class="cell-data" rowspan="3">${sez.title}</td><td class="cell-label">Glicemia</td>${tG}</tr><tr><td class="cell-label">Insulina</td>${tI}</tr><tr class="row-separator"><td class="cell-label">Note</td>${tN}</tr>`;
+        righePerGiorno.push(righe);
+      });
+
+      const intestazioneTabella = '<thead><tr><th>Data</th><th>Parametro</th><th>Prima Colazione</th><th>Dopo Colazione</th><th>Spuntino</th><th>Prima Pranzo</th><th>Dopo Pranzo</th><th>Merenda</th><th>Prima Cena</th><th>Dopo Cena</th><th>Notte</th></tr></thead>';
+      const titoloPrimaPagina = '<h1>Diabety - Registro Storico Giornaliero</h1>';
+      const titoloAltrePagine = '<div style="height:10px;"></div>';
+      const stileDocumento = `@page { size: A4 landscape; margin: 0; } body { font-family: sans-serif; color: #1c1c1e; padding: 0; margin: 0; background: #ffffff; } .pagina-pdf { box-sizing: border-box; width: 1122px; height: 793px; padding: 36px; background: #ffffff; overflow: hidden; } .pagina-pdf:not(:last-child) { page-break-after: always; break-after: page; } h1 { font-size: 18px; color: #0A66C2; margin: 0 0 10px 0; font-weight: bold; border-bottom: 2px solid #0A66C2; padding-bottom: 4px; } table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 5px; } th, td { border: 1px solid #c7c7cc; padding: 6px 4px; font-size: 10px; text-align: center; vertical-align: middle; word-wrap: break-word; } th { background-color: #f2f2f7; font-weight: bold; font-size: 9px; text-transform: uppercase; } .cell-data { font-weight: bold; background-color: #f0f5fa; color: #0A66C2; font-size: 10.5px; width: 75px; } .cell-label { font-weight: 600; background-color: #f2f2f7; text-align: left; padding-left: 5px; width: 80px; } .row-separator td { background-color: #ffffff; }`;
+      const creaPagina = (righe: string[], indice: number) => `<div class="pagina-pdf">${indice === 0 ? titoloPrimaPagina : titoloAltrePagine}<table>${intestazioneTabella}<tbody>${righe.join('')}</tbody></table></div>`;
+
+      let pagine: string[][] = [];
+      if (Platform.OS === 'web') {
+        // Misura il layout effettivo con gli stessi CSS, larghezza e margini del PDF.
+        // Non modifica il diario e non utilizza una stima fissa del numero di giorni.
+        const misuratore = document.createElement('div');
+        misuratore.style.cssText = 'position:absolute;left:0;top:0;width:1122px;visibility:hidden;pointer-events:none;z-index:-1;';
+        const stileMisura = document.createElement('style');
+        stileMisura.textContent = stileDocumento;
+        misuratore.appendChild(stileMisura);
+        const paginaMisura = document.createElement('div');
+        paginaMisura.className = 'pagina-pdf';
+        misuratore.appendChild(paginaMisura);
+        document.body.appendChild(misuratore);
+        try {
+          let gruppoCorrente: string[] = [];
+          for (const righeGiorno of righePerGiorno) {
+            const indicePagina = pagine.length;
+            paginaMisura.innerHTML = (indicePagina === 0 ? titoloPrimaPagina : titoloAltrePagine) + `<table>${intestazioneTabella}<tbody>${[...gruppoCorrente, righeGiorno].join('')}</tbody></table>`;
+            const tabella = paginaMisura.querySelector('table');
+            const limite = paginaMisura.getBoundingClientRect().bottom - 10;
+            const entra = !!tabella && tabella.getBoundingClientRect().bottom <= limite;
+            if (!entra && gruppoCorrente.length > 0) {
+              pagine.push(gruppoCorrente);
+              gruppoCorrente = [righeGiorno];
+            } else if (!entra) {
+              throw new Error('Una giornata contiene note troppo lunghe per entrare in una pagina A4. Riduci le note prima di esportare.');
+            } else {
+              gruppoCorrente.push(righeGiorno);
+            }
+            // Controlla anche il primo giorno della pagina nuova.
+            if (!entra && pagine.length > 0) {
+              paginaMisura.innerHTML = titoloAltrePagine + `<table>${intestazioneTabella}<tbody>${righeGiorno}</tbody></table>`;
+              const tabellaNuova = paginaMisura.querySelector('table');
+              if (!tabellaNuova || tabellaNuova.getBoundingClientRect().bottom > paginaMisura.getBoundingClientRect().bottom - 10) {
+                throw new Error('Una giornata contiene note troppo lunghe per entrare in una pagina A4. Riduci le note prima di esportare.');
+              }
+            }
+          }
+          if (gruppoCorrente.length) pagine.push(gruppoCorrente);
+        } finally {
+          misuratore.remove();
+        }
+      } else {
+        // Su dispositivi nativi la stampa usa il motore di impaginazione di expo-print.
+        pagine = [righePerGiorno];
+      }
+
+      const corpoHtmlCompleto = pagine.map((righe, indice) => creaPagina(righe, indice)).join('');
+      const stileNativo = Platform.OS === 'web' ? '' : '.pagina-pdf { height:auto; overflow:visible; } tbody tr { break-inside:avoid; page-break-inside:avoid; }';
+      const htmlTemplateHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${stileDocumento}${stileNativo}</style></head><body>${corpoHtmlCompleto}</body></html>`;
+
+      if (Platform.OS === 'web') {
+        if (modalita === 'html') {
+          const blob = new Blob([htmlTemplateHTML], { type: 'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const finestra = window.open(url, '_blank');
+          if (!finestra) {
+            URL.revokeObjectURL(url);
+            alert('Il browser ha bloccato la nuova finestra. Consenti i popup per visualizzare il documento.');
+            return;
+          }
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        } else {
+          // Renderizza il documento in un elemento HTML reale e misurabile.
+          // Non usare position:fixed: html2canvas può catturare una pagina vuota.
+          // @ts-ignore - html2pdf.js non include dichiarazioni TypeScript proprie.
+          const modulo = await import('html2pdf.js');
+          const html2pdf = modulo.default || modulo;
+          const docPdf = new DOMParser().parseFromString(htmlTemplateHTML, 'text/html');
+          const contenitore = document.createElement('div');
+          contenitore.setAttribute('aria-hidden', 'true');
+          contenitore.style.cssText = [
+            'position:absolute', 'left:0', 'top:0', 'width:1122px',
+            'background:#ffffff', 'color:#1c1c1e', 'font-family:Arial,sans-serif',
+            'padding:0', 'margin:0', 'opacity:1', 'visibility:visible',
+            'pointer-events:none', 'z-index:9999'
+          ].join(';');
+          const stilePdf = document.createElement('style');
+          stilePdf.textContent = docPdf.querySelector('style')?.textContent || '';
+          contenitore.appendChild(stilePdf);
+          const corpoPdf = document.createElement('div');
+          corpoPdf.innerHTML = docPdf.body.innerHTML;
+          contenitore.appendChild(corpoPdf);
+          document.body.appendChild(contenitore);
+          try {
+            // Ogni pagina viene acquisita separatamente. In questo modo i salti
+            // di pagina CSS non possono creare una pagina bianca intermedia.
+            const elementiPagina = Array.from(corpoPdf.querySelectorAll<HTMLElement>('.pagina-pdf'));
+            if (!elementiPagina.length) throw new Error('Nessuna pagina disponibile per il PDF.');
+            let pdfFinale: any = null;
+            for (let indice = 0; indice < elementiPagina.length; indice++) {
+              const pagina = elementiPagina[indice];
+              pagina.style.breakAfter = 'auto';
+              pagina.style.pageBreakAfter = 'auto';
+              // Nel contenitore resta visibile soltanto la pagina da acquisire.
+              // Non usare display:none sulla pagina attiva.
+              elementiPagina.forEach((elemento, j) => {
+                elemento.style.display = j === indice ? 'block' : 'none';
+              });
+              await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+              if (!pagina.querySelector('table') || pagina.getBoundingClientRect().height < 10) {
+                throw new Error(`La tabella della pagina ${indice + 1} non è stata renderizzata.`);
+              }
+              const operazione = html2pdf().set({
+                margin: 0,
+                filename: 'Registro_Diabety.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                  scale: 2, useCORS: true, backgroundColor: '#ffffff',
+                  scrollX: 0, scrollY: 0, windowWidth: 1200, logging: false
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                pagebreak: { mode: [] }
+              }).from(pagina);
+              const canvas = await operazione.toCanvas().get('canvas');
+              const ctx = canvas.getContext('2d');
+              if (!ctx || canvas.width < 10 || canvas.height < 10) {
+                throw new Error(`Impossibile acquisire la pagina ${indice + 1}.`);
+              }
+              const larghezza = Math.min(canvas.width, 500);
+              const altezza = Math.min(canvas.height, 500);
+              const campione = ctx.getImageData(0, 0, larghezza, altezza).data;
+              let pixelScuri = 0;
+              for (let k = 0; k < campione.length; k += 16) {
+                if (campione[k] < 235 || campione[k + 1] < 235 || campione[k + 2] < 235) {
+                  if (++pixelScuri > 20) break;
+                }
+              }
+              if (pixelScuri <= 20) {
+                throw new Error(`La pagina ${indice + 1} risulta vuota.`);
+              }
+              if (indice === 0) {
+                // html2pdf crea il PDF e fornisce l'istanza jsPDF già inclusa
+                // nella dipendenza: non occorre installare nuove librerie.
+                pdfFinale = await operazione.toPdf().get('pdf');
+                // Rimuove eventuali pagine extra prodotte dagli arrotondamenti.
+                while (pdfFinale.getNumberOfPages() > 1) pdfFinale.deletePage(pdfFinale.getNumberOfPages());
+              } else {
+                pdfFinale.addPage('a4', 'landscape');
+                pdfFinale.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, 297, 210);
+              }
+            }
+            if (!pdfFinale) throw new Error('Impossibile completare il PDF.');
+            pdfFinale.save('Registro_Diabety.pdf');
+          } finally {
+            contenitore.remove();
+          }
+        }
+      } else {
+        if (modalita === 'html') {
+          alert('La visualizzazione HTML è disponibile nella versione web.');
+        } else {
+          const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
+          await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
+        }
+      }
+    } catch (e) {
+      console.error('DIABETY: errore durante esportazione PDF', e);
+      alert('Impossibile generare il PDF: ' + (e instanceof Error ? e.message : 'errore sconosciuto'));
     }
   };
   return (
@@ -242,7 +428,7 @@ export default function StoricoScreen() {
               <Text style={styles.exportTextSvuotaRed}>Svuota</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.exportButtonPDFAcrobatNeon} onPress={generaEDesportaPDF}>
+          <TouchableOpacity style={styles.exportButtonPDFAcrobatNeon} onPress={() => setModalPdfVisibile(true)}>
             <Ionicons name="document-text-outline" size={16} color={COLORS.brandPrimary} />
             <Text style={styles.exportTextPDFAcrobatNeon}>Esporta PDF</Text>
           </TouchableOpacity>
@@ -295,6 +481,43 @@ export default function StoricoScreen() {
         }
         contentContainerStyle={styles.listContent}
       />
+      <Modal visible={modalPdfVisibile} transparent animationType="fade" onRequestClose={() => setModalPdfVisibile(false)}>
+        <View style={styles.pdfModalOverlay}>
+          <View style={styles.pdfModalCard}>
+            <View style={styles.pdfModalHeader}>
+              <Ionicons name="document-text-outline" size={24} color={COLORS.brandPrimary} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.pdfModalTitle}>Esporta registro</Text>
+                <Text style={styles.pdfModalSubtitle}>DIABETY · Diario glicemico</Text>
+              </View>
+              <TouchableOpacity onPress={() => setModalPdfVisibile(false)} accessibilityLabel="Chiudi finestra">
+                <Ionicons name="close" size={24} color={COLORS.muted} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.pdfModalPeriodo}>Periodo selezionato: {({'all':'Tutti','7':'7 GG','14':'14 GG','30':'30 GG','90':'90 GG'} as Record<string,string>)[filtroAttivo]}</Text>
+            <TouchableOpacity style={styles.pdfModalOption} onPress={() => esportaDocumentoMatriceStoricoPDF('html')}>
+              <Ionicons name="eye-outline" size={22} color={COLORS.brandPrimary} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.pdfModalOptionTitle}>Visualizza HTML</Text>
+                <Text style={styles.pdfModalOptionDesc}>Apri il documento formattato nel browser</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.pdfModalOption} onPress={() => esportaDocumentoMatriceStoricoPDF('pdf')}>
+              <Ionicons name="download-outline" size={22} color={COLORS.brandSecondary} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.pdfModalOptionTitle}>Scarica PDF</Text>
+                <Text style={styles.pdfModalOptionDesc}>Salva un vero documento .pdf</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.pdfModalCancel} onPress={() => setModalPdfVisibile(false)}>
+              <Text style={styles.pdfModalCancelText}>Annulla</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* ℹ️ POPUP MODAL INFORMATIVO HELP ACCORDATO PERFETTAMENTE NELLA GRAFICA ALLA HOME */}
       <Modal visible={mostraHelpPDF} animationType="fade" transparent={true}>
         <View style={styles.modalOverlayCentrato}>
@@ -399,6 +622,18 @@ export default function StoricoScreen() {
   );
 }
 const styles = StyleSheet.create({
+  pdfModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', padding: 20 },
+  pdfModalCard: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 22, borderWidth: 1, borderColor: COLORS.borderGlassBright, padding: 20, maxWidth: 440, width: '100%', alignSelf: 'center' },
+  pdfModalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  pdfModalTitle: { color: COLORS.onSurface, fontSize: 18, fontWeight: '700' },
+  pdfModalSubtitle: { color: COLORS.muted, fontSize: 12, marginTop: 3 },
+  pdfModalPeriodo: { color: COLORS.brandPrimary, fontSize: 13, marginBottom: 16, fontWeight: '600' },
+  pdfModalOption: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.bgUtility, padding: 15, borderRadius: 14, borderWidth: 1, borderColor: COLORS.borderGlassBright, marginBottom: 10 },
+  pdfModalOptionTitle: { color: COLORS.onSurface, fontWeight: '700', fontSize: 14 },
+  pdfModalOptionDesc: { color: COLORS.muted, fontSize: 11, marginTop: 4 },
+  pdfModalCancel: { padding: 12, alignItems: 'center' },
+  pdfModalCancelText: { color: COLORS.muted, fontWeight: '700' },
+
   container: { flex: 1, backgroundColor: COLORS.background, paddingTop: 15 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 },
   title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700', color: COLORS.onSurface },
