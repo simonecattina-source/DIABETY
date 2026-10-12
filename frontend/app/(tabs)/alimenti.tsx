@@ -192,8 +192,8 @@ export default function AlimentiScreen() {
       
       {/* 🔍 BARRA DI RICERCA FISSA IN ALTO */}
       <View style={styles.containerRicercaFissa}>
-        <Text style={styles.title}>Dizionario Carboidrati</Text>
-        <Text style={styles.subtitle}>Componi il tuo piatto e calcola il totale dei carboidrati</Text>
+        <Text style={styles.title}>Alimenti e Carboidrati</Text>
+        <Text style={styles.subtitle}>Componi il tuo piatto. Cerca, seleziona e calcola i carboidrati del tuo pasto.</Text>
         
         <View style={styles.boxInputRicerca}>
           <Ionicons name="search-outline" size={18} color={COLORS.muted} style={{ marginRight: 8 }} />
