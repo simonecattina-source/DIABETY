@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform, LayoutAnimation, UIManager } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
+// Abilita LayoutAnimation per Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 const COLORS = {
   background: "#0A0A0C",        
   surfaceSecondary: "#13131A",  
@@ -16,6 +20,7 @@ const COLORS = {
   warning: "#FF9100",           
   error: "#FF5252",             
   borderGlass: "rgba(255, 255, 255, 0.08)",
+  borderGlassBright: "rgba(255, 255, 255, 0.15)",
   bgUtility: "#1A1A24",         
   borderUtility: "#3A3A4A"      
 };
@@ -28,10 +33,22 @@ const MOMENTI_COLONNE = [
 export default function StrumentiScreen() {
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
   const [filtroPdfSelezionato, setFiltroPdfSelezionato] = useState<string>('30 GG');
+  
+  // Memorizza l'ID del punto aperto (da 1 a 8). Se è null, sono tutti chiusi.
+  const [expandedPointId, setExpandedPointId] = useState<number | null>(null);
 
   const mostraMessaggioNotifica = (testo: string) => {
     setStatoNotifica(testo);
     setTimeout(() => setStatoNotifica(null), 3500);
+  };
+
+  const togglePoint = (id: number) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    if (expandedPointId === id) {
+      setExpandedPointId(null); // Richiude se ri-cliccato
+    } else {
+      setExpandedPointId(id); // Apre il nuovo e chiude il precedente
+    }
   };
 
   // 💾 ESPORTA BACKUP JSON
@@ -88,6 +105,7 @@ export default function StrumentiScreen() {
     };
     lettore.readAsText(file);
   };
+
   const esportaDocumentoMatriceStoricoPDF = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -162,6 +180,66 @@ export default function StrumentiScreen() {
       }
     } catch (error) { alert("Impossibile completare la stampa del documento."); }
   };
+  // Registro ufficiale degli 8 punti strutturali del manuale
+  const manualPoints = [
+    { 
+      id: 1, 
+      title: "1. Registrazione dei Dati", 
+      icon: "analytics-outline", 
+      color: COLORS.brandPrimary,
+      content: "Registra i tuoi dati in un attimo. Nella schermata 'Inserisci' puoi selezionare Data e Ora per la registrazione dei tuoi dati. Di default l'app indicherà sempre Data e Ora attuali ma puoi comunque modificare a tuo piacimento questi parametri per aggiungere dei dati in momenti specifici del tuo registro Storico. Tramite i riquadri 'Glicemia' e 'Insulina' puoi inserire i valori corrispondenti che ti interessa registrare, nella sezione subito sotto puoi impostare il momento della giornata relativo al dato che stai registrando. Nel box 'Note' puoi inserire ulteriori informazioni che verranno registrate nel tuo Storico dei dati. L'app Diabety è stata programmata per inserire all'interno del riquadro delle 'Note' l'orario in cui stai effettuando il test cosi da tenerne traccia quando esporti il file in PDF."
+    },
+    { 
+      id: 2, 
+      title: "2. Target Colorati", 
+      icon: "color-filter-outline", 
+      color: COLORS.success,
+      content: "Monitora istantaneamente il tuo stato metabolico tramite la codifica dinamica dei colori di sicurezza:\n• Verde (Euglicemia): Valori compresi nel range ideale tra 70 e 180 mg/dL.\n• Arancione (Ipoglicemia): Rilevazioni critiche inferiori a 70 mg/dL.\n• Rosso (Iperglicemia): Rilevazioni elevate superiori a 180 mg/dL."
+    },
+    { 
+      id: 3, 
+      title: "3. Archivio e Auto-Pulizia", 
+      icon: "trash-outline", 
+      color: COLORS.onSurface,
+      content: "L'applicazione applica un algoritmo rigoroso di conservazione locale calcolato su una finestra mobile di 90 giorni rispetto al record più recente. I vecchi dati vengono eliminati automaticamente per ottimizzare la memoria del dispositivo: ricordati di salvare periodicamente un file di backup per non perderli. L'Eliminazione dei vecchi dati non significa perdere 'Tutti i dati' ma si intende perdere la singola misurazione registrata a partire da 90 giorni precedenti la data attuale."
+    },
+    { 
+      id: 4, 
+      title: "4. Esportazione dei File", 
+      icon: "document-text-outline", 
+      color: COLORS.brandPrimary,
+      content: "Genera esportazioni del tuo Diario in formato PDF con layout panoramico, speculare al tuo registro clinico. Puoi selezionare un periodo specifico di 7, 14, 30 o 90 giorni (oppure includere l'intero storico) per personalizzare l'intervallo del documento, ottimizzando la visualizzazione dei parametri per la tua prossima consultazione specialistica."
+    },
+    { 
+      id: 5, 
+      title: "5. Backup e Sicurezza Dati", 
+      icon: "sync-outline", 
+      color: COLORS.brandPrimary,
+      content: "Salva e proteggi i tuoi dati in pochi clic. Puoi esportare un file di sicurezza con tutto lo storico del tuo diario oppure caricarne uno vecchio per ripristinare i log. L'importazione sovrascrive il database attuale e richiede sempre una conferma per evitare cancellazioni involontarie."
+    },
+    { 
+      id: 6, 
+      title: "6. Analisi Avanzata e Grafici", 
+      icon: "stats-chart-outline", 
+      color: COLORS.brandSecondary,
+      content: "Controlla l'andamento della tua Glicemia. Questa sezione mostra grafici chiari con l'andamento della tua Glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito se sei a target. Nota molto importante, tutti i dati e i grafici che vedi non sono dati medici ufficiali in quanto si basano solo ed esclusivamente su dati inseriti da te nel monitoraggio della Glicemia. La funzione del grafico è basata per avvicinarsi molto alla rapresentazione di un CGM ma non lo è! Un CGM (Monitoraggio Continuo del Glucosio) è un sistema tecnologico che misura i livelli di zucchero (glucosio) nel liquido interstiziale 24 ore su 24 tramite l'utilizzo di un Sensore. Il sensore rileva il glucosio ogni pochi minuti e invia i dati in tempo reale a un ricevitore, a uno smartphone o a uno smartwatch. L'app Diabety non ha questa funzione. Tutto ciò che vedi nella sezione Grafici è puramente a scopo indicativo basato soltanto su dati inseriti da te."
+    },
+    { 
+      id: 7, 
+      title: "7. Calcolatore del Bolo Insulinico", 
+      icon: "calculator-outline", 
+      color: COLORS.brandPrimary,
+      content: "Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro. Puoi inserire il valore della tua Glicemia con la quantitià di Carboidrati (CHO) che stai assumendo per elaborare secondo i tuoi parametri la dose di Insulina da fare. Puoi anche inserire solo il valore della Glicemia per calcolare la quantità di Insulina per la correzione della Glicemia per rientrare nel tuo target."
+    },
+    { 
+      id: 8, 
+      title: "8. Database Alimenti e Carboidrati", 
+      icon: "nutrition-outline", 
+      color: COLORS.success,
+      content: "Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente. Usa la barra di ricerca per trovare l'alimento che ti interessa, impostane la quantità che stai assumendo espressa in grammi e clicca sull'icona ' + ' per aggiungerla al Piatto Virtuale. L'applicazione genererà in basso una scheda momentanea dovre simulerà l'insieme del tuo pasto. Qui puoi aggiungere tutti gli alimenti relativi al pasto tenendo traccia del totale dei Carboidrati (CHO). "
+    },
+  ];
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
@@ -180,7 +258,6 @@ export default function StrumentiScreen() {
       {/* 📊 SEZIONE 1: AZIONI E BACKUP */}
       <Text style={styles.sectionLabel}>Manutenzione e Report</Text>
       <View style={styles.cardAzioni}>
-        
         {/* 1. Esporta Backup */}
         <TouchableOpacity style={styles.rowAzione} onPress={esportaBackupJSON}>
           <View style={styles.leftAzione}>
@@ -235,8 +312,8 @@ export default function StrumentiScreen() {
                 <Ionicons name="document-text-outline" size={20} color={COLORS.brandPrimary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esporta Registro PDF</Text>
-                <Text style={styles.descAzione}>Genera il documento clinico a matrice identico allo storico</Text>
+                <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esportane Registro PDF</Text>
+                <Text style={styles.descAzione}>Genera il documento clinico identico allo storico</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.brandPrimary} />
@@ -253,117 +330,45 @@ export default function StrumentiScreen() {
             })}
           </View>
         </View>
-
       </View>
 
       {/* 📚 SEZIONE GUIDA ALL'USO POSIZIONATA IN CODA COME ULTIMA SEZIONE IN ASSOLUTO */}
       <Text style={styles.sectionLabel}>Manuale & Linee Guida</Text>
-      
-      {/* CARD 1: PROTOCOLLO REGISTRAZIONE */}
-      <View style={styles.infoBlockPremium}>
-        <View style={styles.rigaTitoloManuale}>
-          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.08)' }]}>
-            <Ionicons name="analytics-outline" size={16} color={COLORS.brandPrimary} />
-          </View>
-          <Text style={styles.infoBlockTitle}>1. Protocollo Registrazione</Text>
-        </View>
-        <Text style={styles.infoBlockText}>
-          Registra i tuoi dati in un attimo. Appena inizi a digitare la misurazione, l'app memorizza l'orario del test e lo inserisce automaticamente all'inizio delle tue note nel formato <Text style={{color: COLORS.brandPrimary, fontWeight: '600'}}>[HH:MM]</Text>. In questo modo avrai sempre traccia dell'ora esatta di ogni controllo senza doverla inserire a mano.
-        </Text>
-      </View>
 
-      {/* CARD 2: TARGET CROMATICI */}
-      <View style={styles.infoBlockPremium}>
-        <View style={styles.rigaTitoloManuale}>
-          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 230, 118, 0.08)' }]}>
-            <Ionicons name="color-filter-outline" size={16} color={COLORS.success} />
-          </View>
-          <Text style={styles.infoBlockTitle}>2. Target Cromatici OLED</Text>
-        </View>
-        <Text style={styles.infoBlockText}>
-          Monitora istantaneamente il tuo stato metabolico tramite la codifica dinamica dei colori di sicurezza:{"\n"}
-          • <Text style={{ color: COLORS.success, fontWeight: '700' }}>Verde (Euglicemia):</Text> Valori compresi nel range ideale tra 70 e 180 mg/dL.{"\n"}
-          • <Text style={{ color: COLORS.warning, fontWeight: '700' }}>Arancione (Ipoglicemia):</Text> Rilevazioni critiche inferiori a 70 mg/dL.{"\n"}
-          • <Text style={{ color: COLORS.error, fontWeight: '700' }}>Rosso (Iperglicemia):</Text> Rilevazioni elevate superiori a 180 mg/dL.
-        </Text>
-      </View>
+      {/* Rendering dinamico ad accordion indipendente dei soli 8 punti strutturali */}
+      {manualPoints.map((point) => {
+        const isOpen = expandedPointId === point.id;
 
-      {/* CARD 3: ARCHIVIO E AUTO-PULIZIA */}
-      <View style={styles.infoBlockPremium}>
-        <View style={styles.rigaTitoloManuale}>
-          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(255, 255, 255, 0.05)' }]}>
-            <Ionicons name="shield-checkmark-outline" size={16} color={COLORS.onSurface} />
-          </View>
-          <Text style={styles.infoBlockTitle}>3. Archivio e Auto-Pulizia</Text>
-        </View>
-        <Text style={styles.infoBlockText}>
-          L'applicazione applica un algoritmo rigoroso di conservazione locale calcolato su una finestra mobile di <Text style={{color: COLORS.onSurface, fontWeight: '600'}}>90 giorni</Text> rispetto al record più recente. I vecchi dati vengono eliminati automaticamente per ottimizzare la memoria del dispositivo: ricordati di salvare periodicamente un file di backup per non perderli.
-        </Text>
-      </View>
-      {/* CARD 4: REPORTISTICA COMPLIANT */}
-      <View style={styles.infoBlockPremium}>
-        <View style={styles.rigaTitoloManuale}>
-          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.08)' }]}>
-            <Ionicons name="document-text-outline" size={16} color={COLORS.brandPrimary} />
-          </View>
-          <Text style={styles.infoBlockTitle}>4. Esportazione dei File</Text>
-        </View>
-        <Text style={styles.infoBlockText}>
-          Genera esportazioni del tuo Diario in formato PDF con layout panoramico a matrice, speculare al tuo registro clinico. Puoi selezionare un periodo specifico di <Text style={{color: COLORS.brandPrimary, fontWeight: '600'}}>7, 14, 30 o 90 giorni</Text> (oppure includere l'intero storico) per personalizzare l'intervallo del documento, ottimizzando la visualizzazione dei parametri per la tua prossima consultazione specialistica.
-        </Text>
-      </View>
+        return (
+          <View key={point.id} style={styles.accordionWrapper}>
+            {/* INTESTAZIONE ACCORDION (PULSANTE) */}
+            <TouchableOpacity 
+              style={[styles.accordionHeader, isOpen && styles.accordionHeaderActive]} 
+              onPress={() => togglePoint(point.id)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.headerLeft}>
+                <View style={[styles.miniIconWrapper, { backgroundColor: isOpen ? 'rgba(255, 255, 255, 0.05)' : COLORS.borderGlass }]}>
+                  <Ionicons name={point.icon} size={16} color={point.color} />
+                </View>
+                <Text style={styles.infoBlockTitle}>{point.title}</Text>
+              </View>
+              <Ionicons 
+                name={isOpen ? "chevron-up" : "chevron-forward"} 
+                size={18} 
+                color={isOpen ? point.color : COLORS.muted} 
+              />
+            </TouchableOpacity>
 
-      {/* CARD 5: INTERSCAMBIO E SICUREZZA DATI */}
-      <View style={styles.infoBlockPremium}>
-        <View style={styles.rigaTitoloManuale}>
-          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.08)' }]}>
-            <Ionicons name="sync-outline" size={16} color={COLORS.brandPrimary} />
+            {/* CONTENUTO COLLASSABILE (Visibile solo se espanso) */}
+            {isOpen && (
+              <View style={styles.accordionContent}>
+                <Text style={styles.contentText}>{point.content}</Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.infoBlockTitle}>5. Interscambio e Sicurezza Dati</Text>
-        </View>
-        <Text style={styles.infoBlockText}>
-          Salva e proteggi i tuoi dati in pochi clic. Puoi esportare un file di sicurezza con tutto lo storico del tuo diario oppure caricarne uno vecchio per ripristinare i log. L'importazione sovrascrive il database attuale e richiede sempre una conferma per evitare cancellazioni involontarie.
-        </Text>
-      </View>
-
-      {/* CARD 6: ANALISI AVANZATA E GRAFICI */}
-      <View style={styles.infoBlockPremium}>
-        <View style={styles.rigaTitoloManuale}>
-          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(125, 82, 255, 0.08)' }]}>
-            <Ionicons name="stats-chart-outline" size={16} color={COLORS.brandSecondary} />
-          </View>
-          <Text style={styles.infoBlockTitle}>6. Analisi Avanzata e Grafici</Text>
-        </View>
-        <Text style={styles.infoBlockText}>
-          Controlla l'andamento della tua Glicemia. Questa sezione mostra grafici chiari con l'andamento della tua glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito se sei a target.
-        </Text>
-      </View>
-
-      {/* 🧠 CARD 7 (NUOVA): CALCOLATORE DEL BOLO INSULINICO CON SOTTOTESTO FISSATO A DIMENSIONE 14 */}
-      <View style={styles.infoBlockPremium}>
-        <View style={styles.rigaTitoloManuale}>
-          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.08)' }]}>
-            <Ionicons name="calculator-outline" size={16} color={COLORS.brandPrimary} />
-          </View>
-          <Text style={styles.infoBlockTitle}>7. Calcolatore del Bolo Insulinico</Text>
-        </View>
-        <Text style={styles.infoBlockText}>
-          Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro.
-        </Text>
-      </View>
-
-    {/* CARD 8: DATABASE ALIMENTI E CARBOIDRATI */}
-      <View style={styles.infoBlockPremium}>
-        <View style={styles.rigaTitoloManuale}>
-          <View style={[styles.miniIconWrapper, { backgroundColor: 'rgba(0, 230, 118, 0.08)' }]}>
-            <Ionicons name="nutrition-outline" size={16} color={COLORS.success} />
-          </View>
-          <Text style={styles.infoBlockTitle}>8. Database Alimenti e Carboidrati</Text>
-        </View>
-        <Text style={styles.infoBlockText}>
-          Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente.
-        </Text>
-      </View>
+        );
+      })}
 
     </ScrollView>
   );
@@ -377,9 +382,9 @@ const styles = StyleSheet.create({
   
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 22, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
   
-  cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', overflow: 'hidden' },
-  rowAzione: { flexDirection: 'row', alignItems: 'center', justifyBetween: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
-  rowAzioneLabel: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, cursor: 'pointer', width: '100%', boxSizing: 'border-box' },
+  cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', overflow: 'hidden', marginBottom: 12 },
+  rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
+  rowAzioneLabel: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, cursor: 'pointer', width: '100%', boxSizing: 'border-box', borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass },
   
   dividerAzione: { height: 1, backgroundColor: COLORS.borderGlass, width: '100%' },
   leftAzione: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
@@ -396,11 +401,62 @@ const styles = StyleSheet.create({
   textMiniChipPdf: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600', color: COLORS.muted },
   textMiniChipPdfAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
 
-  infoBlockPremium: { marginBottom: 12, backgroundColor: COLORS.surfaceSecondary, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', alignItems: 'flex-start' },
-  rigaTitoloManuale: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10, width: '100%' },
-  miniIconWrapper: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
-  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '800', color: COLORS.onSurface, letterSpacing: -0.2 },
-  infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: COLORS.muted, lineHeight: 22, textAlign: 'left', paddingLeft: 2 },
+  accordionWrapper: {
+    width: '100%',
+    marginBottom: 10,
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surfaceSecondary,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.borderGlass,
+    width: '100%'
+  },
+  accordionHeaderActive: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderColor: COLORS.borderGlassBright,
+    borderBottomWidth: 0,
+  },
+  miniIconWrapper: { 
+    width: 28, 
+    height: 28, 
+    borderRadius: 8, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    borderWidth: 1, 
+    borderColor: COLORS.borderGlass,
+    marginRight: 12
+  },
+  infoBlockTitle: { 
+    fontFamily: 'Plus Jakarta Sans', 
+    fontSize: 14, 
+    fontWeight: '800', 
+    color: COLORS.onSurface, 
+    letterSpacing: -0.2 
+  },
+  accordionContent: {
+    backgroundColor: COLORS.bgUtility,
+    padding: 16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: COLORS.borderGlass,
+    width: '100%'
+  },
+  contentText: { 
+    fontFamily: 'Plus Jakarta Sans', 
+    fontSize: 14, 
+    color: COLORS.muted, 
+    lineHeight: 22, 
+    textAlign: 'left', 
+    paddingLeft: 2 
+  },
 
   notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
   notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 13 }
