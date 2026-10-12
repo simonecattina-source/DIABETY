@@ -208,7 +208,8 @@ export default function StrumentiScreen() {
           const modulo = await import('html2pdf.js');
           const html2pdf = modulo.default || modulo;
           const contenitore = document.createElement('div');
-          contenitore.style.cssText = 'position:fixed;left:-20000px;top:0;width:1122px;background:#fff;z-index:-1;';
+          // Il contenuto deve trovarsi nel viewport per essere catturato da html2canvas.
+          contenitore.style.cssText = 'position:fixed;left:0;top:0;width:1122px;background:#fff;z-index:2147483647;pointer-events:none;';
           const docPdf = new DOMParser().parseFromString(htmlTemplateHTML, 'text/html');
           const stilePdf = document.createElement('style');
           stilePdf.textContent = docPdf.querySelector('style')?.textContent || '';
