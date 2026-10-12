@@ -282,6 +282,7 @@ export default function GraficiScreen() {
           const presente = m.media !== null;
           const percentuale = presente ? Math.max(0, Math.min(100, (m.media! / massimo) * 100)) : 0;
           const gradId = `momentoGrad${MOMENTI_ELENCO.indexOf(m.momento)}`;
+          const coloreRange = presente ? coloreValore(m.media!) : COLORS.muted;
           return (
             <View key={m.momento} style={styles.momentoRigaPremium}>
               <View style={styles.momentoNomeGruppo}>
@@ -292,8 +293,8 @@ export default function GraficiScreen() {
                 <Svg width="100%" height="100%" viewBox="0 0 100 16" preserveAspectRatio="none">
                   <Defs>
                     <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
-                      <Stop offset="0%" stopColor={info.colore} />
-                      <Stop offset="100%" stopColor={info.chiaro} />
+                      <Stop offset="0%" stopColor={coloreRange} />
+                      <Stop offset="100%" stopColor={coloreRange} />
                     </LinearGradient>
                   </Defs>
                   <Rect x="0" y="0" width="100" height="16" rx="8" fill="#24284E" />
@@ -303,7 +304,7 @@ export default function GraficiScreen() {
                 </Svg>
               </View>
               <View style={styles.momentoValoreGruppo}>
-                <Text style={[styles.momentoValorePremium, { color: presente ? info.chiaro : COLORS.muted }]}>{presente ? m.media : '-'}</Text>
+                <Text style={[styles.momentoValorePremium, { color: coloreRange }]}>{presente ? m.media : '-'}</Text>
                 <Text style={styles.momentoUnitaPremium}>mg/dL</Text>
               </View>
             </View>
