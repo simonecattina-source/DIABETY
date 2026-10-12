@@ -102,7 +102,7 @@ export default function StoricoScreen() {
     const dataInizioOggi = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate()).getTime();
     const timestampMisurazione = ottieniTimestampCompleto(stringaData, "00:00");
     const differenzaGiorni = (dataInizioOggi - timestampMisurazione) / (1000 * 60 * 60 * 24);
-    return differenzaGiorni <= parseInt(filtroAttivo) &&眼神differenzaGiorni >= -1;
+    return differenzaGiorni <= parseInt(filtroAttivo) && differenzaGiorni >= -1;
   };
   const eliminaSingoloItem = async () => {
     if (!itemSelezionato) return;
