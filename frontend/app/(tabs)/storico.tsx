@@ -384,7 +384,7 @@ export default function StoricoScreen() {
             <Text style={styles.modalSubtitleSvuota}>Sei sicuro di voler cancellare l'intero storico delle misurazioni? Questa azione è irreversibile.</Text>
             <View style={styles.modalActionsSvuota}>
               <TouchableOpacity style={styles.btnAnnullaSvuota} onPress={() => setMostraConfermaSvuota(false)}><Text style={styles.btnAnnullaTextSvuota}>Annulla</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.btnConfermaSvuota} onPress={confermaCancellaTutto}>><Text style={styles.btnConfermaTextSvuota}>Svuota Tutto</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btnConfermaSvuota} onPress={confermaCancellaTutto}><Text style={styles.btnConfermaTextSvuota}>Svuota Tutto</Text></TouchableOpacity>
             </View>
           </View>
         </View>
