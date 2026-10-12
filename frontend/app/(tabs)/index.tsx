@@ -79,6 +79,42 @@ export default function InserimentoScreen() {
     return data.getTime();
   };
 
+  // Conserva le misurazioni degli ultimi 91 giorni di calendario rispetto a oggi.
+  // I record con data non riconoscibile vengono conservati per evitare perdite accidentali.
+  const filtraUltimi91Giorni = (dati: any[]) => {
+    const soglia = new Date();
+    soglia.setHours(0, 0, 0, 0);
+    soglia.setDate(soglia.getDate() - 91);
+    const timestampSoglia = soglia.getTime();
+
+    return dati.filter((item: any) => {
+      const timestamp = ottieniTimestampDalTesto(item?.dataTesto ?? '');
+      return timestamp === 0 || timestamp >= timestampSoglia;
+    });
+  };
+
+  // Esegue la pulizia anche quando si apre la schermata, senza attendere un nuovo salvataggio.
+  useEffect(() => {
+    const pulisciStoricoScaduto = async () => {
+      try {
+        const storico = await AsyncStorage.getItem('glicotrack_data');
+        if (!storico) return;
+
+        const dati = JSON.parse(storico);
+        if (!Array.isArray(dati)) return;
+
+        const datiFiltrati = filtraUltimi91Giorni(dati);
+        if (datiFiltrati.length !== dati.length) {
+          await AsyncStorage.setItem('glicotrack_data', JSON.stringify(datiFiltrati));
+        }
+      } catch {
+        // Se lo storico non è leggibile, non sovrascrivere né cancellare i dati esistenti.
+      }
+    };
+
+    pulisciStoricoScaduto();
+  }, []);
+
   const ottieniColoreGlicemia = () => {
     if (!/^\d+$/.test(glicemia)) return COLORS.onSurface;
     const valore = Number(glicemia);
@@ -138,26 +174,9 @@ export default function InserimentoScreen() {
         throw new Error('Il formato dello storico salvato non è valido.');
       }
 
-      let elencoDati = [nuovaMisurazione, ...datiLetti];
-
-      // Mantiene la cancellazione automatica: conserva le misurazioni entro 91 giorni
-      // rispetto alla data della misurazione più recente presente nello storico.
-      if (elencoDati.length > 0) {
-        let timestampPiuRecente = 0;
-        elencoDati.forEach((item: any) => {
-          const ts = ottieniTimestampDalTesto(item?.dataTesto ?? '');
-          if (ts > timestampPiuRecente) timestampPiuRecente = ts;
-        });
-
-        const limite91GiorniMs = 91 * 24 * 60 * 60 * 1000;
-        const timestampSogliaMinima = timestampPiuRecente - limite91GiorniMs;
-
-        elencoDati = elencoDati.filter((item: any) => {
-          const tsItem = ottieniTimestampDalTesto(item?.dataTesto ?? '');
-          // Non eliminare automaticamente record con data non riconoscibile.
-          return tsItem === 0 || tsItem >= timestampSogliaMinima;
-        });
-      }
+      // La pulizia è riferita alla data odierna, non alla data dell'ultima misurazione.
+      // Le misurazioni di 91 giorni fa restano; vengono rimosse quelle più vecchie.
+      const elencoDati = filtraUltimi91Giorni([nuovaMisurazione, ...datiLetti]);
 
       await AsyncStorage.setItem('glicotrack_data', JSON.stringify(elencoDati));
 
