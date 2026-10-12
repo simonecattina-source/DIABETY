@@ -29,8 +29,7 @@ const STORAGE_PIATTO = 'diabety_alimenti_piatto_v1';
 const normalizzaRicerca = (testo: string) => testo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('it').trim();
 export default function AlimentiScreen() {
   const [ricerca, setCerca] = useState('');
-  const [categoriaSelezionata, setCategoriaSelezionata] = useState('Tutti');
-  const [soloPreferiti, setSoloPreferiti] = useState(false);
+  const [categoriaAperta, setCategoriaAperta] = useState<string | null>('Preferiti');
   const [preferiti, setPreferiti] = useState<string[]>([]);
   const [datiCaricati, setDatiCaricati] = useState(false);
   const prossimoId = useRef(0);
@@ -100,7 +99,7 @@ export default function AlimentiScreen() {
     }));
   };
 
-  const CATEGORIE = ['Tutti', 'Primi', 'Pane e Forno', 'Frutta', 'Colazione', 'Pizze e Fast Food', 'Bevande', 'Verdure e Piatti Unici'];
+  const CATEGORIE = ['Primi', 'Pane e Forno', 'Frutta', 'Colazione', 'Pizze e Fast Food', 'Bevande', 'Verdure e Piatti Unici'];
 
   const gestisciCambioTestoGrammi = (id: string, testo: string) => {
     const testoPulito = testo.replace(/[^0-9]/g, '');
@@ -156,12 +155,38 @@ export default function AlimentiScreen() {
   const totaleChoPiatto = piattoSelezionato.reduce((acc, item) => acc + item.choTotali, 0).toFixed(1);
   const piattoIndicativo = piattoSelezionato.some(item => valoreIndicativo(item.alimentoId));
 
-  const alimentiFiltrati = DATABASE_ALIMENTI.filter(alimento => {
-    const corrispondeRicerca = normalizzaRicerca(alimento.nome).includes(normalizzaRicerca(ricerca));
-    const corrispondePreferiti = !soloPreferiti || preferiti.includes(alimento.id);
-    const corrispondeCategoria = categoriaSelezionata === 'Tutti' || alimento.categoria === categoriaSelezionata;
-    return corrispondeRicerca && corrispondeCategoria && corrispondePreferiti;
-  });
+  // Una sola categoria espansa per volta; la ricerca ignora le categorie.
+  const ricercaAttiva = normalizzaRicerca(ricerca).length > 0;
+  const risultatiRicerca = ricercaAttiva
+    ? DATABASE_ALIMENTI.filter(alimento => normalizzaRicerca(alimento.nome).includes(normalizzaRicerca(ricerca)))
+    : [];
+  type RigaElenco =
+    | { tipo: 'categoria'; id: string; titolo: string; aperta: boolean; conteggio?: number }
+    | { tipo: 'alimento'; id: string; alimento: typeof DATABASE_ALIMENTI[number] }
+    | { tipo: 'messaggio'; id: string; testo: string }
+    | { tipo: 'titoloRicerca'; id: string; testo: string };
+
+  const righe: RigaElenco[] = [];
+  if (ricercaAttiva) {
+    righe.push({ tipo: 'titoloRicerca', id: 'ricerca-intestazione', testo: `${risultatiRicerca.length} ${risultatiRicerca.length === 1 ? 'risultato' : 'risultati'}` });
+    risultatiRicerca.forEach(alimento => righe.push({ tipo: 'alimento', id: `alimento-${alimento.id}`, alimento }));
+    if (!risultatiRicerca.length) righe.push({ tipo: 'messaggio', id: 'nessun-risultato', testo: 'Nessun alimento trovato. Prova un altro nome o una marca.' });
+  } else {
+    const preferitiAlimenti = DATABASE_ALIMENTI.filter(alimento => preferiti.includes(alimento.id));
+    righe.push({ tipo: 'categoria', id: 'categoria-Preferiti', titolo: 'Preferiti', aperta: categoriaAperta === 'Preferiti', conteggio: preferitiAlimenti.length });
+    if (categoriaAperta === 'Preferiti') {
+      if (!preferitiAlimenti.length) righe.push({ tipo: 'messaggio', id: 'preferiti-vuoti', testo: 'Non hai ancora alimenti preferiti. Apri una categoria e tocca la stella per aggiungerli.' });
+      preferitiAlimenti.forEach(alimento => righe.push({ tipo: 'alimento', id: `alimento-${alimento.id}`, alimento }));
+    }
+    righe.push({ tipo: 'titoloRicerca', id: 'altre-categorie', testo: 'ALTRE CATEGORIE' });
+    CATEGORIE.forEach(categoria => {
+      const aperta = categoriaAperta === categoria;
+      righe.push({ tipo: 'categoria', id: `categoria-${categoria}`, titolo: categoria, aperta });
+      if (aperta) DATABASE_ALIMENTI.filter(alimento => alimento.categoria === categoria)
+        .forEach(alimento => righe.push({ tipo: 'alimento', id: `alimento-${alimento.id}`, alimento }));
+    });
+  }
+
   return (
     <View style={styles.container}>
       
@@ -189,39 +214,40 @@ export default function AlimentiScreen() {
         <Text style={styles.notaValoriIndicativi}>≈ valore CHO indicativo, non verificato per questo alimento</Text>
       </View>
 
-      {/* 🏷️ BARRA DELLE CATEGORIE ORIZZONTALE IN STILE CHIPS NEON */}
-      <View style={styles.containerFiltroCategorie}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollCategorieContent}>
-          <TouchableOpacity
-            style={[styles.chipCategoria, styles.chipPreferiti, soloPreferiti && styles.chipCategoriaAttiva]}
-            onPress={() => setSoloPreferiti(prev => !prev)}
-            accessibilityLabel={soloPreferiti ? 'Mostra tutti gli alimenti' : 'Mostra solo i preferiti'}
-          >
-            <Ionicons name={soloPreferiti ? 'star' : 'star-outline'} size={14} color={soloPreferiti ? COLORS.brandPrimary : COLORS.muted} />
-            <Text style={[styles.textChipCategoria, soloPreferiti && styles.textChipCategoriaAttivo]}>Preferiti</Text>
-          </TouchableOpacity>
-          {CATEGORIE.map((cat) => {
-            const attiva = categoriaSelezionata === cat;
-            return (
-              <TouchableOpacity key={cat} style={[styles.chipCategoria, attiva && styles.chipCategoriaAttiva]} onPress={() => setCategoriaSelezionata(cat)}>
-                <Text style={[styles.textChipCategoria, attiva && styles.textChipCategoriaAttivo]}>{cat}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* 📦 LISTA FLUIDA ALIMENTI (VIRTUALIZZAZIONE NATIVA AD ALTE PRESTAZIONI) */}
+      {/* Elenco a fisarmonica: Preferiti aperti all'avvio; ricerca globale immediata. */}
       <FlatList
-        data={alimentiFiltrati}
+        data={righe}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        initialNumToRender={8}
-        maxToRenderPerBatch={10}
-        windowSize={4}
-        removeClippedSubviews={true} 
-        renderItem={({ item }) => {
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={5}
+        renderItem={({ item: riga }) => {
+          if (riga.tipo === 'categoria') {
+            return (
+              <TouchableOpacity
+                style={[styles.rigaCategoriaEspandibile, riga.aperta && styles.rigaCategoriaAperta]}
+                onPress={() => setCategoriaAperta(prev => prev === riga.titolo ? null : riga.titolo)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: riga.aperta }}
+                accessibilityLabel={`${riga.titolo}, ${riga.aperta ? 'aperta' : 'chiusa'}`}
+              >
+                <View style={styles.rigaCategoriaTitolo}>
+                  {riga.titolo === 'Preferiti' && <Ionicons name="star" size={18} color="#FFD54F" />}
+                  <Text style={[styles.testoCategoriaEspandibile, riga.aperta && styles.testoCategoriaAperta]}>{riga.titolo}</Text>
+                  {riga.conteggio !== undefined && <Text style={styles.conteggioPreferiti}>{riga.conteggio}</Text>}
+                </View>
+                <Ionicons name={riga.aperta ? 'chevron-up' : 'chevron-down'} size={19} color={riga.aperta ? COLORS.brandPrimary : COLORS.muted} />
+              </TouchableOpacity>
+            );
+          }
+          if (riga.tipo === 'messaggio') return (
+            <View style={styles.messaggioElenco}><Text style={styles.testoMessaggioElenco}>{riga.testo}</Text></View>
+          );
+          if (riga.tipo === 'titoloRicerca') return <Text style={styles.intestazioneElenco}>{riga.testo}</Text>;
+          const item = riga.alimento;
           const stringaGrammi = grammature[item.id] !== undefined ? grammature[item.id] : '';
           const grammiValore = parseInt(stringaGrammi, 10) || 0;
           const choCalcolati = ((grammiValore * item.cho100g) / 100).toFixed(1);
@@ -271,14 +297,6 @@ export default function AlimentiScreen() {
             </View>
           );
         }}
-        ListEmptyComponent={
-          <View style={{ padding: 40, alignItems: 'center' }}>
-            <Ionicons name="fast-food-outline" size={32} color={COLORS.muted} style={{ marginBottom: 8 }} />
-            <Text style={{ color: COLORS.muted, fontFamily: 'Plus Jakarta Sans', textAlign: 'center' }}>
-              {soloPreferiti ? 'Nessun preferito corrisponde ai filtri. Tocca la stella di un alimento per aggiungerlo.' : 'Nessun alimento trovato corrispondente alla ricerca.'}
-            </Text>
-          </View>
-        }
       />
       {/* 🍽️ PANNELLO VISIVAMENTE ISOLATO DALLO SFONDO GRAZIE ALLA TONALITÀ ZINCO TECH ED ELEVAZIONE BORDO CYAN */}
       {piattoSelezionato.length > 0 && (
@@ -348,7 +366,16 @@ const styles = StyleSheet.create({
   textChipCategoria: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600', color: COLORS.muted },
   textChipCategoriaAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
 
-  listContent: { padding: 16, paddingBottom: 180 }, 
+  listContent: { padding: 16, paddingBottom: 180 },
+  rigaCategoriaEspandibile: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 12, borderWidth: 1, borderColor: COLORS.borderGlass, paddingHorizontal: 16, paddingVertical: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 },
+  rigaCategoriaAperta: { backgroundColor: 'rgba(0, 229, 255, 0.07)', borderColor: COLORS.brandPrimary },
+  rigaCategoriaTitolo: { flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1 },
+  testoCategoriaEspandibile: { color: COLORS.onSurface, fontFamily: 'Plus Jakarta Sans', fontWeight: '600', fontSize: 14 },
+  testoCategoriaAperta: { color: COLORS.brandPrimary },
+  conteggioPreferiti: { color: COLORS.muted, fontSize: 12 },
+  intestazioneElenco: { color: COLORS.muted, fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '700', letterSpacing: 1, marginTop: 12, marginBottom: 12 },
+  messaggioElenco: { paddingVertical: 24, paddingHorizontal: 18, marginBottom: 10 },
+  testoMessaggioElenco: { color: COLORS.muted, fontFamily: 'Plus Jakarta Sans', fontSize: 13, textAlign: 'center', lineHeight: 20 }, 
   cardAlimentoPremium: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: COLORS.borderGlass, marginBottom: 12, width: '100%' },
   rigaInfoSuperiore: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottomWidth: 1, borderBottomColor: "rgba(255, 255, 255, 0.04)", paddingBottom: 10 },
   boxTestiSinistra: { flex: 1, marginRight: 10, alignItems: 'flex-start' },
