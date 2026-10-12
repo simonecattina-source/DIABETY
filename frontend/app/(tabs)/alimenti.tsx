@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 📂 IMPORTAZIONE ASINCRONA DEL TUO DATABASE DI ALIMENTI ESTERNO JSON
 import DATABASE_ALIMENTI_ESTERNO from '../../constants/alimenti_database.json';
@@ -18,16 +19,82 @@ const COLORS = {
 };
 
 // Ordiniamo alfabeticamente l'array importato per garantire una ricerca utente ottimale
-const DATABASE_ALIMENTI = DATABASE_ALIMENTI_ESTERNO.sort((a, b) => a.nome.localeCompare(b.nome));
+const DATABASE_ALIMENTI = [...DATABASE_ALIMENTI_ESTERNO].sort((a, b) => a.nome.localeCompare(b.nome));
+const STORAGE_PREFERITI = 'diabety_alimenti_preferiti_v1';
+const STORAGE_PIATTO = 'diabety_alimenti_piatto_v1';
+const normalizzaRicerca = (testo: string) => testo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('it').trim();
 export default function AlimentiScreen() {
   const [ricerca, setCerca] = useState('');
   const [categoriaSelezionata, setCategoriaSelezionata] = useState('Tutti');
+  const [soloPreferiti, setSoloPreferiti] = useState(false);
+  const [preferiti, setPreferiti] = useState<string[]>([]);
+  const [datiCaricati, setDatiCaricati] = useState(false);
+  const prossimoId = useRef(0);
   
   // Memorizziamo le grammature degli alimenti salvandole come stringhe per permettere la digitazione fluida
   const [grammature, setGrammature] = useState<Record<string, string>>({});
   
   // 🍽️ STATO DEL PIATTO VIRTUALE: Array di elementi selezionati accumulati
   const [piattoSelezionato, setPiattoSelezionato] = useState<any[]>([]);
+
+  // Preferiti e piatto sono locali al dispositivo, senza condivisione esterna.
+  useEffect(() => {
+    let attivo = true;
+    const carica = async () => {
+      try {
+        const [salvatiPreferiti, salvatoPiatto] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_PREFERITI),
+          AsyncStorage.getItem(STORAGE_PIATTO)
+        ]);
+        if (!attivo) return;
+        if (salvatiPreferiti) {
+          const elenco = JSON.parse(salvatiPreferiti);
+          if (Array.isArray(elenco)) setPreferiti(elenco.filter((id): id is string => typeof id === 'string'));
+        }
+        if (salvatoPiatto) {
+          const elenco = JSON.parse(salvatoPiatto);
+          if (Array.isArray(elenco)) {
+            setPiattoSelezionato(elenco.filter((item: any) =>
+              item && typeof item.idUnico === 'string' && typeof item.alimentoId === 'string' &&
+              typeof item.nome === 'string' && Number.isFinite(item.grammi) && item.grammi > 0 &&
+              item.grammi <= 500 && Number.isFinite(item.choTotali)
+            ));
+          }
+        }
+      } catch (errore) {
+        console.warn('DIABETY: impossibile ripristinare preferiti o piatto', errore);
+      } finally {
+        if (attivo) setDatiCaricati(true);
+      }
+    };
+    carica();
+    return () => { attivo = false; };
+  }, []);
+
+  useEffect(() => {
+    if (datiCaricati) AsyncStorage.setItem(STORAGE_PREFERITI, JSON.stringify(preferiti))
+      .catch(errore => console.warn('DIABETY: errore salvataggio preferiti', errore));
+  }, [preferiti, datiCaricati]);
+
+  useEffect(() => {
+    if (datiCaricati) AsyncStorage.setItem(STORAGE_PIATTO, JSON.stringify(piattoSelezionato))
+      .catch(errore => console.warn('DIABETY: errore salvataggio piatto', errore));
+  }, [piattoSelezionato, datiCaricati]);
+
+  const cambiaPreferito = (id: string) => {
+    setPreferiti(prev => prev.includes(id) ? prev.filter(preferito => preferito !== id) : [...prev, id]);
+  };
+
+  const modificaGrammiNelPiatto = (idUnico: string, testo: string) => {
+    const cifre = testo.replace(/[^0-9]/g, '');
+    const grammi = Math.min(500, parseInt(cifre, 10) || 0);
+    setPiattoSelezionato(prev => prev.map(item => {
+      if (item.idUnico !== idUnico) return item;
+      const alimento = DATABASE_ALIMENTI.find(a => a.id === item.alimentoId);
+      const cho100g = alimento ? alimento.cho100g : (item.grammi > 0 ? item.choTotali * 100 / item.grammi : 0);
+      return { ...item, grammi, choTotali: Number(((grammi * cho100g) / 100).toFixed(1)) };
+    }));
+  };
 
   const CATEGORIE = ['Tutti', 'Primi', 'Pane e Forno', 'Frutta', 'Colazione', 'Pizze e Fast Food', 'Bevande', 'Verdure e Piatti Unici'];
 
@@ -54,7 +121,7 @@ export default function AlimentiScreen() {
     const choCalcolati = parseFloat(((grammi * alimento.cho100g) / 100).toFixed(1));
     
     const nuovoElementoPiatto = {
-      idUnico: Date.now().toString() + alimento.id,
+      idUnico: `${Date.now()}_${++prossimoId.current}_${alimento.id}`, 
       alimentoId: alimento.id,
       nome: alimento.nome,
       grammi: grammi,
@@ -85,9 +152,10 @@ export default function AlimentiScreen() {
   const totaleChoPiatto = piattoSelezionato.reduce((acc, item) => acc + item.choTotali, 0).toFixed(1);
 
   const alimentiFiltrati = DATABASE_ALIMENTI.filter(alimento => {
-    const corrispondeRicerca = alimento.nome.toLowerCase().includes(ricerca.toLowerCase());
+    const corrispondeRicerca = normalizzaRicerca(alimento.nome).includes(normalizzaRicerca(ricerca));
+    const corrispondePreferiti = !soloPreferiti || preferiti.includes(alimento.id);
     const corrispondeCategoria = categoriaSelezionata === 'Tutti' || alimento.categoria === categoriaSelezionata;
-    return corrispondeRicerca && corrispondeCategoria;
+    return corrispondeRicerca && corrispondeCategoria && corrispondePreferiti;
   });
   return (
     <View style={styles.container}>
@@ -118,6 +186,14 @@ export default function AlimentiScreen() {
       {/* 🏷️ BARRA DELLE CATEGORIE ORIZZONTALE IN STILE CHIPS NEON */}
       <View style={styles.containerFiltroCategorie}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollCategorieContent}>
+          <TouchableOpacity
+            style={[styles.chipCategoria, styles.chipPreferiti, soloPreferiti && styles.chipCategoriaAttiva]}
+            onPress={() => setSoloPreferiti(prev => !prev)}
+            accessibilityLabel={soloPreferiti ? 'Mostra tutti gli alimenti' : 'Mostra solo i preferiti'}
+          >
+            <Ionicons name={soloPreferiti ? 'star' : 'star-outline'} size={14} color={soloPreferiti ? COLORS.brandPrimary : COLORS.muted} />
+            <Text style={[styles.textChipCategoria, soloPreferiti && styles.textChipCategoriaAttivo]}>Preferiti</Text>
+          </TouchableOpacity>
           {CATEGORIE.map((cat) => {
             const attiva = categoriaSelezionata === cat;
             return (
@@ -148,7 +224,12 @@ export default function AlimentiScreen() {
             <View style={styles.cardAlimentoPremium}>
               <View style={styles.rigaInfoSuperiore}>
                 <View style={styles.boxTestiSinistra}>
-                  <Text style={styles.nomeAlimento} numberOfLines={1}>{item.nome}</Text>
+                  <View style={styles.rigaNomePreferito}>
+                    <Text style={[styles.nomeAlimento, { flex: 1 }]} numberOfLines={2}>{item.nome}</Text>
+                    <TouchableOpacity onPress={() => cambiaPreferito(item.id)} style={styles.pulsanteStella} accessibilityLabel={preferiti.includes(item.id) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}>
+                      <Ionicons name={preferiti.includes(item.id) ? 'star' : 'star-outline'} size={21} color={preferiti.includes(item.id) ? '#FFD54F' : COLORS.muted} />
+                    </TouchableOpacity>
+                  </View>
                   <Text style={styles.etichettaValoreBase}>Valore base: {item.cho100g}g CHO / 100g</Text>
                 </View>
 
@@ -188,7 +269,7 @@ export default function AlimentiScreen() {
           <View style={{ padding: 40, alignItems: 'center' }}>
             <Ionicons name="fast-food-outline" size={32} color={COLORS.muted} style={{ marginBottom: 8 }} />
             <Text style={{ color: COLORS.muted, fontFamily: 'Plus Jakarta Sans', textAlign: 'center' }}>
-              Nessun alimento trovato corrispondente alla ricerca.
+              {soloPreferiti ? 'Nessun preferito corrisponde ai filtri. Tocca la stella di un alimento per aggiungerlo.' : 'Nessun alimento trovato corrispondente alla ricerca.'}
             </Text>
           </View>
         }
@@ -203,16 +284,28 @@ export default function AlimentiScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Orizzontale Mini Chips dei cibi bloccati nel piatto */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollCibiPiatto} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
+          {/* Modifica direttamente le grammature degli alimenti del piatto. */}
+          <ScrollView style={styles.listaPiattoModificabile} nestedScrollEnabled keyboardShouldPersistTaps="handled">
             {piattoSelezionato.map((item) => (
-              <View key={item.idUnico} style={styles.chipCiboInserito}>
-                <Text style={styles.testoChipCiboInserito}>{item.nome} ({item.grammi}g)</Text>
-                <TouchableOpacity 
-                  style={styles.btnRimuoviCiboSingolo} 
-                  onPress={() => rimuoviDalPiatto(item.idUnico, item.alimentoId)} // 🔄 Svuotamento combinato di riga
+              <View key={item.idUnico} style={styles.rigaCiboPiatto}>
+                <Text style={styles.nomeCiboPiatto} numberOfLines={2}>{item.nome}</Text>
+                <TextInput
+                  style={styles.inputGrammiPiatto}
+                  keyboardType="numeric"
+                  value={item.grammi === 0 ? '' : String(item.grammi)}
+                  onChangeText={testo => modificaGrammiNelPiatto(item.idUnico, testo)}
+                  maxLength={3}
+                  selectTextOnFocus
+                  accessibilityLabel={`Grammi di ${item.nome}`}
+                />
+                <Text style={styles.unitaGrammiPiatto}>g</Text>
+                <Text style={styles.choCiboPiatto}>{item.choTotali.toFixed(1)} CHO</Text>
+                <TouchableOpacity
+                  style={styles.btnRimuoviCiboSingolo}
+                  onPress={() => rimuoviDalPiatto(item.idUnico, item.alimentoId)}
+                  accessibilityLabel={`Rimuovi ${item.nome} dal piatto`}
                 >
-                  <Ionicons name="close" size={12} color={COLORS.error} />
+                  <Ionicons name="close-circle-outline" size={21} color={COLORS.error} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -240,6 +333,9 @@ const styles = StyleSheet.create({
   
   containerFiltroCategorie: { backgroundColor: COLORS.background, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
   scrollCategorieContent: { paddingHorizontal: 16, gap: 8 },
+  chipPreferiti: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  rigaNomePreferito: { flexDirection: 'row', alignItems: 'center', width: '100%' },
+  pulsanteStella: { padding: 5, marginLeft: 4 },
   chipCategoria: { backgroundColor: COLORS.surfaceSecondary, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: COLORS.borderGlass },
   chipCategoriaAttiva: { backgroundColor: "rgba(0, 229, 255, 0.08)", borderColor: COLORS.brandPrimary },
   textChipCategoria: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600', color: COLORS.muted },
@@ -290,6 +386,12 @@ const styles = StyleSheet.create({
   titoloPiattoSezione: { fontFamily: 'Space Grotesk', fontSize: 16, fontWeight: '700', color: COLORS.onSurface },
   testoSvuotaPiatto: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.error, fontWeight: '600' },
   scrollCibiPiatto: { width: '100%', maxHeight: 36, marginBottom: 4 },
+  listaPiattoModificabile: { maxHeight: 180, width: '100%' },
+  rigaCiboPiatto: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass },
+  nomeCiboPiatto: { color: COLORS.onSurface, fontSize: 12, flex: 1, fontFamily: 'Plus Jakarta Sans' },
+  inputGrammiPiatto: { backgroundColor: COLORS.surfaceSecondary, borderWidth: 1, borderColor: COLORS.brandPrimary, borderRadius: 8, color: COLORS.brandPrimary, textAlign: 'center', width: 45, height: 34, fontSize: 13 },
+  unitaGrammiPiatto: { color: COLORS.muted, fontSize: 11 },
+  choCiboPiatto: { color: COLORS.success, width: 67, textAlign: 'right', fontSize: 11, fontWeight: '700' },
   chipCiboInserito: { flexDirection: 'row', alignItems: 'center', backgroundColor: "#13131A", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.08)", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, gap: 6 },
   testoChipCiboInserito: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.onSurface, fontWeight: '500' },
   btnRimuoviCiboSingolo: { justifyContent: 'center', alignItems: 'center', paddingLeft: 2 },
