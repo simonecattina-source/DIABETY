@@ -116,9 +116,12 @@ export default function CalcolatoreBoloScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
       {/* Intestazione */}
-      <View style={styles.headerForm}>
-        <Text style={styles.title}>Calcolo Bolo</Text>
-        <Text style={styles.subtitle}>Calcolatore insulinico basato sui tuoi parametri terapeutici</Text>
+      <View style={styles.headerCard}>
+        <View style={styles.headerAccent} />
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>Calcolo Bolo</Text>
+          <Text style={styles.subtitle}>Calcolatore insulinico basato sui tuoi parametri terapeutici</Text>
+        </View>
       </View>
 
       {/* RISULTATO CENTRALIZZATO PREMIUM IN CASO DI CALCOLO ATTIVO */}
@@ -318,9 +321,11 @@ export default function CalcolatoreBoloScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 16, paddingTop: 20, paddingBottom: 40 },
-  headerForm: { marginBottom: 16, width: '100%' },
-  title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700', color: COLORS.onSurface },
-  subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, marginTop: 4 },
+  headerCard: { backgroundColor: '#101B28', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  headerAccent: { width: 3, height: 43, backgroundColor: COLORS.brandPrimary, borderRadius: 4 },
+  headerContent: { flex: 1, gap: 4 },
+  title: { fontFamily: 'Space Grotesk', fontSize: 21, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 },
+  subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: '#93A7B9' },
   
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 14, marginBottom: 10, uppercase: true, letterSpacing: 0.5 },
   sectionLabelBolo: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, letterSpacing: -0.2 },
