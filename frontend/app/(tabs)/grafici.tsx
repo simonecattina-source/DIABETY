@@ -366,15 +366,33 @@ export default function GraficiScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <Text style={styles.title}>Analisi e Grafici</Text>
+      <View style={styles.headerCard}>
+        <View style={styles.headerAccent} />
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Analisi e Grafici</Text>
+        </View>
+      </View>
 
       <Modal animationType="fade" transparent={true} visible={modalVisibile} onRequestClose={() => setModalVisibile(false)}>
         <View style={styles.sfondoModalCentrato}>
           <View style={styles.corpoSchedaModal}>
-            <Text style={styles.titoloModal}>{modalTitolo}</Text>
-            <Text style={styles.testoDescrizioneModal}>{modalTesto}</Text>
+            <View style={styles.intestazioneModal}>
+              <Ionicons name="help-circle-outline" size={29} color={COLORS.brandPrimary} />
+              <Text style={styles.titoloModal}>{modalTitolo}</Text>
+              <TouchableOpacity
+                onPress={() => setModalVisibile(false)}
+                style={styles.iconaChiudiModal}
+                accessibilityRole="button"
+                accessibilityLabel="Chiudi spiegazione"
+              >
+                <Ionicons name="close" size={25} color="#A9C2D5" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.contenutoModalScroll} contentContainerStyle={styles.contenutoModalInterno} showsVerticalScrollIndicator={false}>
+              <Text style={styles.testoDescrizioneModal}>{modalTesto}</Text>
+            </ScrollView>
             <TouchableOpacity style={styles.bottoneChiudiModal} onPress={() => setModalVisibile(false)}>
-              <Text style={styles.testoBottoneChiudi}>Ho capito</Text>
+              <Text style={styles.testoBottoneChiudi}>Chiudi</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -385,7 +403,7 @@ export default function GraficiScreen() {
           <View style={styles.rigaTitoloGrafico}>
             <Text style={styles.sectionLabel} numberOfLines={1}>Trimestre (90 GG)</Text>
             <TouchableOpacity onPress={() => apriSpiegazione('trimestrale')} style={styles.pulsanteInfoTocco}>
-              <Ionicons name="information-circle-outline" size={17} color="#AA7AFF" />
+              <Ionicons name="help-circle-outline" size={17} color="#AA7AFF" />
             </TouchableOpacity>
           </View>
           <View style={styles.rigaQuadranteTrimestre}>
@@ -412,7 +430,7 @@ export default function GraficiScreen() {
           <View style={styles.rigaTitoloGrafico}>
             <Text style={styles.sectionLabel} numberOfLines={1}>Media di oggi</Text>
             <TouchableOpacity onPress={() => apriSpiegazione('oggi')} style={styles.pulsanteInfoTocco}>
-              <Ionicons name="information-circle-outline" size={17} color={COLORS.brandPrimary} />
+              <Ionicons name="help-circle-outline" size={17} color={COLORS.brandPrimary} />
             </TouchableOpacity>
           </View>
           <View style={styles.contenutoOggiNeon}>
@@ -431,7 +449,7 @@ export default function GraficiScreen() {
         <View style={styles.rigaTitoloGrafico}>
           <Text style={styles.sectionLabel}>Andamento sulle ultime 24 ore</Text>
           <TouchableOpacity onPress={() => apriSpiegazione('24h')} style={styles.pulsanteInfoTocco}>
-            <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
+            <Ionicons name="help-circle-outline" size={20} color={COLORS.brandPrimary} />
           </TouchableOpacity>
         </View>
         <Text style={styles.subLabelSpiegazione}>Misurazioni delle ultime 24 ore, aggiornate dinamicamente senza azzeramento a mezzanotte.</Text>
@@ -446,7 +464,7 @@ export default function GraficiScreen() {
         <View style={styles.rigaTitoloGrafico}>
           <Text style={styles.sectionLabel}>Andamento Medie Giornaliere</Text>
           <TouchableOpacity onPress={() => apriSpiegazione('giornaliere')} style={styles.pulsanteInfoTocco}>
-            <Ionicons name="information-circle-outline" size={20} color={COLORS.brandSecondary} />
+            <Ionicons name="help-circle-outline" size={20} color={COLORS.brandSecondary} />
           </TouchableOpacity>
         </View>
         <Text style={styles.subLabelSpiegazione}>La fascia evidenziata indica il range ideale (70-180 mg/dL).</Text>
@@ -468,7 +486,7 @@ export default function GraficiScreen() {
             </View>
           </View>
           <TouchableOpacity onPress={() => apriSpiegazione('momenti')} style={styles.pulsanteInfoTocco}>
-            <Ionicons name="information-circle-outline" size={23} color="#9855FF" />
+            <Ionicons name="help-circle-outline" size={23} color="#9855FF" />
           </TouchableOpacity>
         </View>
         {totaleMisurazioni > 0 ? renderizzaGraficoColonneMomenti() : (
@@ -478,7 +496,7 @@ export default function GraficiScreen() {
           </View>
         )}
         <View style={styles.notaMomentiPremium}>
-          <Ionicons name="information-circle" size={20} color="#9588F9" />
+          <Ionicons name="help-circle-outline" size={20} color="#9588F9" />
           <Text style={styles.notaMomentiTesto}>Le medie per momento della giornata sono calcolate sulle misurazioni disponibili negli ultimi 90 giorni e possono variare in base alla disponibilità dei dati.</Text>
         </View>
       </View>
@@ -489,7 +507,7 @@ export default function GraficiScreen() {
             <Text style={[styles.sectionLabel, styles.titoloHbTesto]}>Stima Emoglobina Glicata (HbA1c)</Text>
           </View>
           <TouchableOpacity onPress={() => apriSpiegazione('glicata')} style={styles.pulsanteInfoTocco}>
-            <Ionicons name="information-circle-outline" size={23} color="#9855FF" />
+            <Ionicons name="help-circle-outline" size={23} color="#9855FF" />
           </TouchableOpacity>
         </View>
 
@@ -553,7 +571,7 @@ export default function GraficiScreen() {
         )}
 
         <View style={styles.notaHb}>
-          <Ionicons name="information-circle" size={20} color="#9588F9"/>
+          <Ionicons name="help-circle-outline" size={20} color="#9588F9"/>
           <Text style={styles.notaHbTesto}>La stima dell'HbA1c è orientativa e non sostituisce un esame di laboratorio. Le fasce non rappresentano obiettivi clinici personalizzati.</Text>
         </View>
       </View>
@@ -562,6 +580,11 @@ export default function GraficiScreen() {
 }
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  // Intestazione coerente con Bolo e Storico (DIABETY V7.0.5).
+  headerCard: { backgroundColor: '#101B28', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  headerAccent: { width: 3, height: 43, backgroundColor: COLORS.brandPrimary, borderRadius: 4 },
+  headerContent: { flex: 1, gap: 4 },
+  headerTitle: { fontFamily: 'Space Grotesk', fontSize: 21, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 },
   content: { padding: 16, paddingTop: 15, paddingBottom: 40 },
   title: { fontFamily: 'Space Grotesk', fontSize: 24, fontWeight: '800', color: COLORS.onSurface, marginBottom: 16, letterSpacing: -0.5 },
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, letterSpacing: -0.2 },
@@ -602,12 +625,16 @@ const styles = StyleSheet.create({
   valoreColonnaTesto: { fontFamily: 'Space Grotesk', fontSize: 10, fontWeight: '800' },
   colonnaRettangolo: { width: 16, borderRadius: 4, minHeight: 4 },
   etichettaColonnaMomento: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, fontWeight: '700', color: COLORS.muted, marginTop: 2 },
-  sfondoModalCentrato: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.85)', padding: 20 },
-  corpoSchedaModal: { backgroundColor: '#111116', borderRadius: 16, padding: 22, width: '100%', maxWidth: 340, borderWidth: 1, borderColor: '#22222E', alignItems: 'flex-start' },
-  titoloModal: { fontFamily: 'Space Grotesk', fontSize: 18, fontWeight: '800', color: COLORS.onSurface, marginBottom: 12 },
-  testoDescrizioneModal: { fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, color: COLORS.muted, lineHeight: 22, textAlign: 'left' },
-  bottoneChiudiModal: { marginTop: 22, backgroundColor: '#1A1A24', borderWidth: 1, borderColor: COLORS.borderGlass, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, alignSelf: 'stretch', alignItems: 'center' },
-  testoBottoneChiudi: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
+  sfondoModalCentrato: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.78)', padding: 20 },
+  corpoSchedaModal: { backgroundColor: '#081723', borderRadius: 22, padding: 20, width: '100%', maxWidth: 370, maxHeight: '80%', borderWidth: 1, borderColor: '#00E5FF', alignItems: 'stretch' },
+  intestazioneModal: { flexDirection: 'row', alignItems: 'center', marginBottom: 18, gap: 10 },
+  titoloModal: { fontFamily: 'Space Grotesk', fontSize: 19, fontWeight: '800', color: COLORS.onSurface, flex: 1 },
+  iconaChiudiModal: { padding: 5, marginRight: -5, alignItems: 'center', justifyContent: 'center' },
+  contenutoModalScroll: { flexShrink: 1 },
+  contenutoModalInterno: { paddingBottom: 4 },
+  testoDescrizioneModal: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, color: '#E2EBF4', lineHeight: 24, textAlign: 'left' },
+  bottoneChiudiModal: { marginTop: 22, backgroundColor: '#00E5FF', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 13, alignSelf: 'stretch', alignItems: 'center' },
+  testoBottoneChiudi: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '800', color: '#06141E' },
   containerInterfacciaGlicata: { width: '100%', marginTop: 5 },
   rigaDatiGlicataPrincipale: { flexDirection: 'row', alignItems: 'baseline', gap: 10, marginBottom: 14 },
   valoreGlicataTestoCentrale: { fontFamily: 'Space Grotesk', fontSize: 32, fontWeight: '800', letterSpacing: -0.5 },
