@@ -19,13 +19,6 @@ const COLORS = {
   borderUtility: "#3A3A4A"      
 };
 
-const ETICHETTE_MOMENTI: Record<string, string> = {
-  "Prima Colazione": "Prima di colazione", "Dopo Colazione": "Dopo colazione",
-  "Spuntino": "Spuntino", "Prima Pranzo": "Prima di pranzo",
-  "Dopo Pranzo": "Dopo pranzo", "Merenda": "Merenda",
-  "Prima Cena": "Prima di cena", "Dopo Cena": "Dopo cena", "Notte": "Notte"
-};
-
 const MOMENTI = [
   "Prima Colazione", "Dopo Colazione", "Spuntino", 
   "Prima Pranzo", "Dopo Pranzo", "Merenda", 
@@ -202,34 +195,56 @@ export default function InserimentoScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
-      <View style={styles.headerCard}>
-        <View style={styles.headerAccent} />
-        <View style={styles.headerContent}>
-          <View style={styles.headerForm}>
-            <Text style={styles.title}>Inserisci Nuovi Dati</Text>
-            <TouchableOpacity style={styles.infoButtonMinimal} onPress={() => setMostraModalInfo(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Informazioni sull'inserimento">
-              <View style={styles.helpCircle}><Text style={styles.helpQuestion}>?</Text></View>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.subtitle}>Registra una nuova misurazione</Text>
-        </View>
+      {/* 🏷️ INTESTAZIONE CON TITOLO E TASTO INFO ANCORATO DI FIANCO A DESTRA */}
+      <View style={styles.headerForm}>
+        <Text style={styles.title}>Inserisci Nuovi Dati</Text>
+        <TouchableOpacity style={styles.infoButtonMinimal} onPress={() => setMostraModalInfo(true)} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
+          <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
+        </TouchableOpacity>
       </View>
-
+      
+      {/* 📅⏰ RIGHE TEMPORALI */}
       <View style={styles.containerRigaTemporale}>
         <View style={styles.dataCardSinistra}>
-          <View style={styles.cardTitleRow}><Ionicons name="calendar-outline" size={16} color={COLORS.brandPrimary} /><Text style={styles.cardTitle}>Data del Test</Text></View>
+          <Text style={styles.labelLeft}>Data del Test</Text>
           {Platform.OS === 'web' ? (
-            <input type="date" value={dataISO} max={ottieniDataOdiernaISO()} onChange={(e) => setDataISO(e.target.value)}
-              style={{ fontFamily: 'sans-serif', fontSize: '14px', fontWeight: '600', color: '#FFFFFF', backgroundColor: '#080F18', border: '1px solid #344C63', borderRadius: '8px', padding: '9px 4px', marginTop: '6px', width: '100%', boxSizing: 'border-box', minWidth: 0, outline: 'none', colorScheme: 'dark' }} />
+            <input
+              type="date"
+              value={dataISO}
+              max={ottieniDataOdiernaISO()} 
+              onChange={(e) => setDataISO(e.target.value)}
+              style={{
+                fontFamily: 'sans-serif', fontSize: '15px', fontWeight: '600', color: '#FFFFFF', 
+                backgroundColor: '#13131A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px',
+                padding: '6px 10px', marginTop: '4px', width: 'auto', display: 'inline-block', outline: 'none', cursor: 'pointer'
+              }}
+            />
           ) : (
-            <TextInput style={styles.timeInputBackup} value={dataISO} onChangeText={setDataISO} placeholder="AAAA-MM-GG" placeholderTextColor={COLORS.muted} maxLength={10} accessibilityLabel="Data del test nel formato AAAA-MM-GG" />
+            <TextInput
+              style={[styles.timeInputBackup, { width: 124 }]}
+              value={dataISO}
+              onChangeText={setDataISO}
+              placeholder="AAAA-MM-GG"
+              placeholderTextColor={COLORS.muted}
+              maxLength={10}
+              accessibilityLabel="Data del test nel formato AAAA-MM-GG"
+            />
           )}
         </View>
+
         <View style={styles.dataCardSinistra}>
-          <View style={styles.cardTitleRow}><Ionicons name="time-outline" size={16} color={COLORS.brandPrimary} /><Text style={styles.cardTitle}>Orario del Test</Text></View>
+          <Text style={styles.labelLeft}>Orario del Test</Text>
           {Platform.OS === 'web' ? (
-            <input type="time" value={oraInserita} onChange={(e) => setOraInserita(e.target.value)}
-              style={{ fontFamily: 'sans-serif', fontSize: '14px', fontWeight: '600', color: '#FFFFFF', backgroundColor: '#080F18', border: '1px solid #344C63', borderRadius: '8px', padding: '9px 4px', marginTop: '6px', width: '100%', boxSizing: 'border-box', minWidth: 0, outline: 'none', colorScheme: 'dark' }} />
+            <input
+              type="time"
+              value={oraInserita}
+              onChange={(e) => setOraInserita(e.target.value)}
+              style={{
+                fontFamily: 'sans-serif', fontSize: '15px', fontWeight: '600', color: '#FFFFFF', 
+                backgroundColor: '#13131A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px',
+                padding: '6px 10px', marginTop: '4px', width: 'auto', display: 'inline-block', outline: 'none', cursor: 'pointer'
+              }}
+            />
           ) : (
             <TextInput style={styles.timeInputBackup} value={oraInserita} onChangeText={setOraInserita} maxLength={5} />
           )}
@@ -238,41 +253,46 @@ export default function InserimentoScreen() {
 
       <View style={styles.rigaDatiPrincipali}>
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
-          <View style={styles.cardTitleRow}>
-            <Ionicons name="water-outline" size={16} color={COLORS.brandPrimary} />
-            <Text style={styles.cardTitle}>Glicemia</Text><Text style={styles.cardUnit}>(mg/dL)</Text>
-          </View>
-          <TextInput style={[styles.glicemiaInput, { color: ottieniColoreGlicemia() }]} placeholder="00" placeholderTextColor="#93A7B9" keyboardType="numeric" value={glicemia} onChangeText={setGlicemia} maxLength={3} />
+          <Text style={styles.labelLeftHighlight}>Glicemia (mg/dL)</Text>
+          <TextInput
+            style={[styles.glicemiaInput, { color: ottieniColoreGlicemia() }]}
+            placeholder="00"
+            placeholderTextColor="#636366" 
+            keyboardType="numeric"
+            value={glicemia}
+            onChangeText={setGlicemia}
+            maxLength={3}
+          />
         </View>
+
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
-          <View style={styles.cardTitleRow}>
-            <Ionicons name="medkit-outline" size={16} color={COLORS.brandPrimary} />
-            <Text style={styles.cardTitle}>Insulina</Text><Text style={styles.cardUnit}>(UI)</Text>
-          </View>
-          <TextInput style={styles.insulinaInput} placeholder="00" placeholderTextColor="#93A7B9" keyboardType="numeric" value={insulina} onChangeText={setInsulina} maxLength={2} />
+          <Text style={styles.labelLeftHighlight}>Insulina (Unità UI)</Text>
+          <TextInput
+            style={styles.insulinaInput}
+            placeholder="0"
+            placeholderTextColor="#636366" 
+            keyboardType="numeric"
+            value={insulina}
+            onChangeText={setInsulina}
+            maxLength={2}
+          />
         </View>
       </View>
-
-      <View style={styles.sectionCard}>
-        <View style={styles.cardTitleRow}><Ionicons name="partly-sunny-outline" size={19} color={COLORS.brandPrimary} /><Text style={styles.sectionTitle}>Momento della Giornata</Text></View>
-        <View style={styles.chipsContainer}>
-          {MOMENTI.map((m) => {
-            const selezionato = momentoSelezionato === m;
-            return (
-              <TouchableOpacity key={m} style={[styles.chip, selezionato && styles.chipSelezionata]} onPress={() => setMomentoSelezionato(m)} accessibilityRole="button" accessibilityState={{ selected: selezionato }}>
-                <Text style={[styles.chipText, selezionato && styles.chipTextSelezionato]}>{ETICHETTE_MOMENTI[m]}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+      <Text style={styles.sectionLabel}>Momento della Giornata</Text>
+      <View style={styles.chipsContainer}>
+        {MOMENTI.map((m) => {
+          const selezionato = momentoSelezionato === m;
+          return (
+            <TouchableOpacity key={m} style={[styles.chip, selezionato && styles.chipSelezionata]} onPress={() => setMomentoSelezionato(m)}>
+              <Text style={[styles.chipText, selezionato && styles.chipTextSelezionato]}>{m}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      <View style={styles.sectionCard}>
-        <View style={styles.cardTitleRow}>
-          <Ionicons name="document-text-outline" size={17} color={COLORS.brandPrimary} />
-          <Text style={styles.cardTitle}>Note Alimentari / Sintomi</Text><Text style={styles.optionalLabel}>(facoltative)</Text>
-        </View>
-        <TextInput style={styles.noteInput} multiline textAlignVertical="top" placeholder="Es. Riso integrale, Stanchezza..." placeholderTextColor="#8493A5" value={note} onChangeText={setNote} />
+      <View style={[styles.cardInput, { padding: 12, marginBottom: 16 }]}>
+        <Text style={styles.labelLeft}>Note Alimentari / Sintomi</Text>
+        <TextInput style={styles.noteInput} placeholder="Es: Riso integrale, stanchezza..." placeholderTextColor="#48484A" value={note} onChangeText={setNote} />
       </View>
 
       {mostraNotifica && (
@@ -289,44 +309,55 @@ export default function InserimentoScreen() {
         accessibilityState={{ disabled: salvataggioInCorso }}
       >
         <Text style={styles.saveButtonText}>
-          {salvataggioInCorso ? 'Salvataggio...' : 'Salva misurazione'}
+          {salvataggioInCorso ? 'Salvataggio...' : 'Salva Misurazione'}
         </Text>
       </TouchableOpacity>
 
-      {/* 🎪 POP-UP INFORMATIVO DELLA HOME - CONFORMATO AL 100% ALLA SIZE DELLO STORICO */}
-      <Modal visible={mostraModalInfo} animationType="fade" transparent={true} onRequestClose={() => setMostraModalInfo(false)}>
+      {/* Guida premium: solo la finestra informativa del pulsante ? */}
+      <Modal visible={mostraModalInfo} animationType="fade" transparent onRequestClose={() => setMostraModalInfo(false)}>
         <View style={styles.modalOverlayCentrato}>
           <View style={styles.modalContentHelp}>
-            <Text style={styles.modalTitleHelp}>Guida all'Uso</Text>
-            
-            <ScrollView style={styles.modalScrollInfo} showsVerticalScrollIndicator={false}>
-              <View style={styles.infoBlockPremium}>
-                <Text style={styles.infoBlockTitle}>📅 Data e Ora del Test</Text>
-                <Text style={styles.infoBlockText}>L'applicazione imposta automaticamente il giorno corrente e l'orario attuale. Se hai dimenticato di registrare un test precedente, puoi modificarli liberamente.</Text>
+            <View style={styles.helpHeader}>
+              <View style={styles.helpHeaderIcon}><Ionicons name="book-outline" size={23} color="#00E5FF" /></View>
+              <View style={styles.helpHeaderText}>
+                <Text style={styles.modalTitleHelp}>Guida all'uso</Text>
+                <Text style={styles.helpSubtitle}>DIABETY · Inserimento dati</Text>
               </View>
-
+              <TouchableOpacity onPress={() => setMostraModalInfo(false)} style={styles.helpCloseIcon} accessibilityRole="button" accessibilityLabel="Chiudi guida">
+                <Ionicons name="close" size={21} color="#CFD8E3" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.helpDivider} />
+            <Text style={styles.helpIntro}>Tutto quello che serve per registrare correttamente una misurazione.</Text>
+            <ScrollView style={styles.modalScrollInfo} contentContainerStyle={styles.helpScrollContent} showsVerticalScrollIndicator={false} nestedScrollEnabled>
               <View style={styles.infoBlockPremium}>
-                <Text style={styles.infoBlockTitle}>🩸 Inserimento Glicemia</Text>
-                <Text style={styles.infoBlockText}>Digita il valore espresso in mg/dL rilevato dal tuo glucometro. Il testo cambierà colore in tempo reale seguendo le linee guida mediche standard.</Text>
+                <View style={styles.helpBlockHeading}><Ionicons name="calendar-outline" size={19} color="#00D8F7" /><Text style={styles.infoBlockTitle}>Data e ora del test</Text></View>
+                <Text style={styles.infoBlockText}>La data e l'ora vengono impostate automaticamente. Puoi modificarle per registrare un controllo precedente.</Text>
               </View>
-
               <View style={styles.infoBlockPremium}>
-                <Text style={styles.infoBlockTitle}>💉 Inserimento Insulina</Text>
-                <Text style={styles.infoBlockText}>Indica il numero di Unità (UI) di insulina rapida o lenta somministrata. Se per questo controllo non hai assunto alcuna dose, lascia il campo vuoto.</Text>
+                <View style={styles.helpBlockHeading}><Ionicons name="water-outline" size={19} color="#FF6C86" /><Text style={styles.infoBlockTitle}>Inserimento glicemia</Text></View>
+                <Text style={styles.infoBlockText}>Inserisci il valore rilevato in mg/dL. Il numero cambia colore in base all'intervallo glicemico.</Text>
+                <View style={styles.helpLegend}>
+                  <View style={[styles.helpLegendPill, { backgroundColor: '#35251C' }]}><Text style={[styles.helpLegendText, { color: '#FFB05D' }]}>Sotto 70</Text></View>
+                  <View style={[styles.helpLegendPill, { backgroundColor: '#193528' }]}><Text style={[styles.helpLegendText, { color: '#59DF99' }]}>70–180</Text></View>
+                  <View style={[styles.helpLegendPill, { backgroundColor: '#3A2227' }]}><Text style={[styles.helpLegendText, { color: '#FF8992' }]}>Oltre 180</Text></View>
+                </View>
               </View>
-
               <View style={styles.infoBlockPremium}>
-                <Text style={styles.infoBlockTitle}>⏰ Momenti della Giornata</Text>
-                <Text style={styles.infoBlockText}>Seleziona il bottone corrispondente al blocco temporale. Questo parametro ripartisce i dati nella giusta colonna del report clinico.</Text>
+                <View style={styles.helpBlockHeading}><Ionicons name="medkit-outline" size={19} color="#B39AFF" /><Text style={styles.infoBlockTitle}>Inserimento insulina</Text></View>
+                <Text style={styles.infoBlockText}>Indica le unità (UI) somministrate. Se non hai assunto insulina, lascia il campo vuoto.</Text>
               </View>
-
               <View style={styles.infoBlockPremium}>
-                <Text style={styles.infoBlockTitle}>📝 Note Alimentari e Sintomi</Text>
-                <Text style={styles.infoBlockText}>Usa questo spazio per annotare cibo o sintomi. L'orario del test verrà fuso in automatico tra parentesi quadre all'inizio del testo.</Text>
+                <View style={styles.helpBlockHeading}><Ionicons name="time-outline" size={19} color="#FFCA75" /><Text style={styles.infoBlockTitle}>Momenti della giornata</Text></View>
+                <Text style={styles.infoBlockText}>Seleziona il momento del controllo per organizzare correttamente lo storico e i report.</Text>
+              </View>
+              <View style={styles.infoBlockPremium}>
+                <View style={styles.helpBlockHeading}><Ionicons name="document-text-outline" size={19} color="#69C5FF" /><Text style={styles.infoBlockTitle}>Note alimentari e sintomi</Text></View>
+                <Text style={styles.infoBlockText}>Annota alimenti, sintomi o altre informazioni. L'orario viene aggiunto automaticamente alle note salvate.</Text>
               </View>
             </ScrollView>
-
-            <TouchableOpacity style={styles.btnChiudiHelp} onPress={() => setMostraModalInfo(false)}>
+            <TouchableOpacity style={styles.btnChiudiHelp} onPress={() => setMostraModalInfo(false)} accessibilityRole="button" accessibilityLabel="Ho capito, chiudi guida">
+              <Ionicons name="checkmark" size={19} color="#FFFFFF" />
               <Text style={styles.btnChiudiHelpText}>Ho capito</Text>
             </TouchableOpacity>
           </View>
@@ -337,48 +368,60 @@ export default function InserimentoScreen() {
   );
 }
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#070A0E' },
-  content: { padding: 12, paddingTop: 14, paddingBottom: 40, gap: 12 },
-  headerCard: { backgroundColor: '#101B28', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerAccent: { width: 3, height: 43, backgroundColor: COLORS.brandPrimary, borderRadius: 4 },
-  headerContent: { flex: 1, gap: 4 },
-  headerForm: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 8 },
-  title: { fontFamily: 'Space Grotesk', fontSize: 21, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 },
-  subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: '#93A7B9' },
-  infoButtonMinimal: { justifyContent: 'center', alignItems: 'center', width: 25, height: 25 },
-  helpCircle: { width: 25, height: 25, borderWidth: 1.5, borderColor: COLORS.brandPrimary, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
-  helpQuestion: { fontSize: 18, fontWeight: '600', color: COLORS.brandPrimary, lineHeight: 23 },
-  containerRigaTemporale: { flexDirection: 'row', gap: 8, width: '100%' },
-  dataCardSinistra: { flex: 1, minWidth: 0, backgroundColor: '#111B27', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 10 },
-  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'nowrap' },
-  cardTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
-  cardUnit: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, color: '#93A7B9' },
-  optionalLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 9, color: '#8493A5' },
-  timeInputBackup: { marginTop: 6, fontSize: 14, color: '#FFFFFF', backgroundColor: '#080F18', borderRadius: 8, padding: 9, borderWidth: 1, borderColor: '#344C63', width: '100%' },
-  rigaDatiPrincipali: { flexDirection: 'row', gap: 8, width: '100%' },
-  metaLarghezza: { flex: 1, minWidth: 0 },
-  cardInputHighlight: { backgroundColor: '#111B27', borderRadius: 16, padding: 10, borderWidth: 1, borderColor: '#26536A', gap: 8 },
-  glicemiaInput: { fontFamily: 'Space Grotesk', fontSize: 28, fontWeight: '700', width: '100%', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 7 },
-  insulinaInput: { fontFamily: 'Space Grotesk', fontSize: 28, fontWeight: '700', color: '#FFFFFF', width: '100%', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 7 },
-  sectionCard: { backgroundColor: '#111B27', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 12, gap: 12 },
-  sectionTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
-  chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, width: '100%' },
-  chip: { width: '31%', flexGrow: 1, minHeight: 43, paddingHorizontal: 3, paddingVertical: 5, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0A121D', borderWidth: 1, borderColor: '#33475A', borderRadius: 8 },
-  chipSelezionata: { backgroundColor: '#103B4A', borderColor: COLORS.brandPrimary },
-  chipText: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, textAlign: 'center', color: '#D9E2EC', fontWeight: '500' },
-  chipTextSelezionato: { color: COLORS.brandPrimary, fontWeight: '700' },
-  noteInput: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: '#FFFFFF', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, padding: 10, minHeight: 78, width: '100%' },
+  container: { flex: 1, backgroundColor: COLORS.background }, 
+  content: { padding: 16, paddingTop: 15, paddingBottom: 40 },
+  headerForm: { 
+    flexDirection: 'row', 
+    justifyContent: 'flex-start', 
+    alignItems: 'center', 
+    gap: 6,
+    marginBottom: 12, 
+    width: '100%' 
+  },
+  title: { fontFamily: 'Space Grotesk', fontSize: 24, fontWeight: '700', color: COLORS.onSurface },
+  infoButtonMinimal: { justifyContent: 'center', alignItems: 'center', padding: 2, marginTop: 2 },
+  sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 14, marginBottom: 10 },
+  cardInput: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 14, alignItems: 'flex-start', borderWidth: 1, borderColor: COLORS.borderGlass },
+  labelLeft: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600', color: COLORS.muted, marginBottom: 4, textAlign: 'left', alignSelf: 'flex-start', paddingLeft: 2 },
+  containerRigaTemporale: { flexDirection: 'row', gap: 16, marginBottom: 16, alignSelf: 'flex-start' },
+  dataCardSinistra: { width: 'auto', backgroundColor: 'transparent', padding: 0, alignItems: 'flex-start' },
+  rigaDatiPrincipali: { flexDirection: 'row', gap: 12, marginBottom: 12, width: '100%' },
+  metaLarghezza: { flex: 1 }, 
+  dataInput: { fontFamily: 'Space Grotesk', fontSize: 18, fontWeight: '600', color: COLORS.onSurface, textAlign: 'left', paddingLeft: 2 },
+  timeInputBackup: { fontFamily: 'Space Grotesk', fontSize: 16, color: COLORS.onSurface, backgroundColor: COLORS.surfaceSecondary, borderRadius: 10, padding: 6, width: 70, textAlign: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
+  cardInputHighlight: { backgroundColor: "#15151F", borderRadius: 16, padding: 16, alignItems: 'flex-start', borderWidth: 1, borderColor: COLORS.borderGlassBright, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 4 },
+  labelLeftHighlight: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '700', color: "#A4A4AA", marginBottom: 4, textAlign: 'left', alignSelf: 'flex-start', paddingLeft: 2 },
+  glicemiaInput: { fontFamily: 'Space Grotesk', fontSize: 38, fontWeight: '700', textAlign: 'left', width: '100%', paddingVertical: 2, paddingLeft: 2 },
+  insulinaInput: { fontFamily: 'Space Grotesk', fontSize: 38, fontWeight: '700', color: COLORS.onSurface, textAlign: 'left', width: '100%', paddingVertical: 2, paddingLeft: 2 },
+  noteInput: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: COLORS.onSurface, paddingVertical: 2, textAlign: 'left', paddingLeft: 2, width: '100%' },
+  chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 },
+  chip: { backgroundColor: COLORS.surfaceSecondary, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: 'transparent' },
+  chipSelezionata: { backgroundColor: "#0C232B", borderWidth: 1, borderColor: COLORS.brandPrimary }, 
+  chipText: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, fontWeight: '500' },
+  chipTextSelezionato: { color: COLORS.onSurface, fontWeight: '700' },
   saveButton: { backgroundColor: COLORS.brandPrimary, paddingVertical: 14, borderRadius: 14, alignItems: 'center', width: '100%' },
-  saveButtonText: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: '#001820' },
+  saveButtonText: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: '#0A0A0C' },
   notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12, alignItems: 'center', width: '100%' },
   notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 14 },
-  modalOverlayCentrato: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalContentHelp: { backgroundColor: '#111116', borderRadius: 24, padding: 24, width: '100%', maxWidth: 360, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
-  modalTitleHelp: { fontFamily: 'Space Grotesk', fontSize: 20, fontWeight: '800', color: '#FFFFFF', marginBottom: 24, alignSelf: 'flex-start', letterSpacing: -0.3 },
-  modalScrollInfo: { marginBottom: 16, width: '100%', maxHeight: 300 },
-  infoBlockPremium: { marginBottom: 16, backgroundColor: '#020204', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)', width: '100%' },
-  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF', marginBottom: 6, textAlign: 'left' },
-  infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14.5, color: '#7E7E86', lineHeight: 22, textAlign: 'left' },
-  btnChiudiHelp: { marginTop: 10, backgroundColor: '#1A1A24', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)', paddingVertical: 12, borderRadius: 12, width: '100%', alignItems: 'center' },
+  modalOverlayCentrato: { flex: 1, backgroundColor: 'rgba(0,0,0,0.86)', justifyContent: 'center', alignItems: 'center', padding: 14 },
+  modalContentHelp: { backgroundColor: '#111722', borderRadius: 24, padding: 16, width: '100%', maxWidth: 390, maxHeight: '88%', borderWidth: 1, borderColor: '#314B65', overflow: 'hidden' },
+  helpHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  helpHeaderIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#12334A', alignItems: 'center', justifyContent: 'center' },
+  helpHeaderText: { flex: 1 },
+  modalTitleHelp: { fontFamily: 'Space Grotesk', fontSize: 20, fontWeight: '800', color: '#FFFFFF' },
+  helpSubtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: '#90A7B9', marginTop: 3 },
+  helpCloseIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#222D3B', alignItems: 'center', justifyContent: 'center' },
+  helpDivider: { height: 1, backgroundColor: '#304052', marginTop: 14, marginBottom: 12 },
+  helpIntro: { fontFamily: 'Plus Jakarta Sans', fontSize: 12.5, color: '#A9BBCB', lineHeight: 19, marginBottom: 12 },
+  modalScrollInfo: { width: '100%', flexShrink: 1 },
+  helpScrollContent: { paddingBottom: 3 },
+  infoBlockPremium: { marginBottom: 10, backgroundColor: '#151F2B', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#30485E', width: '100%' },
+  helpBlockHeading: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 7 },
+  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 },
+  infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 12.5, color: '#B6C6D5', lineHeight: 19 },
+  helpLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
+  helpLegendPill: { borderRadius: 7, paddingHorizontal: 8, paddingVertical: 5 },
+  helpLegendText: { fontFamily: 'Plus Jakarta Sans', fontSize: 10.5, fontWeight: '700' },
+  btnChiudiHelp: { marginTop: 12, backgroundColor: '#123B68', borderWidth: 1, borderColor: '#00A8FF', paddingVertical: 13, borderRadius: 12, width: '100%', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
   btnChiudiHelpText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF' }
 });
