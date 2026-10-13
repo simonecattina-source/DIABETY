@@ -282,13 +282,13 @@ export default function AlimentiScreen() {
             )}
           </>
         )}
-        <View style={styles.intestazioneRisultati}>
+        {(ricercaAttiva || categoriaAperta) && <View style={styles.intestazioneRisultati}>
           <View style={styles.titoloRisultatiArea}>
             <Text style={styles.etichettaRisultati}>{ricercaAttiva ? 'RICERCA GLOBALE' : categoriaAperta ? 'CATEGORIA SELEZIONATA' : 'ESPLORA GLI ALIMENTI'}</Text>
             <Text style={styles.titoloRisultati} numberOfLines={1}>{ricercaAttiva ? 'Risultati della ricerca' : categoriaAperta ?? 'Scegli una categoria'}</Text>
           </View>
           {(ricercaAttiva || categoriaAperta) && <Text style={styles.conteggioRisultati}>{risultati.length} {risultati.length === 1 ? 'alimento' : 'alimenti'}</Text>}
-        </View>
+        </View>}
       </View>
 
       <FlatList
@@ -302,13 +302,13 @@ export default function AlimentiScreen() {
         initialNumToRender={12}
         maxToRenderPerBatch={12}
         windowSize={5}
-        ListEmptyComponent={
+        ListEmptyComponent={!(ricercaAttiva || categoriaAperta) ? null : (
           <View style={styles.vuoto}>
             <Ionicons name={ricercaAttiva ? 'search-outline' : categoriaAperta === 'Preferiti' ? 'star-outline' : 'grid-outline'} size={29} color={COLORS.brandPrimary} />
             <Text style={styles.vuotoTitolo}>{ricercaAttiva ? 'Nessun alimento trovato' : categoriaAperta === 'Preferiti' ? 'Nessun preferito' : categoriaAperta ? 'Nessun alimento in questa categoria' : 'Cosa vuoi mangiare?'}</Text>
             <Text style={styles.vuotoTesto}>{ricercaAttiva ? 'Prova un altro nome o una marca.' : categoriaAperta === 'Preferiti' ? 'Tocca la stella su un alimento per aggiungerlo ai preferiti.' : categoriaAperta ? 'Puoi comunque cercare in tutto il database.' : 'Cerca liberamente nel database oppure apri Sfoglia categorie.'}</Text>
           </View>
-        }
+        )}
       />
 
       {piattoSelezionato.length > 0 && (
