@@ -17,7 +17,7 @@ export default function Root({ children }: PropsWithChildren) {
           content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <meta name="theme-color" content="#0A0A0C" />
         <link rel="manifest" href="/manifest.json" />
         <ScrollViewStyleReset />
@@ -48,27 +48,6 @@ export default function Root({ children }: PropsWithChildren) {
                 height: 100%;
                 min-height: 100%;
                 height: 100dvh;
-              }
-
-              /* TEST iOS 27: superficie opaca fissa nella safe area superiore.
-                 Non altera il layout o l'altezza del contenuto React Native Web.
-                 Solo PWA installata; facilmente rimovibile. */
-              @media (display-mode: standalone) {
-                @supports (-webkit-touch-callout: none) {
-                  body::before {
-                    content: "";
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    height: calc(env(safe-area-inset-top, 0px) + 2px);
-                    min-height: 2px;
-                    background-color: #0A0A0C;
-                    opacity: 1;
-                    pointer-events: none;
-                    z-index: 2147483646;
-                  }
-                }
               }
 
               /* Mantiene nero il livello di navigazione e le aree non coperte. */
