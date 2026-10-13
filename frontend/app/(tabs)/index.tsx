@@ -19,6 +19,13 @@ const COLORS = {
   borderUtility: "#3A3A4A"      
 };
 
+const ETICHETTE_MOMENTI: Record<string, string> = {
+  "Prima Colazione": "Prima di colazione", "Dopo Colazione": "Dopo colazione",
+  "Spuntino": "Spuntino", "Prima Pranzo": "Prima di pranzo",
+  "Dopo Pranzo": "Dopo pranzo", "Merenda": "Merenda",
+  "Prima Cena": "Prima di cena", "Dopo Cena": "Dopo cena", "Notte": "Notte"
+};
+
 const MOMENTI = [
   "Prima Colazione", "Dopo Colazione", "Spuntino", 
   "Prima Pranzo", "Dopo Pranzo", "Merenda", 
@@ -195,56 +202,34 @@ export default function InserimentoScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
-      {/* 🏷️ INTESTAZIONE CON TITOLO E TASTO INFO ANCORATO DI FIANCO A DESTRA */}
-      <View style={styles.headerForm}>
-        <Text style={styles.title}>Inserisci Nuovi Dati</Text>
-        <TouchableOpacity style={styles.infoButtonMinimal} onPress={() => setMostraModalInfo(true)} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
-          <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
-        </TouchableOpacity>
+      <View style={styles.headerCard}>
+        <View style={styles.headerAccent} />
+        <View style={styles.headerContent}>
+          <View style={styles.headerForm}>
+            <Text style={styles.title}>Inserisci Nuovi Dati</Text>
+            <TouchableOpacity style={styles.infoButtonMinimal} onPress={() => setMostraModalInfo(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Informazioni sull'inserimento">
+              <View style={styles.helpCircle}><Text style={styles.helpQuestion}>?</Text></View>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.subtitle}>Registra una nuova misurazione</Text>
+        </View>
       </View>
-      
-      {/* 📅⏰ RIGHE TEMPORALI */}
+
       <View style={styles.containerRigaTemporale}>
         <View style={styles.dataCardSinistra}>
-          <Text style={styles.labelLeft}>Data del Test</Text>
+          <View style={styles.cardTitleRow}><Ionicons name="calendar-outline" size={16} color={COLORS.brandPrimary} /><Text style={styles.cardTitle}>Data del Test</Text></View>
           {Platform.OS === 'web' ? (
-            <input
-              type="date"
-              value={dataISO}
-              max={ottieniDataOdiernaISO()} 
-              onChange={(e) => setDataISO(e.target.value)}
-              style={{
-                fontFamily: 'sans-serif', fontSize: '15px', fontWeight: '600', color: '#FFFFFF', 
-                backgroundColor: '#13131A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px',
-                padding: '6px 10px', marginTop: '4px', width: 'auto', display: 'inline-block', outline: 'none', cursor: 'pointer'
-              }}
-            />
+            <input type="date" value={dataISO} max={ottieniDataOdiernaISO()} onChange={(e) => setDataISO(e.target.value)}
+              style={{ fontFamily: 'sans-serif', fontSize: '14px', fontWeight: '600', color: '#FFFFFF', backgroundColor: '#080F18', border: '1px solid #344C63', borderRadius: '8px', padding: '9px 4px', marginTop: '6px', width: '100%', boxSizing: 'border-box', minWidth: 0, outline: 'none', colorScheme: 'dark' }} />
           ) : (
-            <TextInput
-              style={[styles.timeInputBackup, { width: 124 }]}
-              value={dataISO}
-              onChangeText={setDataISO}
-              placeholder="AAAA-MM-GG"
-              placeholderTextColor={COLORS.muted}
-              maxLength={10}
-              accessibilityLabel="Data del test nel formato AAAA-MM-GG"
-            />
+            <TextInput style={styles.timeInputBackup} value={dataISO} onChangeText={setDataISO} placeholder="AAAA-MM-GG" placeholderTextColor={COLORS.muted} maxLength={10} accessibilityLabel="Data del test nel formato AAAA-MM-GG" />
           )}
         </View>
-
         <View style={styles.dataCardSinistra}>
-          <Text style={styles.labelLeft}>Orario del Test</Text>
+          <View style={styles.cardTitleRow}><Ionicons name="time-outline" size={16} color={COLORS.brandPrimary} /><Text style={styles.cardTitle}>Orario del Test</Text></View>
           {Platform.OS === 'web' ? (
-            <input
-              type="time"
-              value={oraInserita}
-              onChange={(e) => setOraInserita(e.target.value)}
-              style={{
-                fontFamily: 'sans-serif', fontSize: '15px', fontWeight: '600', color: '#FFFFFF', 
-                backgroundColor: '#13131A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px',
-                padding: '6px 10px', marginTop: '4px', width: 'auto', display: 'inline-block', outline: 'none', cursor: 'pointer'
-              }}
-            />
+            <input type="time" value={oraInserita} onChange={(e) => setOraInserita(e.target.value)}
+              style={{ fontFamily: 'sans-serif', fontSize: '14px', fontWeight: '600', color: '#FFFFFF', backgroundColor: '#080F18', border: '1px solid #344C63', borderRadius: '8px', padding: '9px 4px', marginTop: '6px', width: '100%', boxSizing: 'border-box', minWidth: 0, outline: 'none', colorScheme: 'dark' }} />
           ) : (
             <TextInput style={styles.timeInputBackup} value={oraInserita} onChangeText={setOraInserita} maxLength={5} />
           )}
@@ -253,46 +238,41 @@ export default function InserimentoScreen() {
 
       <View style={styles.rigaDatiPrincipali}>
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
-          <Text style={styles.labelLeftHighlight}>Glicemia (mg/dL)</Text>
-          <TextInput
-            style={[styles.glicemiaInput, { color: ottieniColoreGlicemia() }]}
-            placeholder="00"
-            placeholderTextColor="#636366" 
-            keyboardType="numeric"
-            value={glicemia}
-            onChangeText={setGlicemia}
-            maxLength={3}
-          />
+          <View style={styles.cardTitleRow}>
+            <Ionicons name="water-outline" size={16} color={COLORS.brandPrimary} />
+            <Text style={styles.cardTitle}>Glicemia</Text><Text style={styles.cardUnit}>(mg/dL)</Text>
+          </View>
+          <TextInput style={[styles.glicemiaInput, { color: ottieniColoreGlicemia() }]} placeholder="00" placeholderTextColor="#93A7B9" keyboardType="numeric" value={glicemia} onChangeText={setGlicemia} maxLength={3} />
         </View>
-
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
-          <Text style={styles.labelLeftHighlight}>Insulina (Unità UI)</Text>
-          <TextInput
-            style={styles.insulinaInput}
-            placeholder="0"
-            placeholderTextColor="#636366" 
-            keyboardType="numeric"
-            value={insulina}
-            onChangeText={setInsulina}
-            maxLength={2}
-          />
+          <View style={styles.cardTitleRow}>
+            <Ionicons name="medkit-outline" size={16} color={COLORS.brandPrimary} />
+            <Text style={styles.cardTitle}>Insulina</Text><Text style={styles.cardUnit}>(UI)</Text>
+          </View>
+          <TextInput style={styles.insulinaInput} placeholder="00" placeholderTextColor="#93A7B9" keyboardType="numeric" value={insulina} onChangeText={setInsulina} maxLength={2} />
         </View>
       </View>
-      <Text style={styles.sectionLabel}>Momento della Giornata</Text>
-      <View style={styles.chipsContainer}>
-        {MOMENTI.map((m) => {
-          const selezionato = momentoSelezionato === m;
-          return (
-            <TouchableOpacity key={m} style={[styles.chip, selezionato && styles.chipSelezionata]} onPress={() => setMomentoSelezionato(m)}>
-              <Text style={[styles.chipText, selezionato && styles.chipTextSelezionato]}>{m}</Text>
-            </TouchableOpacity>
-          );
-        })}
+
+      <View style={styles.sectionCard}>
+        <View style={styles.cardTitleRow}><Ionicons name="partly-sunny-outline" size={19} color={COLORS.brandPrimary} /><Text style={styles.sectionTitle}>Momento della Giornata</Text></View>
+        <View style={styles.chipsContainer}>
+          {MOMENTI.map((m) => {
+            const selezionato = momentoSelezionato === m;
+            return (
+              <TouchableOpacity key={m} style={[styles.chip, selezionato && styles.chipSelezionata]} onPress={() => setMomentoSelezionato(m)} accessibilityRole="button" accessibilityState={{ selected: selezionato }}>
+                <Text style={[styles.chipText, selezionato && styles.chipTextSelezionato]}>{ETICHETTE_MOMENTI[m]}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
-      <View style={[styles.cardInput, { padding: 12, marginBottom: 16 }]}>
-        <Text style={styles.labelLeft}>Note Alimentari / Sintomi</Text>
-        <TextInput style={styles.noteInput} placeholder="Es: Riso integrale, stanchezza..." placeholderTextColor="#48484A" value={note} onChangeText={setNote} />
+      <View style={styles.sectionCard}>
+        <View style={styles.cardTitleRow}>
+          <Ionicons name="document-text-outline" size={17} color={COLORS.brandPrimary} />
+          <Text style={styles.cardTitle}>Note Alimentari / Sintomi</Text><Text style={styles.optionalLabel}>(facoltative)</Text>
+        </View>
+        <TextInput style={styles.noteInput} multiline textAlignVertical="top" placeholder="Es. Riso integrale, Stanchezza..." placeholderTextColor="#8493A5" value={note} onChangeText={setNote} />
       </View>
 
       {mostraNotifica && (
@@ -309,7 +289,7 @@ export default function InserimentoScreen() {
         accessibilityState={{ disabled: salvataggioInCorso }}
       >
         <Text style={styles.saveButtonText}>
-          {salvataggioInCorso ? 'Salvataggio...' : 'Salva Misurazione'}
+          {salvataggioInCorso ? 'Salvataggio...' : 'Salva misurazione'}
         </Text>
       </TouchableOpacity>
 
@@ -368,39 +348,39 @@ export default function InserimentoScreen() {
   );
 }
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background }, 
-  content: { padding: 16, paddingTop: 15, paddingBottom: 40 },
-  headerForm: { 
-    flexDirection: 'row', 
-    justifyContent: 'flex-start', 
-    alignItems: 'center', 
-    gap: 6,
-    marginBottom: 12, 
-    width: '100%' 
-  },
-  title: { fontFamily: 'Space Grotesk', fontSize: 24, fontWeight: '700', color: COLORS.onSurface },
-  infoButtonMinimal: { justifyContent: 'center', alignItems: 'center', padding: 2, marginTop: 2 },
-  sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 14, marginBottom: 10 },
-  cardInput: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 14, alignItems: 'flex-start', borderWidth: 1, borderColor: COLORS.borderGlass },
-  labelLeft: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '600', color: COLORS.muted, marginBottom: 4, textAlign: 'left', alignSelf: 'flex-start', paddingLeft: 2 },
-  containerRigaTemporale: { flexDirection: 'row', gap: 16, marginBottom: 16, alignSelf: 'flex-start' },
-  dataCardSinistra: { width: 'auto', backgroundColor: 'transparent', padding: 0, alignItems: 'flex-start' },
-  rigaDatiPrincipali: { flexDirection: 'row', gap: 12, marginBottom: 12, width: '100%' },
-  metaLarghezza: { flex: 1 }, 
-  dataInput: { fontFamily: 'Space Grotesk', fontSize: 18, fontWeight: '600', color: COLORS.onSurface, textAlign: 'left', paddingLeft: 2 },
-  timeInputBackup: { fontFamily: 'Space Grotesk', fontSize: 16, color: COLORS.onSurface, backgroundColor: COLORS.surfaceSecondary, borderRadius: 10, padding: 6, width: 70, textAlign: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
-  cardInputHighlight: { backgroundColor: "#15151F", borderRadius: 16, padding: 16, alignItems: 'flex-start', borderWidth: 1, borderColor: COLORS.borderGlassBright, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 4 },
-  labelLeftHighlight: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '700', color: "#A4A4AA", marginBottom: 4, textAlign: 'left', alignSelf: 'flex-start', paddingLeft: 2 },
-  glicemiaInput: { fontFamily: 'Space Grotesk', fontSize: 38, fontWeight: '700', textAlign: 'left', width: '100%', paddingVertical: 2, paddingLeft: 2 },
-  insulinaInput: { fontFamily: 'Space Grotesk', fontSize: 38, fontWeight: '700', color: COLORS.onSurface, textAlign: 'left', width: '100%', paddingVertical: 2, paddingLeft: 2 },
-  noteInput: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: COLORS.onSurface, paddingVertical: 2, textAlign: 'left', paddingLeft: 2, width: '100%' },
-  chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 },
-  chip: { backgroundColor: COLORS.surfaceSecondary, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: 'transparent' },
-  chipSelezionata: { backgroundColor: "#0C232B", borderWidth: 1, borderColor: COLORS.brandPrimary }, 
-  chipText: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, fontWeight: '500' },
-  chipTextSelezionato: { color: COLORS.onSurface, fontWeight: '700' },
+  container: { flex: 1, backgroundColor: '#070A0E' },
+  content: { padding: 12, paddingTop: 14, paddingBottom: 40, gap: 12 },
+  headerCard: { backgroundColor: '#101B28', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerAccent: { width: 3, height: 43, backgroundColor: COLORS.brandPrimary, borderRadius: 4 },
+  headerContent: { flex: 1, gap: 4 },
+  headerForm: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 8 },
+  title: { fontFamily: 'Space Grotesk', fontSize: 21, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 },
+  subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: '#93A7B9' },
+  infoButtonMinimal: { justifyContent: 'center', alignItems: 'center', width: 25, height: 25 },
+  helpCircle: { width: 25, height: 25, borderWidth: 1.5, borderColor: COLORS.brandPrimary, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
+  helpQuestion: { fontSize: 18, fontWeight: '600', color: COLORS.brandPrimary, lineHeight: 23 },
+  containerRigaTemporale: { flexDirection: 'row', gap: 8, width: '100%' },
+  dataCardSinistra: { flex: 1, minWidth: 0, backgroundColor: '#111B27', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 10 },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'nowrap' },
+  cardTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  cardUnit: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, color: '#93A7B9' },
+  optionalLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 9, color: '#8493A5' },
+  timeInputBackup: { marginTop: 6, fontSize: 14, color: '#FFFFFF', backgroundColor: '#080F18', borderRadius: 8, padding: 9, borderWidth: 1, borderColor: '#344C63', width: '100%' },
+  rigaDatiPrincipali: { flexDirection: 'row', gap: 8, width: '100%' },
+  metaLarghezza: { flex: 1, minWidth: 0 },
+  cardInputHighlight: { backgroundColor: '#111B27', borderRadius: 16, padding: 10, borderWidth: 1, borderColor: '#26536A', gap: 8 },
+  glicemiaInput: { fontFamily: 'Space Grotesk', fontSize: 28, fontWeight: '700', width: '100%', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 7 },
+  insulinaInput: { fontFamily: 'Space Grotesk', fontSize: 28, fontWeight: '700', color: '#FFFFFF', width: '100%', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 7 },
+  sectionCard: { backgroundColor: '#111B27', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 12, gap: 12 },
+  sectionTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, width: '100%' },
+  chip: { width: '31%', flexGrow: 1, minHeight: 43, paddingHorizontal: 3, paddingVertical: 5, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0A121D', borderWidth: 1, borderColor: '#33475A', borderRadius: 8 },
+  chipSelezionata: { backgroundColor: '#103B4A', borderColor: COLORS.brandPrimary },
+  chipText: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, textAlign: 'center', color: '#D9E2EC', fontWeight: '500' },
+  chipTextSelezionato: { color: COLORS.brandPrimary, fontWeight: '700' },
+  noteInput: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: '#FFFFFF', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, padding: 10, minHeight: 78, width: '100%' },
   saveButton: { backgroundColor: COLORS.brandPrimary, paddingVertical: 14, borderRadius: 14, alignItems: 'center', width: '100%' },
-  saveButtonText: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: '#0A0A0C' },
+  saveButtonText: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: '#001820' },
   notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12, alignItems: 'center', width: '100%' },
   notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 14 },
   modalOverlayCentrato: { flex: 1, backgroundColor: 'rgba(0,0,0,0.86)', justifyContent: 'center', alignItems: 'center', padding: 14 },
