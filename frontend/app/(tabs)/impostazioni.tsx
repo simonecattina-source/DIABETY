@@ -368,19 +368,22 @@ export default function StrumentiScreen() {
     }
   };
   const manualPoints = [
-    { id: 1, title: "1. Registrazione dei Dati", icon: "analytics-outline", color: COLORS.brandPrimary, content: "Registra i tuoi dati in un attimo. Nella schermata 'Inserisci' puoi selezionare Data e Ora per la registrazione dei tuoi dati. Di default l'app indicherà sempre Data e Ora attuali ma puoi comunque modificare a tuo piacimento questi parametri per aggiungere dei dati in moments specifici del tuo registro Storico. Tramite i riquadri 'Glicemia' e 'Insulina' puoi inserire i valori corrispondenti che ti interessa registrare, nella sezione subito sotto puoi impostare il momento della giornata relativo al dato che stai registrando. Nel box 'Note' puoi inserire ulteriori informazioni che verranno registrate nel tuo Storico dei dati. L'app Diabety è stata programmata per inserire all'interno del riquadro delle 'Note' l'orario in cui stai effettuando il test cosi da tenerne traccia quando esporti il file in PDF." },
-    { id: 2, title: "2. Target Colorati", icon: "color-filter-outline", color: COLORS.success, content: "Monitora istantaneamente il tuo stato metabolico tramite la codifica dinamica dei colori di sicurezza:\n• Verde (Euglicemia): Valori compresi nel range ideale tra 70 e 180 mg/dL.\n• Arancione (Ipoglicemia): Rilevazioni critiche inferiori a 70 mg/dL.\n• Rosso (Iperglicemia): Rilevazioni elevate superiori a 180 mg/dL." },
-    { id: 3, title: "3. Calcolatore del Bolo Insulinico", icon: "calculator-outline", color: COLORS.brandPrimary, content: "Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro. Puoi inserire il valore della tua Glicemia con la quantità di Carboidrati (CHO) che stai assumendo per elaborare secondo i tuoi parametri la dose di Insulina da fare. Puoi anche inserire solo il valore della Glicemia per calcolare la quantità di Insulina per la correzione della Glicemia per rientrare nel tuo target." },
-    { id: 4, title: "4. Database Alimenti e Carboidrati", icon: "nutrition-outline", color: COLORS.success, content: "Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente. Usa la barra di ricerca per trovare l'alimento che ti interessa, impostane la quantità che stai assumendo espressa in grammi e clicca sull'icona ' + ' per aggiungerla al Piatto Virtuale. L'applicazione genererà in basso una scheda momentanea dove simulerà l'insieme del tuo pasto. Qui puoi aggiungere tutti gli alimenti relativi al pasto tenendo traccia del totale dei Carboidrati (CHO)." },
-    { id: 5, title: "5. Archivio e Auto-Pulizia", icon: "trash-outline", color: COLORS.onSurface, content: "L'applicazione applica un algoritmo rigoroso di conservazione locale calcolato su una finestra mobile di 90 giorni rispetto al record più recente. I vecchi dati vengono eliminati automaticamente per ottimizzare la memoria del dispositivo: ricordati di salvare periodicamente un file di backup per non perderli. L'Eliminazione dei vecchi dati non significa perdere 'Tutti i dati' ma si intende perdere la singola misurazione registrata a partire da 90 giorni precedenti la data attuale." },
-    { id: 6, title: "6. Analisi Avanzata e Grafici", icon: "stats-chart-outline", color: COLORS.brandSecondary, content: "Controlla l'andamento della tua Glicemia. Questa sezione mostra grafici chiari con l'andamento della tua Glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito si sei a target. Nota molto importante, tutti i dati e i grafici che vedi non sono dati medici ufficiali in quanto si basano solo ed esclusivamente su dati inseriti da te nel monitoraggio della Glicemia. La funzione del grafico è basata per avvicinarsi molto alla rapresentazione di un CGM ma non lo è! Un CGM (Monitoraggio Continuo del Glucosio) è un sistema tecnologico che misura i livelli di zucchero (glucosio) nel liquido interstiziale 24 ore su 24 tramite l'utilizzo di un Sensore. Il sensore rileva il glucosio ogni pochi minuti e invia i dati in tempo real a un ricevitore, a uno smartphone o a uno smartwatch. L'app Diabety non ha questa function. Tutto ciò che vedi nella sezione Grafici è puramente a scopo indicativo basato soltanto su dati inseriti da te." },
-    { id: 7, title: "7. Esportazione dei File", icon: "document-text-outline", color: COLORS.brandPrimary, content: "Genera esportazioni del tuo Diario in formato PDF con layout panoramico, speculare al tuo registro clinico. Puoi selezionare un periodo specifico di 7, 14, 30 o 90 giorni (oppure includere l'intero storico) per personalizzare l'intervallo del documento, ottimizzando la visualizzazione dei parametri per la tua prossima consultazione specialistica." },
-    { id: 8, title: "8. Backup e Sicurezza Dati", icon: "sync-outline", color: COLORS.brandPrimary, content: "Salva e proteggi i tuoi dati in pochi clic. Puoi esportare un file di sicurezza con tutto lo storico del tuo diario oppure caricarne uno vecchio per ripristinare i log. L'importazione sovrascrive il database attuale e richiede sempre una conferma per evitare cancellazioni involontarie." },
+    { id: 1, title: "1. Registrazione dei Dati", icon: "analytics-outline", color: COLORS.brandPrimary, content: "Registra i tuoi dati in un attimo.\nNella schermata «Inserisci» puoi selezionare la data e l'ora per la registrazione dei tuoi dati. Per impostazione predefinita, l'app indica sempre la data e l'ora attuali, ma puoi modificare questi parametri a tuo piacimento per aggiungere dati relativi a momenti specifici del tuo registro storico.\nTramite i riquadri «Glicemia» e «Insulina» puoi inserire i valori che desideri registrare. Nella sezione immediatamente sottostante puoi impostare il momento della giornata relativo al dato che stai registrando.\nNel riquadro «Note» puoi inserire ulteriori informazioni, che verranno salvate nello storico dei tuoi dati.\nL'app DIABETY è stata programmata per inserire automaticamente nel riquadro «Note» l'orario in cui stai effettuando il test, così da tenerne traccia anche quando esporti il file in PDF." },
+    { id: 2, title: "2. Target Colorati", icon: "color-filter-outline", color: COLORS.success, content: "Monitora istantaneamente il tuo stato glicemico tramite la codifica dinamica dei colori di riferimento:\nVerde (Euglicemia)|Valori compresi nell'intervallo ideale tra 70 e 180 mg/dL.\nArancione (Ipoglicemia)|Rilevazioni inferiori a 70 mg/dL.\nRosso (Iperglicemia)|Rilevazioni superiori a 180 mg/dL." },
+    { id: 3, title: "3. Calcolatore del Bolo Insulinico", icon: "calculator-outline", color: COLORS.brandPrimary, content: "Calcola in un attimo le unità di insulina necessarie per i pasti e per correggere i valori glicemici elevati.\nSblocca la scheda inserendo i tuoi parametri personali (rapporto I:CHO, sensibilità ISF e target glicemico) concordati con il medico. L'applicazione li conserverà sul dispositivo per semplificare i calcoli futuri.\nPuoi inserire il valore della tua glicemia e la quantità di carboidrati (CHO) che stai assumendo, per calcolare la dose di insulina in base ai tuoi parametri personali.\nPuoi anche inserire soltanto il valore della glicemia per calcolare la quantità di insulina necessaria alla correzione, con l'obiettivo di rientrare nel tuo target glicemico." },
+    { id: 4, title: "4. Database Alimenti e Carboidrati", icon: "nutrition-outline", color: COLORS.success, content: "Consulta un archivio completo delle marche e degli alimenti più comuni per comporre il tuo piatto virtuale.\nL'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare rapidamente la dose di insulina senza dover eseguire i calcoli a mente.\nUtilizza la barra di ricerca per trovare l'alimento che ti interessa, imposta la quantità che stai assumendo, espressa in grammi, e premi l'icona «+» per aggiungerlo al Piatto Virtuale.\nL'applicazione mostrerà nella parte inferiore dello schermo una scheda temporanea che rappresenta l'insieme del tuo pasto.\nQui puoi aggiungere tutti gli alimenti che compongono il pasto, tenendo traccia del totale dei carboidrati (CHO)." },
+    { id: 5, title: "5. Archivio e Auto-Pulizia", icon: "trash-outline", color: COLORS.onSurface, content: "L'applicazione utilizza un algoritmo di conservazione locale basato su una finestra mobile di 90 giorni rispetto al record più recente.\nI dati più vecchi vengono eliminati automaticamente per ottimizzare la memoria del dispositivo. Ricordati di salvare periodicamente un file di backup per evitare di perderli.\nL'eliminazione dei vecchi dati non comporta la cancellazione dell'intero archivio, ma soltanto delle singole misurazioni che superano il periodo di conservazione previsto." },
+    { id: 6, title: "6. Analisi Avanzata e Grafici", icon: "stats-chart-outline", color: COLORS.brandSecondary, content: "Controlla l'andamento della tua glicemia.\nQuesta sezione mostra grafici chiari sull'andamento della tua glicemia nelle ultime 24 ore e nei tre mesi precedenti.\nInoltre, calcola automaticamente una stima indicativa della tua emoglobina glicata (HbA1c) per aiutarti a capire se sei nel tuo intervallo target.\nNota importante: tutti i dati e i grafici visualizzati non costituiscono risultati medici ufficiali, poiché si basano esclusivamente sulle informazioni che inserisci durante il monitoraggio della glicemia.\nLa rappresentazione grafica è progettata per avvicinarsi visivamente a quella di un CGM, ma non equivale a un sistema di monitoraggio continuo del glucosio.\nUn CGM (Monitoraggio Continuo del Glucosio) è un sistema tecnologico che misura i livelli di glucosio nel liquido interstiziale, 24 ore su 24, tramite un sensore.\nIl sensore rileva il glucosio ogni pochi minuti e invia i dati in tempo reale a un ricevitore, a uno smartphone o a uno smartwatch.\nL'app DIABETY non dispone di questa funzione.\nTutto ciò che visualizzi nella sezione Grafici ha uno scopo puramente indicativo ed è basato esclusivamente sui dati inseriti da te." },
+    { id: 7, title: "7. Esportazione dei File", icon: "document-text-outline", color: COLORS.brandPrimary, content: "Genera esportazioni del tuo diario in formato PDF, con un layout panoramico che riproduce la struttura del tuo registro clinico.\nPuoi selezionare un periodo specifico di 7, 14, 30 o 90 giorni, oppure includere l'intero storico, per personalizzare l'intervallo del documento e ottimizzare la visualizzazione dei parametri in vista della tua prossima consultazione specialistica." },
+    { id: 8, title: "8. Backup e Sicurezza Dati", icon: "sync-outline", color: COLORS.brandPrimary, content: "Salva e proteggi i tuoi dati in pochi clic.\nPuoi esportare un file di sicurezza contenente tutto lo storico del tuo diario oppure importare un backup precedente per ripristinare i dati registrati.\nL'importazione sovrascrive il database attuale e richiede sempre una conferma, per evitare cancellazioni involontarie." },
   ];  return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.headerForm}>
-        <Text style={styles.title}>Pannello di controllo</Text>
-        <Text style={styles.subtitle}>Gestione database e informazioni mediche dell'app</Text>
+        <View style={styles.headerAccent} />
+        <View style={styles.headerTextGroup}>
+          <Text style={styles.title}>Pannello di controllo</Text>
+          <Text style={styles.subtitle}>Gestione database e informazioni mediche dell'app</Text>
+        </View>
       </View>
 
       {statoNotifica && (
@@ -517,67 +520,59 @@ export default function StrumentiScreen() {
         </View>
       </Modal>
 
-      <Text style={styles.sectionLabel}>Manuale & Linee Guida</Text>
-      <Text style={styles.guideSubtitle}>Scopri come usare al meglio DIABETY</Text>
-      <View style={styles.guideGrid}>
+      <View style={styles.manualSectionHeader}>
+        <View style={styles.manualBookIcon}><Ionicons name="book-outline" size={24} color={COLORS.brandPrimary} /></View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.manualSectionTitle}>MANUALE & LINEE GUIDA</Text>
+          <Text style={styles.manualSectionSubtitle}>Scopri come usare al meglio DIABETY</Text>
+        </View>
+      </View>
+      <View style={styles.manualSectionDivider} />
+      <View style={styles.guideList}>
         {manualPoints.map(point => {
-          const palette: Record<number, string> = {
-            1: '#00E5FF', 2: '#00E676', 3: '#00E5FF', 4: '#00E676',
-            5: '#B080FF', 6: '#B080FF', 7: '#00E5FF', 8: '#FFB347'
-          };
+          const palette: Record<number, string> = { 1: '#00E5FF', 2: '#00E676', 3: '#00E5FF', 4: '#00E676', 5: '#B080FF', 6: '#B080FF', 7: '#00E5FF', 8: '#FFB347' };
+          const iconNames: Record<number, string> = { 1: 'create-outline', 2: 'locate-outline', 3: 'medkit-outline', 4: 'nutrition-outline', 5: 'folder-open-outline', 6: 'stats-chart-outline', 7: 'document-text-outline', 8: 'shield-checkmark-outline' };
+          const subtitles: Record<number, string> = { 1: 'Come inserire le misurazioni', 2: 'Colori e intervalli glicemici', 3: 'Uso del calcolatore', 4: 'Alimenti e carboidrati', 5: 'Gestione dello storico', 6: 'Analisi e statistiche', 7: 'Report e documenti', 8: 'Protezione dei dati' };
           const color = palette[point.id];
-          const subtitles: Record<number, string> = {
-            1: 'Come inserire le misurazioni',
-            2: 'Colori e intervalli glicemici',
-            3: 'Uso del calcolatore',
-            4: 'Alimenti e carboidrati',
-            5: 'Gestione dello storico',
-            6: 'Analisi e statistiche',
-            7: 'Report e documenti',
-            8: 'Protezione dei dati'
-          };
+          const opened = expandedPointId === point.id;
+          const paragraphs = point.content.split('\n').filter(Boolean);
           return (
-            <TouchableOpacity key={point.id} style={[styles.guideTile, { borderColor: color }]}
-              onPress={() => setExpandedPointId(point.id)} activeOpacity={0.85}>
-              <View style={styles.guideTileTop}>
-                <View style={[styles.guideIcon, { backgroundColor: color + '18', borderColor: color }]}>
-                  <Ionicons name={point.icon as any} size={24} color={color} />
+            <View key={point.id} style={styles.guideRowCard}>
+              <TouchableOpacity style={styles.guideRowHeader} onPress={() => togglePoint(point.id)} activeOpacity={0.82} accessibilityRole="button" accessibilityState={{ expanded: opened }}>
+                <View style={[styles.guideRowIcon, { backgroundColor: color + '18' }]}>
+                  <Ionicons name={iconNames[point.id] as any} size={24} color={color} />
                 </View>
-                <Ionicons name="chevron-forward-circle-outline" size={23} color={color} />
-              </View>
-              <Text style={[styles.guideNumber, { color }]}>{point.id}</Text>
-              <Text style={styles.guideTitle} numberOfLines={3}>{point.title.replace(/^\d+\. /, '')}</Text>
-              <Text style={styles.guideDesc} numberOfLines={2}>{subtitles[point.id]}</Text>
-            </TouchableOpacity>
+                <View style={[styles.guideRowAccent, { backgroundColor: color }]} />
+                <View style={styles.guideRowText}>
+                  <Text style={styles.guideRowTitle}>{point.title.replace(/^\d+\. /, '')}</Text>
+                  <Text style={styles.guideRowSubtitle}>{subtitles[point.id]}</Text>
+                </View>
+                <View style={styles.guideRowChevron}>
+                  <Ionicons name={opened ? 'chevron-up' : 'chevron-down'} size={19} color="#D6E3F0" />
+                </View>
+              </TouchableOpacity>
+              {opened && (
+                <View style={styles.guideExpandedBody}>
+                  <View style={styles.guideExpandedDivider} />
+                  {paragraphs.map((paragraph, index) => {
+                    if (point.id === 2 && paragraph.includes('|')) {
+                      const [label, description] = paragraph.split('|');
+                      const targetColor = label.startsWith('Verde') ? '#00E676' : label.startsWith('Arancione') ? '#FF9800' : '#FF5252';
+                      return (
+                        <View key={index} style={styles.guideTargetRow}>
+                          <Text style={[styles.guideTargetLabel, { color: targetColor }]}>{label}</Text>
+                          <Text style={styles.guideParagraph}>{description}</Text>
+                        </View>
+                      );
+                    }
+                    return <Text key={index} style={styles.guideParagraph}>{paragraph}</Text>;
+                  })}
+                </View>
+              )}
+            </View>
           );
         })}
       </View>
-      <Modal visible={expandedPointId !== null} transparent animationType="fade"
-        onRequestClose={() => setExpandedPointId(null)}>
-        <View style={styles.guideModalOverlay}>
-          <View style={styles.guideModalCard}>
-            {manualPoints.filter(p => p.id === expandedPointId).map(point => (
-              <React.Fragment key={point.id}>
-                <View style={styles.guideModalHeader}>
-                  <View style={styles.guideModalIcon}>
-                    <Ionicons name={point.icon as any} size={25} color={point.color} />
-                  </View>
-                  <Text style={styles.guideModalTitle}>{point.title}</Text>
-                  <TouchableOpacity onPress={() => setExpandedPointId(null)} accessibilityLabel="Chiudi guida">
-                    <Ionicons name="close-circle-outline" size={27} color={COLORS.muted} />
-                  </TouchableOpacity>
-                </View>
-                <ScrollView style={styles.guideModalScroll} showsVerticalScrollIndicator>
-                  <Text style={styles.guideModalBody}>{point.content}</Text>
-                </ScrollView>
-              </React.Fragment>
-            ))}
-            <TouchableOpacity style={styles.guideModalClose} onPress={() => setExpandedPointId(null)}>
-              <Text style={styles.guideModalCloseText}>Chiudi</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </ScrollView>
   );
 }
@@ -599,6 +594,27 @@ const styles = StyleSheet.create({
   controlFilterActive: { backgroundColor: '#123E48', borderColor: '#00DFFF' },
   controlFilterText: { color: '#A7B3CB', fontSize: 10, fontWeight: '600' },
   controlFilterTextActive: { color: '#00E5FF', fontWeight: '800' },
+  manualSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 22, marginBottom: 14 },
+  manualBookIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#092637', alignItems: 'center', justifyContent: 'center' },
+  manualSectionTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '800', fontFamily: 'Plus Jakarta Sans', letterSpacing: 0.3 },
+  manualSectionSubtitle: { color: '#A4BBD1', fontSize: 12, marginTop: 4, fontFamily: 'Plus Jakarta Sans' },
+  manualSectionDivider: { height: 1, backgroundColor: '#284052', marginBottom: 14 },
+  guideList: { gap: 10, marginBottom: 14 },
+  guideRowCard: { backgroundColor: '#101E2D', borderRadius: 16, borderWidth: 1, borderColor: '#243A4C', overflow: 'hidden' },
+  guideRowHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, minHeight: 80 },
+  guideRowIcon: { width: 45, height: 45, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  guideRowAccent: { width: 1, height: 39 },
+  guideRowText: { flex: 1, minWidth: 0 },
+  guideRowTitle: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', fontFamily: 'Plus Jakarta Sans' },
+  guideRowSubtitle: { color: '#A4BBD1', fontSize: 12, marginTop: 4, fontFamily: 'Plus Jakarta Sans' },
+  guideRowChevron: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: '#284052', alignItems: 'center', justifyContent: 'center' },
+  guideExpandedBody: { paddingHorizontal: 16, paddingBottom: 18, gap: 12 },
+  guideExpandedDivider: { height: 1, backgroundColor: '#284052', marginBottom: 3 },
+  guideParagraph: { flex: 1, color: '#D3DAED', fontSize: 13, lineHeight: 21, fontFamily: 'Plus Jakarta Sans' },
+  guideTargetRow: { gap: 5, paddingVertical: 6 },
+  guideTargetLabel: { fontSize: 14, fontWeight: '700', fontFamily: 'Plus Jakarta Sans' },
+  guideBulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingLeft: 5 },
+  guideBulletDot: { width: 7, height: 7, borderRadius: 4, marginTop: 7 },
   guideSubtitle: { color: '#9BA6C3', fontSize: 12, marginTop: -4, marginBottom: 13 },
   guideGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
   guideTile: { width: '48%', minHeight: 164, backgroundColor: '#10152A', borderWidth: 1, borderRadius: 16, padding: 12 },
@@ -634,7 +650,9 @@ const styles = StyleSheet.create({
   pdfModalCancelText: { color: COLORS.muted, fontWeight: '700' },
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 16, paddingTop: 20, paddingBottom: 40 },
-  headerForm: { marginBottom: 20, width: '100%' },
+  headerForm: { marginBottom: 20, width: '100%', flexDirection: 'row', alignItems: 'stretch', gap: 14 },
+  headerAccent: { width: 4, borderRadius: 4, backgroundColor: COLORS.brandPrimary, minHeight: 64 },
+  headerTextGroup: { flex: 1, justifyContent: 'center' },
   title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700', color: COLORS.onSurface },
   subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, marginTop: 4 },
   
@@ -695,4 +713,3 @@ const styles = StyleSheet.create({
   notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
   notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 13 }
 });
-
