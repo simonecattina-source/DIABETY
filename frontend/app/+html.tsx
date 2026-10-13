@@ -53,6 +53,26 @@ export default function Root({ children }: PropsWithChildren) {
               /* Mantiene nero il livello di navigazione e le aree non coperte. */
               body { background-color: #0A0A0C !important; }
 
+              /* Test iOS 27: elemento non visibile per evitare il blur superiore.
+                 Attivo soltanto nella PWA installata (standalone).
+                 Non altera il layout né le safe area inferiori. */
+              .ios-pwa-top-blur-fix { display: none; }
+              @media (display-mode: standalone) {
+                .ios-pwa-top-blur-fix {
+                  display: block;
+                  position: fixed;
+                  top: 0;
+                  left: 0;
+                  right: 0;
+                  height: 11px;
+                  z-index: 2147483647;
+                  pointer-events: none;
+                  background-color: #0A0A0C;
+                  -webkit-background-clip: text;
+                  background-clip: text;
+                }
+              }
+
               [role="tablist"] [role="tab"] *,
               [role="heading"],
               [role="heading"] * {
@@ -77,6 +97,7 @@ export default function Root({ children }: PropsWithChildren) {
           backgroundColor: "#0A0A0C",
         }}
       >
+        <div className="ios-pwa-top-blur-fix" aria-hidden="true" />
         {children}
       </body>
     </html>
