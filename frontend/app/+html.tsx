@@ -50,78 +50,35 @@ export default function Root({ children }: PropsWithChildren) {
                 height: 100dvh;
               }
 
+              /* TEST iOS 27: superficie opaca fissa nella safe area superiore.
+                 Non altera il layout o l'altezza del contenuto React Native Web.
+                 Solo PWA installata; facilmente rimovibile. */
+              @media (display-mode: standalone) {
+                @supports (-webkit-touch-callout: none) {
+                  body::before {
+                    content: "";
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: calc(env(safe-area-inset-top, 0px) + 2px);
+                    min-height: 2px;
+                    background-color: #0A0A0C;
+                    opacity: 1;
+                    pointer-events: none;
+                    z-index: 2147483646;
+                  }
+                }
+              }
+
               /* Mantiene nero il livello di navigazione e le aree non coperte. */
               body { background-color: #0A0A0C !important; }
-
-
-
-              /* Esperimento iOS 27: pannello temporaneo per aggiornare il compositing.
-                 Solo PWA standalone su dispositivi iOS; non modifica il layout. */
-              #diabety-ios-blur-cover {
-                display: none;
-                position: fixed;
-                inset: 0;
-                z-index: 2147483646;
-                background: rgba(255, 255, 255, 0.01);
-                pointer-events: none;
-                animation: diabety-ios-cover-fade 0.3s;
-              }
-              #diabety-ios-blur-panel {
-                position: fixed;
-                top: 0;
-                right: 0;
-                bottom: 0;
-                width: 90%;
-                height: 100%;
-                z-index: 2147483647;
-                background: rgba(255, 255, 255, 0.01);
-                pointer-events: none;
-                transform: translateX(110%);
-                transition: transform 0.3s;
-              }
-              @keyframes diabety-ios-cover-fade {
-                from { opacity: 0; }
-                to { opacity: 1; }
-              }
 
               [role="tablist"] [role="tab"] *,
               [role="heading"],
               [role="heading"] * {
                 overflow: visible !important;
               }
-            `,
-          }}
-        />
-        {/* Esperimento isolato: eseguito una sola volta all'avvio della PWA iOS. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.addEventListener('load', function () {
-                var standalone = window.matchMedia('(display-mode: standalone)').matches ||
-                  window.navigator.standalone === true;
-                var ios = /iPhone|iPad|iPod/.test(window.navigator.userAgent);
-                if (!standalone || !ios || document.getElementById('diabety-ios-blur-panel')) return;
-
-                var cover = document.createElement('div');
-                cover.id = 'diabety-ios-blur-cover';
-                cover.setAttribute('aria-hidden', 'true');
-                var panel = document.createElement('div');
-                panel.id = 'diabety-ios-blur-panel';
-                panel.setAttribute('aria-hidden', 'true');
-                document.body.appendChild(cover);
-                document.body.appendChild(panel);
-
-                void panel.offsetWidth;
-                window.requestAnimationFrame(function () {
-                  cover.style.display = 'block';
-                  panel.style.transform = 'translateX(0%)';
-                  window.setTimeout(function () {
-                    cover.style.display = 'none';
-                    panel.style.transform = 'translateX(110%)';
-                    // Il pannello resta nel DOM fuori schermo: parte del test.
-                  }, 500);
-                });
-              }, { once: true });
             `,
           }}
         />
