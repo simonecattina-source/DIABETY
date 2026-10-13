@@ -34,6 +34,8 @@ export default function StrumentiScreen() {
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
   const [filtroPdfSelezionato, setFiltroPdfSelezionato] = useState<string>('Tutti');
   const [modalPdfVisibile, setModalPdfVisibile] = useState(false);
+  const [backupDaRipristinare, setBackupDaRipristinare] = useState<{ dati: any[]; esclusi: number } | null>(null);
+  const [ripristinoInCorso, setRipristinoInCorso] = useState(false);
   const [expandedPointId, setExpandedPointId] = useState<number | null>(null);
 
   const mostraMessaggioNotifica = (testo: string) => {
@@ -127,17 +129,27 @@ export default function StrumentiScreen() {
         return;
       }
 
-      const conferma = window.confirm(
-        `Backup verificato.\n\nMisurazioni da ripristinare: ${datiValidi.length}\nMisurazioni escluse perché più vecchie di 91 giorni: ${esclusi}\n\nATTENZIONE: il ripristino sostituirà tutto lo storico attuale. Prima di procedere, assicurati di averne salvato un backup.\n\nVuoi continuare?`
-      );
-      if (!conferma) return;
-
-      await AsyncStorage.setItem('glicotrack_data', JSON.stringify(datiValidi));
-      mostraMessaggioNotifica(`✓ Ripristinate ${datiValidi.length} misurazioni`);
+      // Mostra la conferma personalizzata senza modificare ancora lo storico.
+      setBackupDaRipristinare({ dati: datiValidi, esclusi });
     } catch (errore) {
       alert('Impossibile leggere o importare il backup. Lo storico attuale non è stato modificato se la scrittura non è riuscita.');
     }
   };
+  const confermaRipristinoBackup = async () => {
+    if (!backupDaRipristinare || ripristinoInCorso) return;
+    setRipristinoInCorso(true);
+    try {
+      await AsyncStorage.setItem('glicotrack_data', JSON.stringify(backupDaRipristinare.dati));
+      const quantita = backupDaRipristinare.dati.length;
+      setBackupDaRipristinare(null);
+      mostraMessaggioNotifica(`✓ Ripristinate ${quantita} misurazioni`);
+    } catch (errore) {
+      alert('Impossibile completare il ripristino del backup.');
+    } finally {
+      setRipristinoInCorso(false);
+    }
+  };
+
   const esportaDocumentoMatriceStoricoPDF = async (modalita: 'html' | 'pdf') => {
     setModalPdfVisibile(false);
     try {
@@ -423,6 +435,51 @@ export default function StrumentiScreen() {
         </View>
       </View>
 
+      {/* Conferma importazione: stesso stile della finestra Esporta registro. */}
+      <Modal visible={backupDaRipristinare !== null} transparent animationType="fade"
+        onRequestClose={() => { if (!ripristinoInCorso) setBackupDaRipristinare(null); }}>
+        <View style={styles.pdfModalOverlay}>
+          <View style={styles.pdfModalCard}>
+            <View style={styles.pdfModalHeader}>
+              <Ionicons name="cloud-upload-outline" size={24} color={COLORS.brandPrimary} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.pdfModalTitle}>Importa backup</Text>
+                <Text style={styles.pdfModalSubtitle}>DIABETY · Ripristino dello storico</Text>
+              </View>
+              <TouchableOpacity disabled={ripristinoInCorso} onPress={() => setBackupDaRipristinare(null)} accessibilityLabel="Chiudi finestra">
+                <Ionicons name="close" size={24} color={COLORS.muted} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.pdfModalPeriodo}>Backup verificato correttamente</Text>
+            <View style={styles.pdfModalOption}>
+              <Ionicons name="checkmark-circle-outline" size={22} color={COLORS.success} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.pdfModalOptionTitle}>Misurazioni da ripristinare</Text>
+                <Text style={styles.pdfModalOptionDesc}>{backupDaRipristinare?.dati.length ?? 0} misurazioni valide</Text>
+              </View>
+            </View>
+            <View style={styles.pdfModalOption}>
+              <Ionicons name="time-outline" size={22} color={COLORS.warning} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.pdfModalOptionTitle}>Misurazioni escluse</Text>
+                <Text style={styles.pdfModalOptionDesc}>{backupDaRipristinare?.esclusi ?? 0} più vecchie di 91 giorni</Text>
+              </View>
+            </View>
+            <View style={styles.backupWarningBox}>
+              <Ionicons name="warning-outline" size={21} color={COLORS.warning} />
+              <Text style={styles.backupWarningText}>Il ripristino sostituirà tutto lo storico attuale. Prima di procedere, assicurati di averne salvato un backup.</Text>
+            </View>
+            <TouchableOpacity style={styles.backupConfirmButton} disabled={ripristinoInCorso} onPress={confermaRipristinoBackup}>
+              <Ionicons name="cloud-upload-outline" size={20} color={COLORS.onSurface} />
+              <Text style={styles.backupConfirmText}>{ripristinoInCorso ? 'Ripristino in corso…' : 'Conferma ripristino'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.pdfModalCancel} disabled={ripristinoInCorso} onPress={() => setBackupDaRipristinare(null)}>
+              <Text style={styles.pdfModalCancelText}>Annulla</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={modalPdfVisibile} transparent animationType="fade" onRequestClose={() => setModalPdfVisibile(false)}>
         <View style={styles.pdfModalOverlay}>
           <View style={styles.pdfModalCard}>
@@ -560,6 +617,10 @@ const styles = StyleSheet.create({
   guideModalClose: { backgroundColor: '#123B68', borderWidth: 1, borderColor: '#00A8FF', padding: 12, alignItems: 'center', borderRadius: 12 },
   guideModalCloseText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
 
+  backupWarningBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: '#2B2117', borderColor: '#755024', borderWidth: 1, borderRadius: 14, padding: 13, marginBottom: 14 },
+  backupWarningText: { color: '#FFD4A3', fontSize: 12, lineHeight: 19, flex: 1, fontFamily: 'Plus Jakarta Sans' },
+  backupConfirmButton: { backgroundColor: '#123B68', borderColor: '#00A8FF', borderWidth: 1, borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  backupConfirmText: { color: COLORS.onSurface, fontSize: 14, fontWeight: '700', fontFamily: 'Plus Jakarta Sans' },
   pdfModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', padding: 20 },
   pdfModalCard: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 22, borderWidth: 1, borderColor: COLORS.borderGlassBright, padding: 20, maxWidth: 440, width: '100%', alignSelf: 'center' },
   pdfModalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
