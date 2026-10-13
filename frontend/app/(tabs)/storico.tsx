@@ -413,73 +413,96 @@ export default function StoricoScreen() {
   return (
     <View style={styles.container}>
       
-      {/* 🏷️ HEADER OPERATIVO AGGIORNATO CON ICONA ED ETICHETTA CIANO NEON */}
-      <View style={styles.header}>
-        <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
-          <Text style={styles.title}>Storico</Text>
-          <TouchableOpacity style={styles.infoHelpButton} onPress={() => setMostraHelpPDF(true)}>
-            <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={{flexDirection:'row', gap: 8}}>
-          {datiReali.length > 0 && (
-            <TouchableOpacity style={styles.exportButtonSvuotaMinimal} onPress={() => setMostraConfermaSvuota(true)}>
-              <Text style={styles.exportTextSvuotaRed}>Svuota</Text>
+      <View style={styles.newHeader}>
+        <View style={styles.newHeaderAccent} />
+        <View style={{flex: 1}}>
+          <View style={{flexDirection:'row', alignItems:'center', gap:8}}>
+            <Text style={styles.newHeaderTitle}>Storico</Text>
+            <TouchableOpacity style={styles.newHelpCircle} onPress={() => setMostraHelpPDF(true)} accessibilityLabel="Guida allo Storico">
+              <Text style={{color:COLORS.brandPrimary,fontSize:12,fontWeight:'800'}}>?</Text>
             </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.exportButtonPDFAcrobatNeon} onPress={() => setModalPdfVisibile(true)}>
-            <Ionicons name="document-text-outline" size={16} color={COLORS.brandPrimary} />
-            <Text style={styles.exportTextPDFAcrobatNeon}>Esporta PDF</Text>
-          </TouchableOpacity>
+          </View>
+          <Text style={styles.newSubtitle}>Il tuo diario glicemico</Text>
         </View>
       </View>
 
       {mostraNotificaSvuotato && (
-        <View style={[styles.notificaTendinaGenerale, { backgroundColor: '#092414', borderColor: COLORS.success }]}>
-          <Text style={[styles.notificaTesto, { color: COLORS.success }]}>✓ Intero diario glicemico svuotato</Text>
+        <View style={[styles.notificaTendinaGenerale,{backgroundColor:'#092414',borderColor:COLORS.success}]}>
+          <Text style={[styles.notificaTesto,{color:COLORS.success}]}>✓ Intero diario glicemico svuotato</Text>
         </View>
       )}
 
-      <View style={styles.filterBar}>
-        {[
-          { id: '7', etichetta: '7 GG' }, { id: '14', etichetta: '14 GG' }, { id: '30', etichetta: '30 GG' }, { id: '90', etichetta: '90 GG' }, { id: 'all', etichetta: 'Tutti' }
-        ].map((f) => (
-          <TouchableOpacity key={f.id} style={[styles.filterButton, filtroAttivo === f.id && styles.filterButtonActiveNeon]} onPress={() => setFiltroAttivo(f.id as any)}>
-            <Text style={[styles.filterButtonText, filtroAttivo === f.id && styles.filterButtonTextActiveNeon]}>{f.etichetta}</Text>
+      <View style={styles.newActions}>
+        <TouchableOpacity style={styles.newDangerAction} onPress={() => setMostraConfermaSvuota(true)} disabled={datiReali.length===0}>
+          <Ionicons name="trash-outline" size={17} color={COLORS.error}/>
+          <Text style={styles.newDangerText}>Svuota</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.newPdfAction} onPress={() => setModalPdfVisibile(true)}>
+          <Ionicons name="document-text-outline" size={17} color={COLORS.brandPrimary}/>
+          <Text style={styles.newPdfText}>Esporta PDF</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.newPeriodLabel}>Periodo</Text>
+      <View style={styles.newFilterBar}>
+        {([{id:'7',etichetta:'7 GG'},{id:'14',etichetta:'14 GG'},{id:'30',etichetta:'30 GG'},{id:'90',etichetta:'90 GG'},{id:'all',etichetta:'Tutti'}] as const).map(f => (
+          <TouchableOpacity key={f.id} style={[styles.newFilter,filtroAttivo===f.id && styles.newFilterSelected]} onPress={()=>setFiltroAttivo(f.id)}>
+            <Text style={[styles.newFilterText,filtroAttivo===f.id && {color:COLORS.brandPrimary,fontWeight:'800'}]}>{f.etichetta}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       <SectionList
         sections={ottieniDatiSezionati()}
-        keyExtractor={(item) => item.id}
-        renderSectionHeader={({ section: { title } }) => <Text style={styles.sectionHeader}>{title}</Text>}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.row} onPress={() => apriModificaItem(item)} activeOpacity={0.7}>
-            <View style={styles.timelineContainer}>
-              <View style={[styles.timelineDot, { backgroundColor: item.glicemia > 180 ? COLORS.error : item.glicemia < 70 ? COLORS.warning : COLORS.success }]} />
-              <View style={styles.timelineLine} />
-            </View>
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.valoreGlicemia}>{item.glicemia} <Text style={styles.unitaMisura}>mg/dL</Text></Text>
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                  <Text style={styles.oraTest}>{item.ora}</Text>
-                  <Ionicons name="pencil-sharp" size={12} color={COLORS.muted} />
-                </View>
-              </View>
-              <Text style={styles.tipoPasto}>{item.tipo} {item.insulina !== '-' ? `• Insulina: ${item.insulina}` : ''}</Text>
-              {item.note ? <Text style={styles.noteTest}>{item.note}</Text> : null}
-            </View>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={
-          <View style={{padding: 40, alignItems: 'center'}}>
-            <Text style={{color: COLORS.muted, fontFamily: 'Plus Jakarta Sans'}}>Nessuna misurazione salvata in questo intervallo di tempo.</Text>
+        keyExtractor={(item) => String(item.id)}
+        renderSectionHeader={({section}) => (
+          <View style={styles.newDayHeader}>
+            <Ionicons name="calendar-outline" size={17} color={COLORS.brandPrimary}/>
+            <Text style={styles.newDayText}>{section.title}</Text>
+            <Text style={styles.newDayCount}>{section.data.length} {section.data.length===1?'misurazione':'misurazioni'}</Text>
           </View>
-        }
-        contentContainerStyle={styles.listContent}
+        )}
+        renderItem={({item,index,section}) => {
+          const dotColor = item.glicemia>180 ? COLORS.error : item.glicemia<70 ? COLORS.warning : COLORS.success;
+          const notePulite = item.note ? String(item.note).replace(/^\[\d{2}:\d{2}\]\s*/, '').trim() : '';
+          return (
+            <TouchableOpacity style={styles.newRecordRow} onPress={()=>apriModificaItem(item)} activeOpacity={0.8}>
+              <View style={styles.newTimeline}>
+                <View style={[styles.newDot,{backgroundColor:dotColor}]}/>
+                {index<section.data.length-1 && <View style={styles.newLine}/>}
+              </View>
+              <View style={styles.newRecordCard}>
+                <View style={styles.newRecordTop}>
+                  <View style={{flexDirection:'row',alignItems:'baseline',gap:5}}>
+                    <Text style={styles.newGlucose}>{item.glicemia}</Text>
+                    <Text style={styles.newUnit}>mg/dL</Text>
+                  </View>
+                  <View style={{flexDirection:'row',alignItems:'center',gap:9}}>
+                    <Text style={styles.newTime}>{item.ora}</Text>
+                    <Ionicons name="pencil-outline" size={16} color={COLORS.brandPrimary}/>
+                  </View>
+                </View>
+                <View style={styles.newCardDivider}/>
+                <View style={styles.newRecordDetails}>
+                  <Text style={styles.newMeal} numberOfLines={2}>{item.tipo || 'Misurazione'}</Text>
+                  <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
+                    <Ionicons name="medkit-outline" size={14} color={COLORS.brandSecondary}/>
+                    <Text style={styles.newInsulin}>{item.insulina && item.insulina!=='-' ? item.insulina : '—'}</Text>
+                  </View>
+                </View>
+                {!!notePulite && (
+                  <View style={{flexDirection:'row',alignItems:'flex-start',gap:6,marginTop:8}}>
+                    <Ionicons name="document-text-outline" size={14} color="#93A7B9"/>
+                    <Text style={styles.newNotes}>{notePulite}</Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          );
+        }}
+        ListEmptyComponent={<View style={{padding:35,alignItems:'center'}}><Text style={{color:COLORS.muted,textAlign:'center'}}>Nessuna misurazione salvata in questo intervallo di tempo.</Text></View>}
+        contentContainerStyle={styles.newListContent}
+        stickySectionHeadersEnabled={false}
       />
       <Modal visible={modalPdfVisibile} transparent animationType="fade" onRequestClose={() => setModalPdfVisibile(false)}>
         <View style={styles.pdfModalOverlay}>
@@ -518,103 +541,98 @@ export default function StoricoScreen() {
         </View>
       </Modal>
 
-      {/* ℹ️ POPUP MODAL INFORMATIVO HELP ACCORDATO PERFETTAMENTE NELLA GRAFICA ALLA HOME */}
-      <Modal visible={mostraHelpPDF} animationType="fade" transparent={true}>
-        <View style={styles.modalOverlayCentrato}>
-          <View style={styles.modalContentHelp}>
-            <Text style={styles.modalTitleHelp}>Guida e Funzionalità</Text>
-            
-            <View style={styles.helpSectionRow}>
-              <View style={[styles.helpIconBox, { backgroundColor: 'rgba(0, 229, 255, 0.08)' }]}>
-                <Ionicons name="document-text" size={18} color={COLORS.brandPrimary} />
-              </View>
-              <View style={styles.helpTextContainer}>
-                <Text style={styles.helpSectionHeader}>Esportazione Report PDF</Text>
-                <Text style={styles.helpSectionBody}>
-                  Cliccando sul pulsante <Text style={{fontWeight: '700', color: COLORS.brandPrimary}}>"Esporta PDF"</Text> potrai scaricare il documento clinico temporale.{"\n"}
-                  Il sistema esporterà in modo intelligente solo l'intervallo di tempo che hai selezionato nella barra dei filtri (7, 14, 30, 90 giorni o Tutti).
-                </Text>
-              </View>
+      <Modal visible={mostraHelpPDF} animationType="fade" transparent onRequestClose={()=>setMostraHelpPDF(false)}>
+        <View style={styles.newOverlay}>
+          <View style={styles.newModal}>
+            <View style={styles.newModalHeading}>
+              <View style={styles.newModalIcon}><Ionicons name="book-outline" size={23} color={COLORS.brandPrimary}/></View>
+              <View style={{flex:1}}><Text style={styles.newModalTitle}>Guida allo Storico</Text><Text style={styles.newModalSub}>Consulta e gestisci le tue misurazioni</Text></View>
+              <TouchableOpacity onPress={()=>setMostraHelpPDF(false)} accessibilityLabel="Chiudi guida"><Ionicons name="close" size={24} color="#93A7B9"/></TouchableOpacity>
             </View>
-
-            <View style={styles.helpSectionRow}>
-              <View style={[styles.helpIconBox, { backgroundColor: '#0C232B' }]}>
-                <Ionicons name="pencil-sharp" size={18} color={COLORS.brandPrimary} />
+            <View style={styles.newModalDivider}/>
+            <ScrollView style={{flexShrink:1}} contentContainerStyle={{gap:10,paddingBottom:4}} showsVerticalScrollIndicator={false}>
+              <View style={styles.newHelpBox}><Text style={styles.newHelpTitle}>⌕  Filtra le misurazioni</Text><Text style={styles.newHelpBody}>Seleziona 7, 14, 30, 90 giorni oppure Tutti per consultare il periodo desiderato.</Text></View>
+              <View style={styles.newHelpBox}>
+                <Text style={styles.newHelpTitle}>◉  Interpreta i colori</Text>
+                <Text style={styles.newHelpBody}>I pallini colorati accanto alle misurazioni indicano l'intervallo glicemico del valore registrato.</Text>
+                {[{color:COLORS.success,label:'Da 70 a 180 mg/dL'},{color:COLORS.warning,label:'Inferiore a 70 mg/dL'},{color:COLORS.error,label:'Superiore a 180 mg/dL'}].map(x=><View key={x.label} style={{flexDirection:'row',alignItems:'center',gap:9,marginTop:8}}><View style={{width:11,height:11,borderRadius:6,backgroundColor:x.color}}/><Text style={styles.newHelpBody}>{x.label}</Text></View>)}
               </View>
-              <View style={styles.helpTextContainer}>
-                <Text style={styles.helpSectionHeader}>Modifica e Cancellazione</Text>
-                <Text style={styles.helpSectionBody}>
-                  Puoi correggere, variare o eliminare definitivamente qualsiasi misurazione salvata nel diario.{"\n"}
-                  Ti basta toccare l'icona della <Text style={{fontWeight: '700', color: COLORS.brandPrimary}}>matita</Text> posizionata a destra di ogni singolo record cronologico nella lista.
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.btnChiudiHelp} onPress={() => setMostraHelpPDF(false)}>
-              <Text style={styles.btnChiudiHelpText}>Ho capito</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* POPUP MODAL DI MODIFICA */}
-      <Modal visible={mostraModalModifica} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Gestisci Misurazione</Text>
-            <ScrollView style={{maxHeight: 280}} showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>Data del Test</Text>
-              {Platform.OS === 'web' ? (
-                <input type="date" value={modDataISO} onChange={(e) => setModDataISO(e.target.value)} style={{ fontFamily: 'sans-serif', fontSize: '14px', fontWeight: '600', color: '#00E5FF', backgroundColor: '#13131A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 10px', marginBottom: '8px', width: '100%', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }} />
-              ) : ( <TextInput style={styles.textInput} value={modDataISO} onChangeText={setModDataISO} /> )}
-
-              <Text style={styles.inputLabel}>Orario del Test (Verrà scritto nelle note)</Text>
-              {Platform.OS === 'web' ? (
-                <input type="time" value={modOraText} onChange={(e) => setModOraText(e.target.value)} style={{ fontFamily: 'sans-serif', fontSize: '14px', fontWeight: '600', color: '#00E5FF', backgroundColor: '#13131A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 10px', marginBottom: '8px', width: '100%', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }} />
-              ) : ( <TextInput style={styles.textInput} value={modOraText} onChangeText={setModOraText} /> )}
-
-              <Text style={styles.inputLabel}>Glicemia (mg/dL)</Text>
-              <TextInput style={styles.textInput} keyboardType="numeric" value={modGlicemia} onChangeText={setModGlicemia} maxLength={3} />
-              <Text style={styles.inputLabel}>Insulina (Unità UI)</Text>
-              <TextInput style={styles.textInput} keyboardType="numeric" value={modInsulina} onChangeText={setModInsulina} placeholder="Nessuna" maxLength={2} />
-              <Text style={styles.inputLabel}>Note / Pasti</Text>
-              <TextInput style={styles.textInput} value={modNote} onChangeText={setModNote} />
-
-              <Text style={styles.inputLabel}>Momento della Giornata</Text>
-              <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4}}>
-                {MOMENTI_COLONNE.map(m => (
-                  <TouchableOpacity key={m} style={[styles.chipMomento, modMomento === m && styles.chipMomentoAttiva]} onPress={() => setModMomento(m)}>
-                    <Text style={[styles.chipMomentoText, modMomento === m && styles.chipMomentoTextAttiva]}>{m}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <View style={styles.newHelpBox}><Text style={styles.newHelpTitle}>✎  Gestisci una misurazione</Text><Text style={styles.newHelpBody}>Tocca la matita accanto a una registrazione per modificarla o eliminarla.</Text></View>
+              <View style={styles.newHelpBox}><Text style={styles.newHelpTitle}>⇩  Esporta il registro</Text><Text style={styles.newHelpBody}>Visualizza il documento HTML o scarica il report PDF del periodo selezionato.</Text></View>
+              <View style={styles.newHelpBox}><Text style={styles.newHelpTitle}>✕  Cancella i dati</Text><Text style={styles.newHelpBody}>Svuota elimina tutte le registrazioni dopo una conferma.</Text></View>
             </ScrollView>
+            <TouchableOpacity style={styles.newPrimaryButton} onPress={()=>setMostraHelpPDF(false)}><Text style={styles.newPrimaryText}>Ho capito</Text></TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
-            {mostraNotificaModifica && (
-              <View style={[styles.notificaTendina, testoNotifica.includes('eliminata') && {backgroundColor: '#1C1314', borderColor: COLORS.error}]}>
-                <Text style={[styles.notificaTesto, testoNotifica.includes('eliminata') && {color: COLORS.error}]}>{testoNotifica}</Text>
+      <Modal visible={mostraModalModifica} animationType="slide" transparent onRequestClose={()=>setMostraModalModifica(false)}>
+        <View style={styles.newOverlay}>
+          <View style={styles.newModal}>
+            <View style={styles.newModalHeading}>
+              <View style={styles.newModalIcon}><Ionicons name="pencil-outline" size={23} color={COLORS.brandPrimary}/></View>
+              <View style={{flex:1}}><Text style={styles.newModalTitle}>Modifica Misurazione</Text><Text style={styles.newModalSub}>Aggiorna i dati registrati</Text></View>
+              <TouchableOpacity onPress={()=>setMostraModalModifica(false)} accessibilityLabel="Chiudi modifica"><Ionicons name="close" size={24} color="#93A7B9"/></TouchableOpacity>
+            </View>
+            <View style={styles.newModalDivider}/>
+            <ScrollView style={{flexShrink:1}} keyboardShouldPersistTaps="handled" contentContainerStyle={{gap:12,paddingBottom:8}} showsVerticalScrollIndicator={false}>
+              <View style={styles.newEditGrid}>
+                <View style={styles.newEditCard}>
+                  <Text style={styles.newEditLabel}>▣  Data del Test</Text>
+                  <View style={styles.newWebFieldWrap}>
+                    {Platform.OS==='web' ? <input type="date" value={modDataISO} onChange={e=>setModDataISO(e.target.value)} style={{display:'block',width:'100%',maxWidth:'100%',minWidth:0,boxSizing:'border-box',fontSize:'13px',color:'#FFFFFF',colorScheme:'dark',backgroundColor:'#080F18',border:'1px solid #344C63',borderRadius:'8px',padding:'10px 3px',outline:'none'}}/> : <TextInput style={styles.newEditInput} value={modDataISO} onChangeText={setModDataISO}/>}
+                  </View>
+                </View>
+                <View style={styles.newEditCard}>
+                  <Text style={styles.newEditLabel}>◷  Orario del Test</Text>
+                  <View style={styles.newWebFieldWrap}>
+                    {Platform.OS==='web' ? <input type="time" value={modOraText} onChange={e=>setModOraText(e.target.value)} style={{display:'block',width:'100%',maxWidth:'100%',minWidth:0,boxSizing:'border-box',fontSize:'13px',color:'#FFFFFF',colorScheme:'dark',backgroundColor:'#080F18',border:'1px solid #344C63',borderRadius:'8px',padding:'10px 3px',outline:'none'}}/> : <TextInput style={styles.newEditInput} value={modOraText} onChangeText={setModOraText}/>}
+                  </View>
+                </View>
+                <View style={styles.newEditCard}>
+                  <Text style={styles.newEditLabel}>◉  Glicemia</Text>
+                  <TextInput style={styles.newEditInput} keyboardType="numeric" value={modGlicemia} onChangeText={setModGlicemia} maxLength={3}/>
+                  <Text style={styles.newUnit}>mg/dL</Text>
+                </View>
+                <View style={styles.newEditCard}>
+                  <Text style={styles.newEditLabel}>✚  Insulina</Text>
+                  <TextInput style={styles.newEditInput} keyboardType="numeric" value={modInsulina} onChangeText={setModInsulina} maxLength={2} placeholder="Nessuna" placeholderTextColor="#758A9A"/>
+                  <Text style={styles.newUnit}>UI</Text>
+                </View>
               </View>
-            )}
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.btnAnnulla} onPress={() => setMostraModalModifica(false)}><Text style={styles.btnAnnullaText}>Chiudi</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.btnElimina} onPress={eliminaSingoloItem}><Ionicons name="trash-outline" size={14} color="#FFF" style={{marginRight: 4}} /><Text style={styles.btnEliminaText}>Elimina</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.btnSalva} onPress={salvaModificaItem}><Text style={styles.btnSalvaText}>Salva</Text></TouchableOpacity>
+              <Text style={styles.newEditSectionTitle}>☼  Momento della Giornata</Text>
+              <View style={styles.newMomentGrid}>
+                {MOMENTI_COLONNE.map(m=><TouchableOpacity key={m} style={[styles.newMoment,m===modMomento && styles.newMomentSelected]} onPress={()=>setModMomento(m)}><Text style={[styles.newMomentText,m===modMomento && {color:COLORS.brandPrimary,fontWeight:'800'}]}>{m}</Text></TouchableOpacity>)}
+              </View>
+              <Text style={styles.newEditSectionTitle}>▤  Note Alimentari / Sintomi <Text style={{color:'#93A7B9',fontSize:11,fontWeight:'400'}}>(facoltative)</Text></Text>
+              <TextInput style={[styles.newEditInput,{minHeight:50,textAlignVertical:'top'}]} multiline value={modNote} onChangeText={setModNote} placeholder="Aggiungi una nota..." placeholderTextColor="#758A9A"/>
+            </ScrollView>
+            {mostraNotificaModifica && <View style={[styles.notificaTendina,testoNotifica.includes('eliminata') && {backgroundColor:'#1C1314',borderColor:COLORS.error}]}><Text style={[styles.notificaTesto,testoNotifica.includes('eliminata') && {color:COLORS.error}]}>{testoNotifica}</Text></View>}
+            <View style={styles.newEditActions}>
+              <TouchableOpacity style={styles.newCancelSmall} onPress={()=>setMostraModalModifica(false)}><Text style={{color:'#FFFFFF',fontSize:12,fontWeight:'700'}}>Annulla</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.newDeleteSmall} onPress={eliminaSingoloItem}><Ionicons name="trash-outline" size={14} color={COLORS.error}/><Text style={{color:COLORS.error,fontSize:12,fontWeight:'700'}}>Elimina</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.newSaveSmall} onPress={salvaModificaItem}><Ionicons name="checkmark" size={15} color="#071018"/><Text style={{color:'#071018',fontSize:12,fontWeight:'800'}}>Salva</Text></TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* CONFIRMA CANCELLAZIONE */}
-      <Modal visible={mostraConfermaSvuota} animationType="fade" transparent={true}>
-        <View style={styles.modalOverlayCentrato}>
-          <View style={styles.modalContentSvuota}>
-            <View style={styles.iconaAvvisoContainer}><Ionicons name="alert-circle" size={40} color={COLORS.error} /></View>
-            <Text style={styles.modalTitleSvuota}>Svuotare il Diario?</Text>
-            <Text style={styles.modalSubtitleSvuota}>Sei sicuro di voler cancellare l'intero storico delle misurazioni? Questa azione è irreversibile.</Text>
-            <View style={styles.modalActionsSvuota}>
-              <TouchableOpacity style={styles.btnAnnullaSvuota} onPress={() => setMostraConfermaSvuota(false)}><Text style={styles.btnAnnullaTextSvuota}>Annulla</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.btnConfermaSvuota} onPress={confermaCancellaTutto}><Text style={styles.btnConfermaTextSvuota}>Svuota Tutto</Text></TouchableOpacity>
+      <Modal visible={mostraConfermaSvuota} animationType="fade" transparent onRequestClose={()=>setMostraConfermaSvuota(false)}>
+        <View style={styles.newOverlay}>
+          <View style={styles.newModal}>
+            <View style={styles.newModalHeading}>
+              <View style={[styles.newModalIcon,{backgroundColor:'#351B23',borderColor:'#69333C',borderWidth:1}]}><Ionicons name="trash-outline" size={24} color={COLORS.error}/></View>
+              <View style={{flex:1}}><Text style={styles.newModalTitle}>Svuota lo Storico</Text><Text style={styles.newModalSub}>Conferma eliminazione</Text></View>
+              <TouchableOpacity onPress={()=>setMostraConfermaSvuota(false)} accessibilityLabel="Chiudi conferma"><Ionicons name="close" size={24} color="#93A7B9"/></TouchableOpacity>
             </View>
+            <View style={styles.newModalDivider}/>
+            <Text style={{color:'#FFFFFF',fontSize:15,fontWeight:'700'}}>Vuoi eliminare tutte le misurazioni salvate?</Text>
+            <View style={styles.newWarningBox}>
+              <Ionicons name="warning-outline" size={22} color={COLORS.warning}/>
+              <View style={{flex:1,gap:5}}><Text style={{color:'#FFFFFF',fontSize:14,fontWeight:'700'}}>Attenzione</Text><Text style={styles.newHelpBody}>Questa operazione è irreversibile. Tutte le misurazioni registrate verranno eliminate definitivamente.</Text></View>
+            </View>
+            <TouchableOpacity style={styles.newPrimaryButton} onPress={()=>setMostraConfermaSvuota(false)}><Ionicons name="arrow-back" size={17} color="#071018"/><Text style={styles.newPrimaryText}>Annulla</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.newDeleteConfirm} onPress={confermaCancellaTutto}><Ionicons name="trash-outline" size={17} color={COLORS.error}/><Text style={{color:COLORS.error,fontSize:14,fontWeight:'800'}}>Elimina tutte le misurazioni</Text></TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -622,6 +640,69 @@ export default function StoricoScreen() {
   );
 }
 const styles = StyleSheet.create({
+  // Nuovo design Storico DIABETY; logica e PDF originali preservati.
+  newHeader:{flexDirection:'row',alignItems:'center',gap:12,backgroundColor:'#101B28',borderWidth:1,borderColor:'#26536A',borderRadius:16,padding:12,marginHorizontal:12,marginBottom:10},
+  newHeaderAccent:{width:3,height:43,borderRadius:3,backgroundColor:COLORS.brandPrimary},
+  newHeaderTitle:{fontFamily:'Space Grotesk',fontSize:21,fontWeight:'700',color:'#FFFFFF'},
+  newHelpCircle:{width:20,height:20,borderRadius:10,borderWidth:1,borderColor:COLORS.brandPrimary,alignItems:'center',justifyContent:'center'},
+  newSubtitle:{fontFamily:'Plus Jakarta Sans',fontSize:11,color:'#93A7B9',marginTop:3},
+  newActions:{flexDirection:'row',gap:8,marginHorizontal:12,marginBottom:14},
+  newDangerAction:{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,backgroundColor:'#211820',borderWidth:1,borderColor:'#69333C',borderRadius:12,paddingVertical:12},
+  newDangerText:{fontSize:13,fontWeight:'700',color:COLORS.error},
+  newPdfAction:{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,backgroundColor:'#0C232B',borderWidth:1,borderColor:COLORS.brandPrimary,borderRadius:12,paddingVertical:12},
+  newPdfText:{fontSize:13,fontWeight:'700',color:COLORS.brandPrimary},
+  newPeriodLabel:{fontSize:13,fontWeight:'700',color:'#FFFFFF',marginHorizontal:12,marginBottom:8},
+  newFilterBar:{flexDirection:'row',gap:5,marginHorizontal:12,marginBottom:14},
+  newFilter:{flex:1,backgroundColor:'#13131A',borderWidth:1,borderColor:'#2D3440',borderRadius:10,paddingVertical:10,alignItems:'center'},
+  newFilterSelected:{backgroundColor:'#0C303D',borderColor:COLORS.brandPrimary},
+  newFilterText:{fontSize:10,fontWeight:'600',color:'#93A7B9'},
+  newListContent:{paddingHorizontal:12,paddingBottom:110},
+  newDayHeader:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:'#0A0A0C',paddingVertical:12},
+  newDayText:{flex:1,fontSize:15,fontWeight:'700',color:'#FFFFFF'},
+  newDayCount:{fontSize:11,color:'#93A7B9'},
+  newRecordRow:{flexDirection:'row',gap:8,minHeight:100},
+  newTimeline:{width:17,alignItems:'center'},
+  newDot:{width:13,height:13,borderRadius:7,marginTop:10},
+  newLine:{width:2,flex:1,backgroundColor:'#273A49',marginTop:5},
+  newRecordCard:{flex:1,backgroundColor:'#111B27',borderWidth:1,borderColor:'#26536A',borderRadius:15,padding:12,marginBottom:10},
+  newRecordTop:{flexDirection:'row',justifyContent:'space-between',alignItems:'center'},
+  newGlucose:{fontFamily:'Space Grotesk',fontSize:25,fontWeight:'700',color:'#FFFFFF'},
+  newUnit:{fontSize:11,color:'#93A7B9'},
+  newTime:{fontSize:12,color:'#C3CFDB'},
+  newCardDivider:{height:1,backgroundColor:'#2B4354',marginVertical:9},
+  newRecordDetails:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},
+  newMeal:{flex:1,color:'#FFFFFF',fontSize:12,fontWeight:'600'},
+  newInsulin:{fontSize:12,color:'#C3CFDB'},
+  newNotes:{flex:1,fontSize:12,color:'#93A7B9'},
+  newOverlay:{flex:1,backgroundColor:'rgba(0,0,0,0.86)',justifyContent:'center',padding:14},
+  newModal:{backgroundColor:'#111B27',borderWidth:1,borderColor:'#26536A',borderRadius:22,padding:15,maxWidth:440,width:'100%',maxHeight:'90%',alignSelf:'center',gap:12},
+  newModalHeading:{flexDirection:'row',alignItems:'center',gap:10},
+  newModalIcon:{width:45,height:45,backgroundColor:'#0B2B39',borderRadius:12,alignItems:'center',justifyContent:'center'},
+  newModalTitle:{fontFamily:'Space Grotesk',fontSize:18,fontWeight:'700',color:'#FFFFFF'},
+  newModalSub:{fontSize:11,color:'#93A7B9',marginTop:3},
+  newModalDivider:{height:1,backgroundColor:'#26536A'},
+  newHelpBox:{backgroundColor:'#080F18',borderWidth:1,borderColor:'#344C63',borderRadius:13,padding:12,gap:7},
+  newHelpTitle:{fontSize:14,color:'#FFFFFF',fontWeight:'700'},
+  newHelpBody:{fontSize:13,color:'#C3CFDB',lineHeight:19},
+  newPrimaryButton:{backgroundColor:COLORS.brandPrimary,borderRadius:12,padding:13,flexDirection:'row',gap:8,alignItems:'center',justifyContent:'center'},
+  newPrimaryText:{fontSize:14,fontWeight:'800',color:'#071018'},
+  newWarningBox:{backgroundColor:'#25191F',borderWidth:1,borderColor:'#69333C',borderRadius:13,padding:13,flexDirection:'row',gap:10},
+  newDeleteConfirm:{backgroundColor:'#341D25',borderWidth:1,borderColor:COLORS.error,borderRadius:12,padding:13,flexDirection:'row',gap:8,alignItems:'center',justifyContent:'center'},
+  newEditGrid:{flexDirection:'row',flexWrap:'wrap',gap:8},
+  newEditCard:{width:'48.5%',flexGrow:1,minWidth:0,backgroundColor:'#101B28',borderWidth:1,borderColor:'#26536A',borderRadius:13,padding:9,gap:8,overflow:'hidden'},
+  newEditLabel:{fontSize:11,color:'#FFFFFF',fontWeight:'700'},
+  newWebFieldWrap:{width:'100%',minWidth:0,overflow:'hidden'},
+  newEditInput:{backgroundColor:'#080F18',borderWidth:1,borderColor:'#344C63',borderRadius:8,paddingHorizontal:8,paddingVertical:10,fontSize:14,color:'#FFFFFF',width:'100%'},
+  newEditSectionTitle:{fontSize:13,fontWeight:'700',color:'#FFFFFF'},
+  newMomentGrid:{flexDirection:'row',flexWrap:'wrap',gap:5},
+  newMoment:{width:'32%',flexGrow:1,minHeight:40,justifyContent:'center',alignItems:'center',backgroundColor:'#080F18',borderWidth:1,borderColor:'#344C63',borderRadius:9,padding:4},
+  newMomentSelected:{backgroundColor:'#0C303D',borderColor:COLORS.brandPrimary},
+  newMomentText:{fontSize:10,color:'#C3CFDB',textAlign:'center'},
+  newEditActions:{flexDirection:'row',gap:7},
+  newCancelSmall:{flex:1,backgroundColor:'#1C2733',borderWidth:1,borderColor:'#344C63',borderRadius:10,paddingVertical:12,alignItems:'center'},
+  newDeleteSmall:{flex:1,flexDirection:'row',gap:4,justifyContent:'center',alignItems:'center',backgroundColor:'#351B23',borderWidth:1,borderColor:COLORS.error,borderRadius:10},
+  newSaveSmall:{flex:1,flexDirection:'row',gap:4,justifyContent:'center',alignItems:'center',backgroundColor:COLORS.brandPrimary,borderRadius:10},
+
   pdfModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', padding: 20 },
   pdfModalCard: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 22, borderWidth: 1, borderColor: COLORS.borderGlassBright, padding: 20, maxWidth: 440, width: '100%', alignSelf: 'center' },
   pdfModalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
