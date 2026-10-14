@@ -21,6 +21,56 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="theme-color" content="#0A0A0C" />
         <link rel="manifest" href="/manifest.json" />
         <ScrollViewStyleReset />
+        {/* Safari iOS: il solo viewport non blocca sempre pinch e doppio tap. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
+                // Safari emette gesturestart/change per il pinch-to-zoom.
+                function stopZoom(event) {
+                  if (event.cancelable) event.preventDefault();
+                }
+                document.addEventListener('gesturestart', stopZoom, { passive: false });
+                document.addEventListener('gesturechange', stopZoom, { passive: false });
+                document.addEventListener('gestureend', stopZoom, { passive: false });
+
+                // Fallback per browser che non emettono gli eventi gesture*.
+                document.addEventListener('touchmove', function (event) {
+                  if (event.touches && event.touches.length > 1) stopZoom(event);
+                }, { passive: false });
+
+                // Impedisce il doppio tap per ingrandire senza bloccare i tocchi normali.
+                // I controlli interattivi restano utilizzabili anche con tocchi rapidi.
+                var lastTapTime = 0;
+                var lastTapX = 0;
+                var lastTapY = 0;
+                document.addEventListener('touchend', function (event) {
+                  if (!event.changedTouches || event.changedTouches.length !== 1) return;
+                  var target = event.target;
+                  if (target && target.closest && target.closest('input, textarea, select, button, a, [role="button"], [contenteditable="true"]')) {
+                    lastTapTime = 0;
+                    return;
+                  }
+                  var touch = event.changedTouches[0];
+                  var now = Date.now();
+                  if (now - lastTapTime < 320 &&
+                      Math.abs(touch.clientX - lastTapX) < 28 &&
+                      Math.abs(touch.clientY - lastTapY) < 28) {
+                    stopZoom(event);
+                    lastTapTime = 0;
+                  } else {
+                    lastTapTime = now;
+                    lastTapX = touch.clientX;
+                    lastTapY = touch.clientY;
+                  }
+                }, { passive: false });
+
+                document.addEventListener('dblclick', stopZoom, { passive: false });
+              })();
+            `,
+          }}
+        />
+
         <style
           dangerouslySetInnerHTML={{
             __html: `
