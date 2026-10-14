@@ -14,7 +14,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
         />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
@@ -33,6 +33,7 @@ export default function Root({ children }: PropsWithChildren) {
                 min-height: 100%;
                 background: #0A0A0C !important;
                 overscroll-behavior: none;
+                touch-action: pan-x pan-y;
               }
 
               body {
