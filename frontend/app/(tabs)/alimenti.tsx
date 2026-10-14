@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   testoHeader: { flex: 1 },
   titoloHeader: { fontFamily: 'Space Grotesk', fontSize: 21, fontWeight: '700', color: '#FFFFFF' },
   ricercaBox: { height: 53, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 15, borderWidth: 1, borderColor: '#34566E', borderRadius: 15, backgroundColor: '#111B27', marginBottom: 11 },
-  ricercaInput: { flex: 1, color: '#FFFFFF', fontSize: 15, fontFamily: 'Plus Jakarta Sans', paddingVertical: 6 },
+  ricercaInput: { flex: 1, color: '#FFFFFF', fontSize: 16, fontFamily: 'Plus Jakarta Sans', paddingVertical: 6 },
   bottoneCategorie: { height: 53, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 15, borderWidth: 1, borderColor: '#34566E', borderRadius: 15, backgroundColor: '#111B27' },
   bottoneCategorieAttivo: { borderColor: COLORS.brandPrimary },
   testoBottoneCategorie: { flex: 1, color: '#FFFFFF', fontSize: 15, fontFamily: 'Plus Jakarta Sans', fontWeight: '700' },
