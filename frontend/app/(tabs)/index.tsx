@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   chipSelezionata: { backgroundColor: '#103B4A', borderColor: COLORS.brandPrimary },
   chipText: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, textAlign: 'center', color: '#D9E2EC', fontWeight: '500' },
   chipTextSelezionato: { color: COLORS.brandPrimary, fontWeight: '700' },
-  noteInput: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: '#FFFFFF', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, padding: 10, minHeight: 50, width: '100%' },
+  noteInput: { fontFamily: 'Plus Jakarta Sans', fontSize: 16, color: '#FFFFFF', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, padding: 10, minHeight: 50, width: '100%' },
   saveButton: { backgroundColor: COLORS.brandPrimary, paddingVertical: 14, borderRadius: 14, alignItems: 'center', width: '100%' },
   saveButtonText: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: '#001820' },
   notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12, alignItems: 'center', width: '100%' },
