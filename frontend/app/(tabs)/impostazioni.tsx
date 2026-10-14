@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
+import ExcelJS from 'exceljs';
 
 // Abilita LayoutAnimation per Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -30,12 +31,78 @@ const MOMENTI_COLONNE = [
   "Prima Pranzo", "Dopo Pranzo", "Merenda", 
   "Prima Cena", "Dopo Cena", "Notte"
 ];
+// Etichette utilizzate nella scheda Grafici.
+const ETICHETTE_MOMENTI: Record<string, string> = {
+  'Prima Colazione': 'Al risveglio',
+  'Dopo Colazione': 'Dopo la colazione',
+  'Prima Pranzo': 'Prima di pranzo',
+  'Dopo Pranzo': 'Dopo pranzo',
+  'Prima Cena': 'Prima di cena',
+  'Dopo Cena': 'Dopo cena',
+  'Notte': 'Prima di Dormire',
+};
+const MOMENTI_RIEPILOGO = Object.keys(ETICHETTE_MOMENTI);
+const PERIODI_EXPORT = ['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'];
+const CSV_HEADERS = ['DATA', 'ORA', 'GLICEMIA (mg/dL)', 'INSULINA (UI)', 'MOMENTO DELLA GIORNATA', 'ANNOTAZIONI'];
+
+const leggiDataMisurazione = (testo: unknown): Date | null => {
+  if (typeof testo !== 'string') return null;
+  const match = /^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/.exec(testo);
+  if (!match) return null;
+  const giorno = Number(match[1]);
+  const mese = Number(match[2]);
+  const annoBreve = Number(match[3]);
+  const anno = match[3].length === 4 ? annoBreve : annoBreve < 50 ? 2000 + annoBreve : 1900 + annoBreve;
+  const data = new Date(anno, mese - 1, giorno);
+  return data.getFullYear() === anno && data.getMonth() === mese - 1 && data.getDate() === giorno ? data : null;
+};
+
+const selezionaMisurazioni = (dati: any[], periodo: string) => {
+  const oggi = new Date();
+  const mezzanotte = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate());
+  const limite = periodo === 'Tutti' ? null : Number.parseInt(periodo, 10);
+  return dati.map((item, index) => ({ item, index, data: leggiDataMisurazione(item?.dataTesto) }))
+    .filter(({ item, data }) => {
+      if (!data || !Number.isFinite(Number(item?.glicemia)) || Number(item.glicemia) <= 0) return false;
+      const giorni = Math.round((mezzanotte.getTime() - data.getTime()) / 86400000);
+      return giorni >= 0 && (limite === null || giorni < limite);
+    })
+    .sort((a, b) => b.data!.getTime() - a.data!.getTime() ||
+      String(b.item.ora || '').localeCompare(String(a.item.ora || '')) || a.index - b.index)
+    .map(({ item, data }) => ({ ...item, dataFormattata: `${String(data!.getDate()).padStart(2, '0')}/${String(data!.getMonth() + 1).padStart(2, '0')}/${data!.getFullYear()}` }));
+};
+
+const valoreInsulina = (valore: unknown): number | null => {
+  if (typeof valore === 'number' && Number.isFinite(valore)) return valore;
+  if (typeof valore !== 'string' || !valore.trim() || valore.trim() === '-') return null;
+  const numero = Number(valore.replace(/\s*UI\s*$/i, '').replace(',', '.'));
+  return Number.isFinite(numero) ? numero : null;
+};
+
+const scaricaBlobWeb = (blob: Blob, nome: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = nome;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  // Il ritardo evita di revocare l'URL prima che Safari abbia iniziato il download.
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+};
+
+const campoCSV = (valore: unknown): string => {
+  const originale = String(valore ?? '');
+  const testo = /^[\s]*[=+@]/.test(originale) ? `\'${originale}` : originale;
+  return /[;"\r\n]/.test(testo) ? `"${testo.replace(/"/g, '""')}"` : testo;
+};
+
 export default function StrumentiScreen() {
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
   const [filtroPdfSelezionato, setFiltroPdfSelezionato] = useState<string>('Tutti');
   const [modalPdfVisibile, setModalPdfVisibile] = useState(false);
-  const [backupDaRipristinare, setBackupDaRipristinare] = useState<{ dati: any[]; esclusi: number } | null>(null);
-  const [ripristinoInCorso, setRipristinoInCorso] = useState(false);
+  const [filtroTabellare, setFiltroTabellare] = useState('Tutti');
+  const [modalTabellare, setModalTabellare] = useState<'excel' | 'csv' | null>(null);
   const [expandedPointId, setExpandedPointId] = useState<number | null>(null);
 
   const mostraMessaggioNotifica = (testo: string) => {
@@ -51,6 +118,120 @@ export default function StrumentiScreen() {
       setExpandedPointId(id);
     }
   };
+  const confermaEsportazioneTabellare = async () => {
+    const formato = modalTabellare;
+    if (!formato) return;
+    setModalTabellare(null);
+    try {
+      if (Platform.OS !== 'web') {
+        alert('Questa esportazione è disponibile nella versione web di DIABETY.');
+        return;
+      }
+      const salvati = await AsyncStorage.getItem('glicotrack_data');
+      const parsed = salvati ? JSON.parse(salvati) : [];
+      if (!Array.isArray(parsed)) throw new Error('Storico non valido');
+      const misurazioni = selezionaMisurazioni(parsed, filtroTabellare);
+      if (misurazioni.length === 0) {
+        alert('Non ci sono misurazioni nel periodo selezionato.');
+        return;
+      }
+      const periodoDescrizione = filtroTabellare === 'Tutti' ? 'Tutti i dati disponibili' : `Ultimi ${Number.parseInt(filtroTabellare, 10)} giorni`;
+      const nomePeriodo = filtroTabellare === 'Tutti' ? 'tutti' : filtroTabellare.replace(' ', '_').toLowerCase();
+      const nomeBase = `DIABETY_Report_Glicemico_${nomePeriodo}`;
+      const righe = misurazioni.map((m: any) => [
+        m.dataFormattata,
+        String(m.ora || ''),
+        Number(m.glicemia),
+        valoreInsulina(m.insulina),
+        ETICHETTE_MOMENTI[m.tipo] || String(m.tipo || ''),
+        String(m.note || ''),
+      ]);
+
+      if (formato === 'csv') {
+        const lines = [
+          'DIABETY - Report Glicemico',
+          `Periodo: ${periodoDescrizione}`,
+          '',
+          CSV_HEADERS.map(campoCSV).join(';'),
+          ...righe.map(riga => riga.map(campoCSV).join(';')),
+        ];
+        scaricaBlobWeb(new Blob(['\uFEFF', lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }), `${nomeBase}.csv`);
+      } else {
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'DIABETY';
+        wb.title = 'DIABETY - Report Glicemico';
+        wb.created = new Date();
+        const verde = 'FF00E676';
+        const ciano = 'FF00B8D4';
+        const blu = 'FF102D40';
+        const bianco = 'FFFFFFFF';
+        const impostaTitolo = (ws: any, colonne: number) => {
+          ws.mergeCells(1, 1, 1, colonne);
+          const titolo = ws.getCell(1, 1);
+          titolo.value = 'DIABETY - Report Glicemico';
+          titolo.font = { name: 'Calibri', size: 17, bold: true, color: { argb: bianco } };
+          titolo.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: blu } };
+          titolo.alignment = { horizontal: 'center', vertical: 'middle' };
+          ws.getRow(1).height = 34;
+          ws.mergeCells(2, 1, 2, colonne);
+          const sottotitolo = ws.getCell(2, 1);
+          sottotitolo.value = `Periodo: ${periodoDescrizione}`;
+          sottotitolo.font = { name: 'Calibri', size: 11, italic: true, color: { argb: 'FF3F5364' } };
+          sottotitolo.alignment = { horizontal: 'center' };
+          ws.getRow(2).height = 22;
+        };
+        const intestazione = (riga: any) => {
+          riga.height = 25;
+          riga.eachCell((c: any) => {
+            c.font = { name: 'Calibri', bold: true, color: { argb: bianco } };
+            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ciano } };
+            c.alignment = { vertical: 'middle', wrapText: true };
+          });
+        };
+        const ws = wb.addWorksheet('Misurazioni', { views: [{ state: 'frozen', ySplit: 4 }] });
+        ws.columns = [{ width: 16 }, { width: 11 }, { width: 23 }, { width: 18 }, { width: 27 }, { width: 50 }];
+        impostaTitolo(ws, 6);
+        ws.getRow(4).values = CSV_HEADERS;
+        intestazione(ws.getRow(4));
+        righe.forEach((riga, i) => {
+          const row = ws.addRow(riga);
+          row.height = 21;
+          if (i % 2 === 1) row.eachCell((c: any) => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F8FB' } }; });
+          row.getCell(3).numFmt = '0';
+          row.getCell(4).numFmt = '0.##';
+        });
+        ws.autoFilter = { from: 'A4', to: 'F4' };
+        ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+        ws.headerFooter.oddHeader = '&CDIABETY - Report Glicemico';
+
+        const riepilogo = wb.addWorksheet('Riepilogo', { views: [{ state: 'frozen', ySplit: 4 }] });
+        riepilogo.columns = [{ width: 34 }, { width: 23 }];
+        impostaTitolo(riepilogo, 2);
+        riepilogo.getRow(4).values = ['STATISTICA', 'VALORE (mg/dL)'];
+        intestazione(riepilogo.getRow(4));
+        const valori = misurazioni.map((m: any) => Number(m.glicemia));
+        const media = (v: number[]) => v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : '—';
+        riepilogo.addRow(['Media glicemica', media(valori)]);
+        riepilogo.addRow(['Minimo', Math.min(...valori)]);
+        riepilogo.addRow(['Massimo', Math.max(...valori)]);
+        riepilogo.addRow([]);
+        const sez = riepilogo.addRow(['MEDIE PER MOMENTO DELLA GIORNATA', 'mg/dL']);
+        intestazione(sez);
+        MOMENTI_RIEPILOGO.forEach(momento => {
+          const v = misurazioni.filter((m: any) => m.tipo === momento).map((m: any) => Number(m.glicemia));
+          riepilogo.addRow([ETICHETTE_MOMENTI[momento], media(v)]);
+        });
+        riepilogo.headerFooter.oddHeader = '&CDIABETY - Report Glicemico';
+        const buffer = await wb.xlsx.writeBuffer();
+        scaricaBlobWeb(new Blob([buffer as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${nomeBase}.xlsx`);
+      }
+      mostraMessaggioNotifica(`✓ Esportazione ${formato.toUpperCase()} avviata`);
+    } catch (errore) {
+      console.error('Errore esportazione tabellare:', errore);
+      alert('Impossibile creare il file. Riprova.');
+    }
+  };
+
   const esportaBackupJSON = async () => {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
@@ -129,27 +310,17 @@ export default function StrumentiScreen() {
         return;
       }
 
-      // Mostra la conferma personalizzata senza modificare ancora lo storico.
-      setBackupDaRipristinare({ dati: datiValidi, esclusi });
+      const conferma = window.confirm(
+        `Backup verificato.\n\nMisurazioni da ripristinare: ${datiValidi.length}\nMisurazioni escluse perché più vecchie di 91 giorni: ${esclusi}\n\nATTENZIONE: il ripristino sostituirà tutto lo storico attuale. Prima di procedere, assicurati di averne salvato un backup.\n\nVuoi continuare?`
+      );
+      if (!conferma) return;
+
+      await AsyncStorage.setItem('glicotrack_data', JSON.stringify(datiValidi));
+      mostraMessaggioNotifica(`✓ Ripristinate ${datiValidi.length} misurazioni`);
     } catch (errore) {
       alert('Impossibile leggere o importare il backup. Lo storico attuale non è stato modificato se la scrittura non è riuscita.');
     }
   };
-  const confermaRipristinoBackup = async () => {
-    if (!backupDaRipristinare || ripristinoInCorso) return;
-    setRipristinoInCorso(true);
-    try {
-      await AsyncStorage.setItem('glicotrack_data', JSON.stringify(backupDaRipristinare.dati));
-      const quantita = backupDaRipristinare.dati.length;
-      setBackupDaRipristinare(null);
-      mostraMessaggioNotifica(`✓ Ripristinate ${quantita} misurazioni`);
-    } catch (errore) {
-      alert('Impossibile completare il ripristino del backup.');
-    } finally {
-      setRipristinoInCorso(false);
-    }
-  };
-
   const esportaDocumentoMatriceStoricoPDF = async (modalita: 'html' | 'pdf') => {
     setModalPdfVisibile(false);
     try {
@@ -368,22 +539,20 @@ export default function StrumentiScreen() {
     }
   };
   const manualPoints = [
-    { id: 1, title: "1. Registrazione dei Dati", icon: "analytics-outline", color: COLORS.brandPrimary, content: "Registra i tuoi dati in un attimo.\nNella schermata «Inserisci» puoi selezionare la data e l'ora per la registrazione dei tuoi dati. Per impostazione predefinita, l'app indica sempre la data e l'ora attuali, ma puoi modificare questi parametri a tuo piacimento per aggiungere dati relativi a momenti specifici del tuo registro storico.\nTramite i riquadri «Glicemia» e «Insulina» puoi inserire i valori che desideri registrare. Nella sezione immediatamente sottostante puoi impostare il momento della giornata relativo al dato che stai registrando.\nNel riquadro «Note» puoi inserire ulteriori informazioni, che verranno salvate nello storico dei tuoi dati.\nL'app DIABETY è stata programmata per inserire automaticamente nel riquadro «Note» l'orario in cui stai effettuando il test, così da tenerne traccia anche quando esporti il file in PDF." },
-    { id: 2, title: "2. Target Colorati", icon: "color-filter-outline", color: COLORS.success, content: "Monitora istantaneamente il tuo stato glicemico tramite la codifica dinamica dei colori di riferimento:\nVerde (Euglicemia)|Valori compresi nell'intervallo ideale tra 70 e 180 mg/dL.\nArancione (Ipoglicemia)|Rilevazioni inferiori a 70 mg/dL.\nRosso (Iperglicemia)|Rilevazioni superiori a 180 mg/dL." },
-    { id: 3, title: "3. Calcolatore del Bolo Insulinico", icon: "calculator-outline", color: COLORS.brandPrimary, content: "Calcola in un attimo le unità di insulina necessarie per i pasti e per correggere i valori glicemici elevati.\nSblocca la scheda inserendo i tuoi parametri personali (rapporto I:CHO, sensibilità ISF e target glicemico) concordati con il medico. L'applicazione li conserverà sul dispositivo per semplificare i calcoli futuri.\nPuoi inserire il valore della tua glicemia e la quantità di carboidrati (CHO) che stai assumendo, per calcolare la dose di insulina in base ai tuoi parametri personali.\nPuoi anche inserire soltanto il valore della glicemia per calcolare la quantità di insulina necessaria alla correzione, con l'obiettivo di rientrare nel tuo target glicemico." },
-    { id: 4, title: "4. Database Alimenti e Carboidrati", icon: "nutrition-outline", color: COLORS.success, content: "Consulta un archivio completo delle marche e degli alimenti più comuni per comporre il tuo piatto virtuale.\nL'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare rapidamente la dose di insulina senza dover eseguire i calcoli a mente.\nUtilizza la barra di ricerca per trovare l'alimento che ti interessa, imposta la quantità che stai assumendo, espressa in grammi, e premi l'icona «+» per aggiungerlo al Piatto Virtuale.\nL'applicazione mostrerà nella parte inferiore dello schermo una scheda temporanea che rappresenta l'insieme del tuo pasto.\nQui puoi aggiungere tutti gli alimenti che compongono il pasto, tenendo traccia del totale dei carboidrati (CHO)." },
-    { id: 5, title: "5. Archivio e Auto-Pulizia", icon: "trash-outline", color: COLORS.onSurface, content: "L'applicazione utilizza un algoritmo di conservazione locale basato su una finestra mobile di 90 giorni rispetto al record più recente.\nI dati più vecchi vengono eliminati automaticamente per ottimizzare la memoria del dispositivo. Ricordati di salvare periodicamente un file di backup per evitare di perderli.\nL'eliminazione dei vecchi dati non comporta la cancellazione dell'intero archivio, ma soltanto delle singole misurazioni che superano il periodo di conservazione previsto." },
-    { id: 6, title: "6. Analisi Avanzata e Grafici", icon: "stats-chart-outline", color: COLORS.brandSecondary, content: "Controlla l'andamento della tua glicemia.\nQuesta sezione mostra grafici chiari sull'andamento della tua glicemia nelle ultime 24 ore e nei tre mesi precedenti.\nInoltre, calcola automaticamente una stima indicativa della tua emoglobina glicata (HbA1c) per aiutarti a capire se sei nel tuo intervallo target.\nNota importante: tutti i dati e i grafici visualizzati non costituiscono risultati medici ufficiali, poiché si basano esclusivamente sulle informazioni che inserisci durante il monitoraggio della glicemia.\nLa rappresentazione grafica è progettata per avvicinarsi visivamente a quella di un CGM, ma non equivale a un sistema di monitoraggio continuo del glucosio.\nUn CGM (Monitoraggio Continuo del Glucosio) è un sistema tecnologico che misura i livelli di glucosio nel liquido interstiziale, 24 ore su 24, tramite un sensore.\nIl sensore rileva il glucosio ogni pochi minuti e invia i dati in tempo reale a un ricevitore, a uno smartphone o a uno smartwatch.\nL'app DIABETY non dispone di questa funzione.\nTutto ciò che visualizzi nella sezione Grafici ha uno scopo puramente indicativo ed è basato esclusivamente sui dati inseriti da te." },
-    { id: 7, title: "7. Esportazione dei File", icon: "document-text-outline", color: COLORS.brandPrimary, content: "Genera esportazioni del tuo diario in formato PDF, con un layout panoramico che riproduce la struttura del tuo registro clinico.\nPuoi selezionare un periodo specifico di 7, 14, 30 o 90 giorni, oppure includere l'intero storico, per personalizzare l'intervallo del documento e ottimizzare la visualizzazione dei parametri in vista della tua prossima consultazione specialistica." },
-    { id: 8, title: "8. Backup e Sicurezza Dati", icon: "sync-outline", color: COLORS.brandPrimary, content: "Salva e proteggi i tuoi dati in pochi clic.\nPuoi esportare un file di sicurezza contenente tutto lo storico del tuo diario oppure importare un backup precedente per ripristinare i dati registrati.\nL'importazione sovrascrive il database attuale e richiede sempre una conferma, per evitare cancellazioni involontarie." },
-  ];  return (
+    { id: 1, title: "1. Registrazione dei Dati", icon: "analytics-outline", color: COLORS.brandPrimary, content: "Registra i tuoi dati in un attimo. Nella schermata 'Inserisci' puoi selezionare Data e Ora per la registrazione dei tuoi dati. Di default l'app indicherà sempre Data e Ora attuali ma puoi comunque modificare a tuo piacimento questi parametri per aggiungere dei dati in moments specifici del tuo registro Storico. Tramite i riquadri 'Glicemia' e 'Insulina' puoi inserire i valori corrispondenti che ti interessa registrare, nella sezione subito sotto puoi impostare il momento della giornata relativo al dato che stai registrando. Nel box 'Note' puoi inserire ulteriori informazioni che verranno registrate nel tuo Storico dei dati. L'app Diabety è stata programmata per inserire all'interno del riquadro delle 'Note' l'orario in cui stai effettuando il test cosi da tenerne traccia quando esporti il file in PDF." },
+    { id: 2, title: "2. Target Colorati", icon: "color-filter-outline", color: COLORS.success, content: "Monitora istantaneamente il tuo stato metabolico tramite la codifica dinamica dei colori di sicurezza:\n• Verde (Euglicemia): Valori compresi nel range ideale tra 70 e 180 mg/dL.\n• Arancione (Ipoglicemia): Rilevazioni critiche inferiori a 70 mg/dL.\n• Rosso (Iperglicemia): Rilevazioni elevate superiori a 180 mg/dL." },
+    { id: 3, title: "3. Archivio e Auto-Pulizia", icon: "trash-outline", color: COLORS.onSurface, content: "L'applicazione applica un algoritmo rigoroso di conservazione locale calcolato su una finestra mobile di 90 giorni rispetto al record più recente. I vecchi dati vengono eliminati automaticamente per ottimizzare la memoria del dispositivo: ricordati di salvare periodicamente un file di backup per non perderli. L'Eliminazione dei vecchi dati non significa perdere 'Tutti i dati' ma si intende perdere la singola misurazione registrata a partire da 90 giorni precedenti la data attuale." },
+    { id: 4, title: "4. Esportazione dei File", icon: "document-text-outline", color: COLORS.brandPrimary, content: "Genera esportazioni del tuo Diario in formato PDF con layout panoramico, speculare al tuo registro clinico. Puoi selezionare un periodo specifico di 7, 14, 30 o 90 giorni (oppure includere l'intero storico) per personalizzare l'intervallo del documento, ottimizzando la visualizzazione dei parametri per la tua prossima consultazione specialistica." },
+    { id: 5, title: "5. Backup e Sicurezza Dati", icon: "sync-outline", color: COLORS.brandPrimary, content: "Salva e proteggi i tuoi dati in pochi clic. Puoi esportare un file di sicurezza con tutto lo storico del tuo diario oppure caricarne uno vecchio per ripristinare i log. L'importazione sovrascrive il database attuale e richiede sempre una conferma per evitare cancellazioni involontarie." },
+    { id: 6, title: "6. Analisi Avanzata e Grafici", icon: "stats-chart-outline", color: COLORS.brandSecondary, content: "Controlla l'andamento della tua Glicemia. Questa sezione mostra grafici chiari con l'andamento della tua Glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito si sei a target. Nota molto importante, tutti i dati e i grafici che vedi non sono dati medici ufficiali in quanto si basano solo ed esclusivamente su dati inseriti da te nel monitoraggio della Glicemia. La funzione del grafico è basata per avvicinarsi molto alla rapresentazione di un CGM ma non lo è! Un CGM (Monitoraggio Continuo del Glucosio) è un sistema tecnologico che misura i livelli di zucchero (glucosio) nel liquido interstiziale 24 ore su 24 tramite l'utilizzo di un Sensore. Il sensore rileva il glucosio ogni pochi minuti e invia i dati in tempo real a un ricevitore, a uno smartphone o a uno smartwatch. L'app Diabety non ha questa function. Tutto ciò che vedi nella sezione Grafici è puramente a scopo indicativo basato soltanto su dati inseriti da te." },
+    { id: 7, title: "7. Calcolatore del Bolo Insulinico", icon: "calculator-outline", color: COLORS.brandPrimary, content: "Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro. Puoi inserire il valore della tua Glicemia con la quantità di Carboidrati (CHO) che stai assumendo per elaborare secondo i tuoi parametri la dose di Insulina da fare. Puoi anche inserire solo il valore della Glicemia per calcolare la quantità di Insulina per la correzione della Glicemia per rientrare nel tuo target." },
+    { id: 8, title: "8. Database Alimenti e Carboidrati", icon: "nutrition-outline", color: COLORS.success, content: "Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente. Usa la barra di ricerca per trovare l'alimento che ti interessa, impostane la quantità che stai assumendo espressa in grammi e clicca sull'icona ' + ' per aggiungerla al Piatto Virtuale. L'applicazione genererà in basso una scheda momentanea dove simulerà l'insieme del tuo pasto. Qui puoi aggiungere tutti gli alimenti relativi al pasto tenendo traccia del totale dei Carboidrati (CHO)." }
+  ];
+  return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.headerForm}>
-        <View style={styles.headerAccent} />
-        <View style={styles.headerTextGroup}>
-          <Text style={styles.title}>Pannello di controllo</Text>
-          <Text style={styles.subtitle}>Gestione database e informazioni mediche dell'app</Text>
-        </View>
+        <Text style={styles.title}>Centro Strumenti</Text>
+        <Text style={styles.subtitle}>Gestione database e informazioni mediche dell'app</Text>
       </View>
 
       {statoNotifica && (
@@ -393,92 +562,133 @@ export default function StrumentiScreen() {
       )}
 
       <Text style={styles.sectionLabel}>Manutenzione e Report</Text>
-      <View style={styles.controlCenterGrid}>
-        <TouchableOpacity style={[styles.controlTile, styles.controlExport]} onPress={esportaBackupJSON} activeOpacity={0.85}>
-          <Ionicons name="cloud-download-outline" size={27} color={COLORS.brandPrimary} />
-          <Text style={styles.controlTileTitle}>Esporta Backup</Text>
-          <Text style={styles.controlTileDesc}>Salva i tuoi dati</Text>
-          <View style={styles.controlTileArrow}><Ionicons name="arrow-forward" size={17} color={COLORS.brandPrimary} /></View>
+      <View style={styles.cardAzioni}>
+        <TouchableOpacity style={styles.rowAzione} onPress={esportaBackupJSON}>
+          <View style={styles.leftAzione}>
+            <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
+              <Ionicons name="cloud-download-outline" size={20} color={COLORS.onSurface} />
+            </View>
+            <View>
+              <Text style={styles.titoloAzione}>Esporta Backup</Text>
+              <Text style={styles.descAzione}>Salva un file JSON con tutto lo storico dei log</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
         </TouchableOpacity>
+
         {Platform.OS === 'web' ? (
-          <label style={styles.controlImportLabel}>
-            <Ionicons name="cloud-upload-outline" size={27} color="#B080FF" />
-            <Text style={styles.controlTileTitle}>Importa Backup</Text>
-            <Text style={styles.controlTileDesc}>Ripristina lo storico</Text>
-            <View style={styles.controlTileArrow}><Ionicons name="arrow-forward" size={17} color="#B080FF" /></View>
+          <label style={styles.rowAzioneLabel}>
+            <View style={styles.leftAzione}>
+              <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
+                <Ionicons name="cloud-upload-outline" size={20} color={COLORS.onSurface} />
+              </View>
+              <View>
+                <Text style={styles.titoloAzione}>Importa Backup</Text>
+                <Text style={styles.descAzione}>Ripristina il database caricando un file JSON</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
             <input type="file" accept=".json" onChange={gestisciImportazioneWeb} style={{ display: 'none' }} />
           </label>
         ) : (
-          <TouchableOpacity style={[styles.controlTile, styles.controlImport]} activeOpacity={0.85}>
-            <Ionicons name="cloud-upload-outline" size={27} color="#B080FF" />
-            <Text style={styles.controlTileTitle}>Importa Backup</Text>
-            <Text style={styles.controlTileDesc}>Ripristina lo storico</Text>
-            <View style={styles.controlTileArrow}><Ionicons name="arrow-forward" size={17} color="#B080FF" /></View>
+          <TouchableOpacity style={styles.rowAzione}>
+            <View style={styles.leftAzione}>
+              <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
+                <Ionicons name="cloud-upload-outline" size={20} color={COLORS.onSurface} />
+              </View>
+              <View>
+                <Text style={styles.titoloAzione}>Importa Backup</Text>
+                <Text style={styles.descAzione}>Ripristina il database caricando un file JSON</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
           </TouchableOpacity>
         )}
-      </View>
-      <View style={styles.controlPdf}>
-        <TouchableOpacity style={styles.controlPdfHeader} onPress={() => setModalPdfVisibile(true)} activeOpacity={0.85}>
-          <Ionicons name="document-text-outline" size={25} color={COLORS.brandPrimary} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.controlPdfTitle}>Esporta PDF</Text>
-            <Text style={styles.controlPdfDesc}>Report del diario glicemico</Text>
+
+        <View style={styles.rowAzionePdfComplessa}>
+          <TouchableOpacity style={styles.rowPdfClickArea} onPress={() => setModalPdfVisibile(true)}>
+            <View style={styles.leftAzione}>
+              <View style={[styles.iconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.1)' }]}>
+                <Ionicons name="document-text-outline" size={20} color={COLORS.error} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esporta PDF</Text>
+                <Text style={styles.descAzione}>Genera il documento clinico identico allo storico</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.brandPrimary} />
+          </TouchableOpacity>
+
+          <View style={styles.containerMiniFiltriPdf}>
+            {['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'].map((intervallo) => {
+              const attivo = filtroPdfSelezionato === intervallo;
+              return (
+                <TouchableOpacity key={intervallo} style={[styles.chipMiniPdf, attivo && styles.chipMiniPdfAttiva]} onPress={() => setFiltroPdfSelezionato(intervallo)}>
+                  <Text style={[styles.textMiniChipPdf, attivo && styles.textMiniChipPdfAttivo]}>{intervallo}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-          <Ionicons name="arrow-forward" size={19} color={COLORS.brandPrimary} />
-        </TouchableOpacity>
-        <View style={styles.controlPdfFilters}>
-          {['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'].map(intervallo => {
-            const attivo = filtroPdfSelezionato === intervallo;
+        </View>
+      </View>
+
+      <View style={styles.cardExportTabellare}>
+        <View style={styles.exportTabellareHeader}>
+          <Ionicons name="documents-outline" size={25} color={COLORS.brandPrimary} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.exportTabellareTitle}>Esporta Excel / CSV</Text>
+            <Text style={styles.exportTabellareSubtitle}>Esporta le misurazioni del diario glicemico</Text>
+          </View>
+        </View>
+        <View style={styles.exportTabellareButtons}>
+          <TouchableOpacity style={styles.exportTabellareButton} onPress={() => setModalTabellare('excel')}>
+            <Ionicons name="grid-outline" size={24} color={COLORS.success} />
+            <Text style={styles.exportTabellareButtonTitle}>Esporta Excel</Text>
+            <Text style={styles.exportTabellareExtension}>.xlsx</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.exportTabellareButton} onPress={() => setModalTabellare('csv')}>
+            <Ionicons name="document-text-outline" size={24} color={COLORS.success} />
+            <Text style={styles.exportTabellareButtonTitle}>Esporta CSV</Text>
+            <Text style={styles.exportTabellareExtension}>.csv</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.containerMiniFiltriPdf}>
+          {PERIODI_EXPORT.map(intervallo => {
+            const attivo = filtroTabellare === intervallo;
             return (
-              <TouchableOpacity key={intervallo} style={[styles.controlFilter, attivo && styles.controlFilterActive]} onPress={() => setFiltroPdfSelezionato(intervallo)}>
-                <Text style={[styles.controlFilterText, attivo && styles.controlFilterTextActive]} numberOfLines={1}>{intervallo}</Text>
+              <TouchableOpacity key={intervallo} style={[styles.chipMiniPdf, attivo && styles.chipMiniPdfAttiva]} onPress={() => setFiltroTabellare(intervallo)}>
+                <Text style={[styles.textMiniChipPdf, attivo && styles.textMiniChipPdfAttivo]}>{intervallo}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
       </View>
 
-      {/* Conferma importazione: stesso stile della finestra Esporta registro. */}
-      <Modal visible={backupDaRipristinare !== null} transparent animationType="fade"
-        onRequestClose={() => { if (!ripristinoInCorso) setBackupDaRipristinare(null); }}>
+      <Modal visible={modalTabellare !== null} transparent animationType="fade" onRequestClose={() => setModalTabellare(null)}>
         <View style={styles.pdfModalOverlay}>
           <View style={styles.pdfModalCard}>
             <View style={styles.pdfModalHeader}>
-              <Ionicons name="cloud-upload-outline" size={24} color={COLORS.brandPrimary} />
+              <Ionicons name="documents-outline" size={24} color={COLORS.brandPrimary} />
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.pdfModalTitle}>Importa backup</Text>
-                <Text style={styles.pdfModalSubtitle}>DIABETY · Ripristino dello storico</Text>
+                <Text style={styles.pdfModalTitle}>Conferma esportazione</Text>
+                <Text style={styles.pdfModalSubtitle}>DIABETY · Diario glicemico</Text>
               </View>
-              <TouchableOpacity disabled={ripristinoInCorso} onPress={() => setBackupDaRipristinare(null)} accessibilityLabel="Chiudi finestra">
+              <TouchableOpacity onPress={() => setModalTabellare(null)} accessibilityLabel="Chiudi finestra">
                 <Ionicons name="close" size={24} color={COLORS.muted} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.pdfModalPeriodo}>Backup verificato correttamente</Text>
-            <View style={styles.pdfModalOption}>
-              <Ionicons name="checkmark-circle-outline" size={22} color={COLORS.success} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.pdfModalOptionTitle}>Misurazioni da ripristinare</Text>
-                <Text style={styles.pdfModalOptionDesc}>{backupDaRipristinare?.dati.length ?? 0} misurazioni valide</Text>
-              </View>
+            <View style={styles.exportModalDetails}>
+              <Text style={styles.exportModalDetail}>Formato: {modalTabellare === 'excel' ? 'Excel (.xlsx)' : 'CSV (.csv)'}</Text>
+              <Text style={styles.exportModalDetail}>Periodo: {filtroTabellare}</Text>
             </View>
-            <View style={styles.pdfModalOption}>
-              <Ionicons name="time-outline" size={22} color={COLORS.warning} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.pdfModalOptionTitle}>Misurazioni escluse</Text>
-                <Text style={styles.pdfModalOptionDesc}>{backupDaRipristinare?.esclusi ?? 0} più vecchie di 91 giorni</Text>
-              </View>
+            <View style={styles.exportModalActions}>
+              <TouchableOpacity style={styles.exportModalCancel} onPress={() => setModalTabellare(null)}>
+                <Text style={styles.exportModalCancelText}>Annulla</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.exportModalConfirm} onPress={confermaEsportazioneTabellare}>
+                <Text style={styles.exportModalConfirmText}>Conferma esportazione</Text>
+              </TouchableOpacity>
             </View>
-            <View style={styles.backupWarningBox}>
-              <Ionicons name="warning-outline" size={21} color={COLORS.warning} />
-              <Text style={styles.backupWarningText}>Il ripristino sostituirà tutto lo storico attuale. Prima di procedere, assicurati di averne salvato un backup.</Text>
-            </View>
-            <TouchableOpacity style={styles.backupConfirmButton} disabled={ripristinoInCorso} onPress={confermaRipristinoBackup}>
-              <Ionicons name="cloud-upload-outline" size={20} color={COLORS.onSurface} />
-              <Text style={styles.backupConfirmText}>{ripristinoInCorso ? 'Ripristino in corso…' : 'Conferma ripristino'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.pdfModalCancel} disabled={ripristinoInCorso} onPress={() => setBackupDaRipristinare(null)}>
-              <Text style={styles.pdfModalCancelText}>Annulla</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -520,123 +730,52 @@ export default function StrumentiScreen() {
         </View>
       </Modal>
 
-      <View style={styles.manualSectionHeader}>
-        <View style={styles.manualBookIcon}><Ionicons name="book-outline" size={24} color={COLORS.brandPrimary} /></View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.manualSectionTitle}>MANUALE & LINEE GUIDA</Text>
-          <Text style={styles.manualSectionSubtitle}>Scopri come usare al meglio DIABETY</Text>
-        </View>
-      </View>
-      <View style={styles.manualSectionDivider} />
-      <View style={styles.guideList}>
-        {manualPoints.map(point => {
-          const palette: Record<number, string> = { 1: '#00E5FF', 2: '#00E676', 3: '#00E5FF', 4: '#00E676', 5: '#B080FF', 6: '#B080FF', 7: '#00E5FF', 8: '#FFB347' };
-          const iconNames: Record<number, string> = { 1: 'create-outline', 2: 'locate-outline', 3: 'medkit-outline', 4: 'nutrition-outline', 5: 'folder-open-outline', 6: 'stats-chart-outline', 7: 'document-text-outline', 8: 'shield-checkmark-outline' };
-          const subtitles: Record<number, string> = { 1: 'Come inserire le misurazioni', 2: 'Colori e intervalli glicemici', 3: 'Uso del calcolatore', 4: 'Alimenti e carboidrati', 5: 'Gestione dello storico', 6: 'Analisi e statistiche', 7: 'Report e documenti', 8: 'Protezione dei dati' };
-          const color = palette[point.id];
-          const opened = expandedPointId === point.id;
-          const paragraphs = point.content.split('\n').filter(Boolean);
-          return (
-            <View key={point.id} style={styles.guideRowCard}>
-              <TouchableOpacity style={styles.guideRowHeader} onPress={() => togglePoint(point.id)} activeOpacity={0.82} accessibilityRole="button" accessibilityState={{ expanded: opened }}>
-                <View style={[styles.guideRowIcon, { backgroundColor: color + '18' }]}>
-                  <Ionicons name={iconNames[point.id] as any} size={24} color={color} />
-                </View>
-                <View style={[styles.guideRowAccent, { backgroundColor: color }]} />
-                <View style={styles.guideRowText}>
-                  <Text style={styles.guideRowTitle}>{point.title.replace(/^\d+\. /, '')}</Text>
-                  <Text style={styles.guideRowSubtitle}>{subtitles[point.id]}</Text>
-                </View>
-                <View style={styles.guideRowChevron}>
-                  <Ionicons name={opened ? 'chevron-up' : 'chevron-down'} size={19} color="#D6E3F0" />
-                </View>
-              </TouchableOpacity>
-              {opened && (
-                <View style={styles.guideExpandedBody}>
-                  <View style={styles.guideExpandedDivider} />
-                  {paragraphs.map((paragraph, index) => {
-                    if (point.id === 2 && paragraph.includes('|')) {
-                      const [label, description] = paragraph.split('|');
-                      const targetColor = label.startsWith('Verde') ? '#00E676' : label.startsWith('Arancione') ? '#FF9800' : '#FF5252';
-                      return (
-                        <View key={index} style={styles.guideTargetRow}>
-                          <Text style={[styles.guideTargetLabel, { color: targetColor }]}>{label}</Text>
-                          <Text style={styles.guideParagraph}>{description}</Text>
-                        </View>
-                      );
-                    }
-                    return <Text key={index} style={styles.guideParagraph}>{paragraph}</Text>;
-                  })}
-                </View>
-              )}
-            </View>
-          );
-        })}
-      </View>
+      <Text style={styles.sectionLabel}>Manuale & Linee Guia</Text>
+
+      {manualPoints.map((point) => {
+        const isOpen = expandedPointId === point.id;
+        return (
+          <View key={point.id} style={styles.accordionWrapper}>
+            <TouchableOpacity 
+              style={[styles.accordionHeader, isOpen && styles.accordionHeaderActive]} 
+              onPress={() => togglePoint(point.id)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.headerLeft}>
+                <Ionicons name={point.icon} size={18} color={point.color} style={styles.iconaManualeAllineata} />
+                <Text style={styles.infoBlockTitle}>{point.title}</Text>
+              </View>
+              <Ionicons name={isOpen ? "chevron-up" : "chevron-forward"} size={18} color={isOpen ? point.color : COLORS.muted} />
+            </TouchableOpacity>
+
+            {isOpen && (
+              <View style={styles.accordionContent}>
+                <Text style={styles.contentText}>{point.content}</Text>
+              </View>
+            )}
+          </View>
+        );
+      })}
     </ScrollView>
   );
 }
 const styles = StyleSheet.create({
-  controlCenterGrid: { flexDirection: 'row', gap: 10, width: '100%', marginBottom: 10 },
-  controlTile: { flex: 1, minWidth: 0, minHeight: 144, borderRadius: 16, padding: 13, borderWidth: 1, backgroundColor: '#11162B' },
-  controlExport: { borderColor: '#226C83' },
-  controlImport: { backgroundColor: '#17132C', borderColor: '#6946AD' },
-  controlImportLabel: { flex: 1, minWidth: 0, minHeight: 144, display: 'flex', flexDirection: 'column', padding: 13, borderRadius: 16, borderWidth: 1, backgroundColor: '#17132C', borderColor: '#6946AD', border: '1px solid #6946AD', cursor: 'pointer', boxSizing: 'border-box' },
-  controlTileTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '700', marginTop: 9, fontFamily: 'Plus Jakarta Sans' },
-  controlTileDesc: { color: '#9CA7C1', fontSize: 11, marginTop: 4, fontFamily: 'Plus Jakarta Sans' },
-  controlTileArrow: { alignSelf: 'flex-end', marginTop: 'auto', paddingTop: 8 },
-  controlPdf: { backgroundColor: '#0E1A27', borderWidth: 1, borderColor: '#168A8F', borderRadius: 16, padding: 13, marginBottom: 12 },
-  controlPdfHeader: { flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 13 },
-  controlPdfTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', fontFamily: 'Plus Jakarta Sans' },
-  controlPdfDesc: { color: '#A5B3C7', fontSize: 11, marginTop: 3, fontFamily: 'Plus Jakarta Sans' },
-  controlPdfFilters: { flexDirection: 'row', gap: 5 },
-  controlFilter: { flex: 1, minWidth: 0, alignItems: 'center', paddingVertical: 9, paddingHorizontal: 1, backgroundColor: '#1A2435', borderRadius: 9, borderWidth: 1, borderColor: '#303A4F' },
-  controlFilterActive: { backgroundColor: '#123E48', borderColor: '#00DFFF' },
-  controlFilterText: { color: '#A7B3CB', fontSize: 10, fontWeight: '600' },
-  controlFilterTextActive: { color: '#00E5FF', fontWeight: '800' },
-  manualSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 22, marginBottom: 14 },
-  manualBookIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#092637', alignItems: 'center', justifyContent: 'center' },
-  manualSectionTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '800', fontFamily: 'Plus Jakarta Sans', letterSpacing: 0.3 },
-  manualSectionSubtitle: { color: '#A4BBD1', fontSize: 12, marginTop: 4, fontFamily: 'Plus Jakarta Sans' },
-  manualSectionDivider: { height: 1, backgroundColor: '#284052', marginBottom: 14 },
-  guideList: { gap: 10, marginBottom: 14 },
-  guideRowCard: { backgroundColor: '#101E2D', borderRadius: 16, borderWidth: 1, borderColor: '#243A4C', overflow: 'hidden' },
-  guideRowHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, minHeight: 80 },
-  guideRowIcon: { width: 45, height: 45, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  guideRowAccent: { width: 1, height: 39 },
-  guideRowText: { flex: 1, minWidth: 0 },
-  guideRowTitle: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', fontFamily: 'Plus Jakarta Sans' },
-  guideRowSubtitle: { color: '#A4BBD1', fontSize: 12, marginTop: 4, fontFamily: 'Plus Jakarta Sans' },
-  guideRowChevron: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: '#284052', alignItems: 'center', justifyContent: 'center' },
-  guideExpandedBody: { paddingHorizontal: 16, paddingBottom: 18, gap: 12 },
-  guideExpandedDivider: { height: 1, backgroundColor: '#284052', marginBottom: 3 },
-  guideParagraph: { flex: 1, color: '#D3DAED', fontSize: 13, lineHeight: 21, fontFamily: 'Plus Jakarta Sans' },
-  guideTargetRow: { gap: 5, paddingVertical: 6 },
-  guideTargetLabel: { fontSize: 14, fontWeight: '700', fontFamily: 'Plus Jakarta Sans' },
-  guideBulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingLeft: 5 },
-  guideBulletDot: { width: 7, height: 7, borderRadius: 4, marginTop: 7 },
-  guideSubtitle: { color: '#9BA6C3', fontSize: 12, marginTop: -4, marginBottom: 13 },
-  guideGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
-  guideTile: { width: '48%', minHeight: 164, backgroundColor: '#10152A', borderWidth: 1, borderRadius: 16, padding: 12 },
-  guideTileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  guideIcon: { width: 43, height: 43, borderRadius: 11, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  guideNumber: { fontSize: 12, fontWeight: '800', marginTop: 6 },
-  guideTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '800', marginTop: 2, fontFamily: 'Plus Jakarta Sans' },
-  guideDesc: { color: '#A9B4D0', fontSize: 10, marginTop: 5, fontFamily: 'Plus Jakarta Sans' },
-  guideModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.84)', padding: 16, justifyContent: 'center' },
-  guideModalCard: { backgroundColor: '#0D1429', borderColor: '#7650C8', borderWidth: 1, borderRadius: 20, padding: 17, maxHeight: '85%', width: '100%', maxWidth: 540, alignSelf: 'center' },
-  guideModalHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#29334F' },
-  guideModalIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#17223A', alignItems: 'center', justifyContent: 'center' },
-  guideModalTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '800', flex: 1 },
-  guideModalScroll: { flexGrow: 0, marginVertical: 16 },
-  guideModalBody: { color: '#D3DAED', fontSize: 14, lineHeight: 23, fontFamily: 'Plus Jakarta Sans' },
-  guideModalClose: { backgroundColor: '#123B68', borderWidth: 1, borderColor: '#00A8FF', padding: 12, alignItems: 'center', borderRadius: 12 },
-  guideModalCloseText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
+  cardExportTabellare: { backgroundColor: '#0E1A27', borderColor: '#168A8F', borderWidth: 1, borderRadius: 16, padding: 13, marginTop: 12, marginBottom: 12 },
+  exportTabellareHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  exportTabellareTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  exportTabellareSubtitle: { color: '#A5B3C7', fontSize: 12, marginTop: 3 },
+  exportTabellareButtons: { flexDirection: 'row', gap: 9, marginBottom: 13 },
+  exportTabellareButton: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 12, backgroundColor: '#112D34', borderWidth: 1, borderColor: '#168A8F', borderRadius: 13 },
+  exportTabellareButtonTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  exportTabellareExtension: { color: '#A5B3C7', fontSize: 11 },
+  exportModalDetails: { backgroundColor: '#112D34', borderRadius: 12, padding: 14, marginBottom: 17, gap: 9 },
+  exportModalDetail: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  exportModalActions: { flexDirection: 'row', gap: 10 },
+  exportModalCancel: { flex: 1, borderColor: '#3A3A4A', borderWidth: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' },
+  exportModalCancelText: { color: '#A5B3C7', fontWeight: '700', fontSize: 12 },
+  exportModalConfirm: { flex: 1.5, backgroundColor: '#123E48', borderColor: '#00DFFF', borderWidth: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' },
+  exportModalConfirmText: { color: '#00E5FF', fontWeight: '700', fontSize: 12, textAlign: 'center' },
 
-  backupWarningBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: '#2B2117', borderColor: '#755024', borderWidth: 1, borderRadius: 14, padding: 13, marginBottom: 14 },
-  backupWarningText: { color: '#FFD4A3', fontSize: 12, lineHeight: 19, flex: 1, fontFamily: 'Plus Jakarta Sans' },
-  backupConfirmButton: { backgroundColor: '#123B68', borderColor: '#00A8FF', borderWidth: 1, borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
-  backupConfirmText: { color: COLORS.onSurface, fontSize: 14, fontWeight: '700', fontFamily: 'Plus Jakarta Sans' },
   pdfModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', padding: 20 },
   pdfModalCard: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 22, borderWidth: 1, borderColor: COLORS.borderGlassBright, padding: 20, maxWidth: 440, width: '100%', alignSelf: 'center' },
   pdfModalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
@@ -650,9 +789,7 @@ const styles = StyleSheet.create({
   pdfModalCancelText: { color: COLORS.muted, fontWeight: '700' },
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 16, paddingTop: 20, paddingBottom: 40 },
-  headerForm: { marginBottom: 20, width: '100%', flexDirection: 'row', alignItems: 'stretch', gap: 14 },
-  headerAccent: { width: 4, borderRadius: 4, backgroundColor: COLORS.brandPrimary, minHeight: 64 },
-  headerTextGroup: { flex: 1, justifyContent: 'center' },
+  headerForm: { marginBottom: 20, width: '100%' },
   title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700', color: COLORS.onSurface },
   subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, marginTop: 4 },
   
@@ -713,3 +850,4 @@ const styles = StyleSheet.create({
   notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
   notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 13 }
 });
+
