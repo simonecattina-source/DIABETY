@@ -19,6 +19,36 @@ export default function RootLayout() {
     "PlusJakartaSans-Italic": require("../assets/fonts/PlusJakartaSans-Italic.ttf"),
     Ionicons: require("@react-native-vector-icons/ionicons/fonts/Ionicons.ttf"),
   });
+  // Ripristino del blocco zoom presente nel vecchio _layout di DIABETY.
+  // Non blocca lo scorrimento verticale con un dito.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const bloccaPinchZoom = (evento: TouchEvent) => {
+      if (evento.touches.length > 1 && evento.cancelable) {
+        evento.preventDefault();
+      }
+    };
+
+    let ultimoTocco = 0;
+    const bloccaDoppioTocco = (evento: TouchEvent) => {
+      const adesso = Date.now();
+      const intervallo = adesso - ultimoTocco;
+      if (intervallo > 0 && intervallo <= 300 && evento.cancelable) {
+        evento.preventDefault();
+      }
+      ultimoTocco = adesso;
+    };
+
+    document.addEventListener("touchstart", bloccaPinchZoom, { passive: false });
+    document.addEventListener("touchend", bloccaDoppioTocco, { passive: false });
+
+    return () => {
+      document.removeEventListener("touchstart", bloccaPinchZoom);
+      document.removeEventListener("touchend", bloccaDoppioTocco);
+    };
+  }, []);
+
   useEffect(() => {
     // In caso di errore dei font, nascondi comunque lo splash e usa i fallback di sistema.
     if (fontsLoaded || fontError) SplashScreen.hideAsync().catch(() => {});
