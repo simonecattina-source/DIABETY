@@ -539,19 +539,20 @@ export default function StrumentiScreen() {
     }
   };
   const manualPoints = [
-    { id: 1, title: "1. Registrazione dei Dati", icon: "analytics-outline", color: COLORS.brandPrimary, content: "Registra i tuoi dati in un attimo. Nella schermata 'Inserisci' puoi selezionare Data e Ora per la registrazione dei tuoi dati. Di default l'app indicherà sempre Data e Ora attuali ma puoi comunque modificare a tuo piacimento questi parametri per aggiungere dei dati in moments specifici del tuo registro Storico. Tramite i riquadri 'Glicemia' e 'Insulina' puoi inserire i valori corrispondenti che ti interessa registrare, nella sezione subito sotto puoi impostare il momento della giornata relativo al dato che stai registrando. Nel box 'Note' puoi inserire ulteriori informazioni che verranno registrate nel tuo Storico dei dati. L'app Diabety è stata programmata per inserire all'interno del riquadro delle 'Note' l'orario in cui stai effettuando il test cosi da tenerne traccia quando esporti il file in PDF." },
-    { id: 2, title: "2. Target Colorati", icon: "color-filter-outline", color: COLORS.success, content: "Monitora istantaneamente il tuo stato metabolico tramite la codifica dinamica dei colori di sicurezza:\n• Verde (Euglicemia): Valori compresi nel range ideale tra 70 e 180 mg/dL.\n• Arancione (Ipoglicemia): Rilevazioni critiche inferiori a 70 mg/dL.\n• Rosso (Iperglicemia): Rilevazioni elevate superiori a 180 mg/dL." },
-    { id: 3, title: "3. Archivio e Auto-Pulizia", icon: "trash-outline", color: COLORS.onSurface, content: "L'applicazione applica un algoritmo rigoroso di conservazione locale calcolato su una finestra mobile di 90 giorni rispetto al record più recente. I vecchi dati vengono eliminati automaticamente per ottimizzare la memoria del dispositivo: ricordati di salvare periodicamente un file di backup per non perderli. L'Eliminazione dei vecchi dati non significa perdere 'Tutti i dati' ma si intende perdere la singola misurazione registrata a partire da 90 giorni precedenti la data attuale." },
-    { id: 4, title: "4. Esportazione dei File", icon: "document-text-outline", color: COLORS.brandPrimary, content: "Genera esportazioni del tuo Diario in formato PDF con layout panoramico, speculare al tuo registro clinico. Puoi selezionare un periodo specifico di 7, 14, 30 o 90 giorni (oppure includere l'intero storico) per personalizzare l'intervallo del documento, ottimizzando la visualizzazione dei parametri per la tua prossima consultazione specialistica." },
-    { id: 5, title: "5. Backup e Sicurezza Dati", icon: "sync-outline", color: COLORS.brandPrimary, content: "Salva e proteggi i tuoi dati in pochi clic. Puoi esportare un file di sicurezza con tutto lo storico del tuo diario oppure caricarne uno vecchio per ripristinare i log. L'importazione sovrascrive il database attuale e richiede sempre una conferma per evitare cancellazioni involontarie." },
-    { id: 6, title: "6. Analisi Avanzata e Grafici", icon: "stats-chart-outline", color: COLORS.brandSecondary, content: "Controlla l'andamento della tua Glicemia. Questa sezione mostra grafici chiari con l'andamento della tua Glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito si sei a target. Nota molto importante, tutti i dati e i grafici che vedi non sono dati medici ufficiali in quanto si basano solo ed esclusivamente su dati inseriti da te nel monitoraggio della Glicemia. La funzione del grafico è basata per avvicinarsi molto alla rapresentazione di un CGM ma non lo è! Un CGM (Monitoraggio Continuo del Glucosio) è un sistema tecnologico che misura i livelli di zucchero (glucosio) nel liquido interstiziale 24 ore su 24 tramite l'utilizzo di un Sensore. Il sensore rileva il glucosio ogni pochi minuti e invia i dati in tempo real a un ricevitore, a uno smartphone o a uno smartwatch. L'app Diabety non ha questa function. Tutto ciò che vedi nella sezione Grafici è puramente a scopo indicativo basato soltanto su dati inseriti da te." },
-    { id: 7, title: "7. Calcolatore del Bolo Insulinico", icon: "calculator-outline", color: COLORS.brandPrimary, content: "Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro. Puoi inserire il valore della tua Glicemia con la quantità di Carboidrati (CHO) che stai assumendo per elaborare secondo i tuoi parametri la dose di Insulina da fare. Puoi anche inserire solo il valore della Glicemia per calcolare la quantità di Insulina per la correzione della Glicemia per rientrare nel tuo target." },
-    { id: 8, title: "8. Database Alimenti e Carboidrati", icon: "nutrition-outline", color: COLORS.success, content: "Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente. Usa la barra di ricerca per trovare l'alimento che ti interessa, impostane la quantità che stai assumendo espressa in grammi e clicca sull'icona ' + ' per aggiungerla al Piatto Virtuale. L'applicazione genererà in basso una scheda momentanea dove simulerà l'insieme del tuo pasto. Qui puoi aggiungere tutti gli alimenti relativi al pasto tenendo traccia del totale dei Carboidrati (CHO)." }
+    { id: 1, title: "1. Registrazione dei Dati", icon: "pulse-outline", color: "#00C8D7", content: "Registra i tuoi dati in un attimo. Nella schermata 'Inserisci' puoi selezionare Data e Ora per la registrazione dei tuoi dati. Di default l'app indicherà sempre Data e Ora attuali ma puoi comunque modificare a tuo piacimento questi parametri per aggiungere dei dati in moments specifici del tuo registro Storico. Tramite i riquadri 'Glicemia' e 'Insulina' puoi inserire i valori corrispondenti che ti interessa registrare, nella sezione subito sotto puoi impostare il momento della giornata relativo al dato che stai registrando. Nel box 'Note' puoi inserire ulteriori informazioni che verranno registrate nel tuo Storico dei dati. L'app Diabety è stata programmata per inserire all'interno del riquadro delle 'Note' l'orario in cui stai effettuando il test cosi da tenerne traccia quando esporti il file in PDF." },
+    { id: 7, title: "7. Calcolatore del Bolo Insulinico", icon: "calculator-outline", color: "#E9A45B", content: "Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro. Puoi inserire il valore della tua Glicemia con la quantità di Carboidrati (CHO) che stai assumendo per elaborare secondo i tuoi parametri la dose di Insulina da fare. Puoi anche inserire solo il valore della Glicemia per calcolare la quantità di Insulina per la correzione della Glicemia per rientrare nel tuo target." },
+    { id: 8, title: "8. Database Alimenti e Carboidrati", icon: "restaurant-outline", color: "#53C98B", content: "Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente. Usa la barra di ricerca per trovare l'alimento che ti interessa, impostane la quantità che stai assumendo espressa in grammi e clicca sull'icona ' + ' per aggiungerla al Piatto Virtuale. L'applicazione genererà in basso una scheda momentanea dove simulerà l'insieme del tuo pasto. Qui puoi aggiungere tutti gli alimenti relativi al pasto tenendo traccia del totale dei Carboidrati (CHO)." }
+    { id: 3, title: "3. Archivio e Auto-Pulizia", icon: "trash-outline", color: "#D5D7DE", content: "L'applicazione applica un algoritmo rigoroso di conservazione locale calcolato su una finestra mobile di 90 giorni rispetto al record più recente. I vecchi dati vengono eliminati automaticamente per ottimizzare la memoria del dispositivo: ricordati di salvare periodicamente un file di backup per non perderli. L'Eliminazione dei vecchi dati non significa perdere 'Tutti i dati' ma si intende perdere la singola misurazione registrata a partire da 90 giorni precedenti la data attuale." },
+    { id: 6, title: "6. Analisi Avanzata e Grafici", icon: "stats-chart-outline", color: "#A78BFA", content: "Controlla l'andamento della tua Glicemia. Questa sezione mostra grafici chiari con l'andamento della tua Glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito si sei a target. Nota molto importante, tutti i dati e i grafici che vedi non sono dati medici ufficiali in quanto si basano solo ed esclusivamente su dati inseriti da te nel monitoraggio della Glicemia. La funzione del grafico è basata per avvicinarsi molto alla rapresentazione di un CGM ma non lo è! Un CGM (Monitoraggio Continuo del Glucosio) è un sistema tecnologico che misura i livelli di zucchero (glucosio) nel liquido interstiziale 24 ore su 24 tramite l'utilizzo di un Sensore. Il sensore rileva il glucosio ogni pochi minuti e invia i dati in tempo real a un ricevitore, a uno smartphone o a uno smartwatch. L'app Diabety non ha questa function. Tutto ciò che vedi nella sezione Grafici è puramente a scopo indicativo basato soltanto su dati inseriti da te." },
+    { id: 2, title: "2. Target Colorati", icon: "color-palette-outline", color: "#E38BB5", content: "Monitora istantaneamente il tuo stato metabolico tramite la codifica dinamica dei colori di sicurezza:\n• Verde (Euglicemia): Valori compresi nel range ideale tra 70 e 180 mg/dL.\n• Arancione (Ipoglicemia): Rilevazioni critiche inferiori a 70 mg/dL.\n• Rosso (Iperglicemia): Rilevazioni elevate superiori a 180 mg/dL." },
+    { id: 4, title: "4. Esportazione dei File", icon: "document-text-outline", color: "#5BA8F2", content: "La sezione Manutenzione e Report, situata nella parte superiore del Pannello di Controllo, permette di salvare, ripristinare ed esportare i dati registrati in DIABETY. Contiene quattro funzioni principali.\n\nESPORTA BACKUP\nCrea un file JSON contenente il database dell'app. Premendo il pulsante puoi salvare una copia dei dati, utile per conservarli al sicuro o trasferirli su un altro dispositivo.\n\nIMPORTA BACKUP\nPermette di caricare un file di backup JSON precedentemente esportato per ripristinare i dati nell'app. Prima di procedere, verifica di aver selezionato il file corretto.\n\nESPORTA PDF\nGenera un documento PDF con le misurazioni del diario glicemico, comodo da consultare, stampare o condividere con il medico. Seleziona prima il periodo desiderato (7, 14, 30, 90 giorni oppure Tutti) e poi premi Esporta PDF.\n\nESPORTA EXCEL / CSV\nEsporta le misurazioni in formato Excel (.xlsx) oppure CSV (.csv), per consultarle ed elaborarle con programmi di foglio di calcolo. Seleziona il periodo desiderato e premi Esporta Excel oppure Esporta CSV, in base al formato che preferisci.\n\nDA SAPERE\nI filtri temporali del PDF e di Excel/CSV sono indipendenti: puoi scegliere periodi diversi per ciascuna esportazione. L'esportazione dei report non modifica le misurazioni salvate." },
+    { id: 5, title: "5. Backup e Sicurezza Dati", icon: "sync-outline", color: "#BA93E8", content: "Salva e proteggi i tuoi dati in pochi clic. Puoi esportare un file di sicurezza con tutto lo storico del tuo diario oppure caricarne uno vecchio per ripristinare i log. L'importazione sovrascrive il database attuale e richiede sempre una conferma per evitare cancellazioni involontarie." },
   ];
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.headerForm}>
-        <Text style={styles.title}>Centro Strumenti</Text>
+        <View style={styles.headerAccent} />
+        <Text style={styles.title}>Pannello di Controllo</Text>
         <Text style={styles.subtitle}>Gestione database e informazioni mediche dell'app</Text>
       </View>
 
@@ -566,7 +567,7 @@ export default function StrumentiScreen() {
         <TouchableOpacity style={styles.rowAzione} onPress={esportaBackupJSON}>
           <View style={styles.leftAzione}>
             <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
-              <Ionicons name="cloud-download-outline" size={20} color={COLORS.onSurface} />
+              <Ionicons name="cloud-download-outline" size={20} color="#FF9800" />
             </View>
             <View>
               <Text style={styles.titoloAzione}>Esporta Backup</Text>
@@ -580,7 +581,7 @@ export default function StrumentiScreen() {
           <label style={styles.rowAzioneLabel}>
             <View style={styles.leftAzione}>
               <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
-                <Ionicons name="cloud-upload-outline" size={20} color={COLORS.onSurface} />
+                <Ionicons name="cloud-upload-outline" size={20} color="#A855F7" />
               </View>
               <View>
                 <Text style={styles.titoloAzione}>Importa Backup</Text>
@@ -594,7 +595,7 @@ export default function StrumentiScreen() {
           <TouchableOpacity style={styles.rowAzione}>
             <View style={styles.leftAzione}>
               <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
-                <Ionicons name="cloud-upload-outline" size={20} color={COLORS.onSurface} />
+                <Ionicons name="cloud-upload-outline" size={20} color="#A855F7" />
               </View>
               <View>
                 <Text style={styles.titoloAzione}>Importa Backup</Text>
@@ -608,12 +609,12 @@ export default function StrumentiScreen() {
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={() => setModalPdfVisibile(true)}>
             <View style={styles.leftAzione}>
-              <View style={[styles.iconWrapper, { backgroundColor: 'rgba(0, 229, 255, 0.1)' }]}>
-                <Ionicons name="document-text-outline" size={20} color={COLORS.error} />
+              <View style={[styles.iconWrapper, { backgroundColor: COLORS.bgUtility }]}>
+                <Ionicons name="document-text-outline" size={20} color="#ED1C24" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.titoloAzione, { color: COLORS.brandPrimary }]}>Esporta PDF</Text>
-                <Text style={styles.descAzione}>Genera il documento clinico identico allo storico</Text>
+                <Text style={styles.titoloAzione}>Esporta PDF</Text>
+                <Text style={styles.descAzione}>Esporta le misurazioni del diario glicemico</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.brandPrimary} />
@@ -630,11 +631,10 @@ export default function StrumentiScreen() {
             })}
           </View>
         </View>
-      </View>
-
-      <View style={styles.cardExportTabellare}>
+        <View style={styles.dividerAzione} />
+        <View style={styles.cardExportTabellare}>
         <View style={styles.exportTabellareHeader}>
-          <Ionicons name="documents-outline" size={25} color={COLORS.brandPrimary} />
+          <View style={styles.iconWrapper}><Ionicons name="documents-outline" size={21} color={COLORS.success} /></View>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.exportTabellareTitle}>Esporta Excel / CSV</Text>
             <Text style={styles.exportTabellareSubtitle}>Esporta le misurazioni del diario glicemico</Text>
@@ -642,12 +642,12 @@ export default function StrumentiScreen() {
         </View>
         <View style={styles.exportTabellareButtons}>
           <TouchableOpacity style={styles.exportTabellareButton} onPress={() => setModalTabellare('excel')}>
-            <Ionicons name="grid-outline" size={24} color={COLORS.success} />
+            <View style={styles.exportButtonTop}><Ionicons name="grid-outline" size={24} color={COLORS.success} /><Ionicons name="chevron-forward" size={20} color={COLORS.brandPrimary} /></View>
             <Text style={styles.exportTabellareButtonTitle}>Esporta Excel</Text>
             <Text style={styles.exportTabellareExtension}>.xlsx</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.exportTabellareButton} onPress={() => setModalTabellare('csv')}>
-            <Ionicons name="document-text-outline" size={24} color={COLORS.success} />
+            <View style={styles.exportButtonTop}><Ionicons name="document-text-outline" size={24} color={COLORS.success} /><Ionicons name="chevron-forward" size={20} color={COLORS.brandPrimary} /></View>
             <Text style={styles.exportTabellareButtonTitle}>Esporta CSV</Text>
             <Text style={styles.exportTabellareExtension}>.csv</Text>
           </TouchableOpacity>
@@ -661,6 +661,7 @@ export default function StrumentiScreen() {
               </TouchableOpacity>
             );
           })}
+        </View>
         </View>
       </View>
 
@@ -730,7 +731,7 @@ export default function StrumentiScreen() {
         </View>
       </Modal>
 
-      <Text style={styles.sectionLabel}>Manuale & Linee Guia</Text>
+      <Text style={styles.sectionLabel}>Manuale & Linee Guida</Text>
 
       {manualPoints.map((point) => {
         const isOpen = expandedPointId === point.id;
@@ -760,12 +761,13 @@ export default function StrumentiScreen() {
   );
 }
 const styles = StyleSheet.create({
-  cardExportTabellare: { backgroundColor: '#0E1A27', borderColor: '#168A8F', borderWidth: 1, borderRadius: 16, padding: 13, marginTop: 12, marginBottom: 12 },
+  cardExportTabellare: { backgroundColor: COLORS.surfaceSecondary, padding: 13 },
   exportTabellareHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  exportButtonTop: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 },
   exportTabellareTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  exportTabellareSubtitle: { color: '#A5B3C7', fontSize: 12, marginTop: 3 },
+  exportTabellareSubtitle: { color: COLORS.muted, fontSize: 12, marginTop: 3 },
   exportTabellareButtons: { flexDirection: 'row', gap: 9, marginBottom: 13 },
-  exportTabellareButton: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 12, backgroundColor: '#112D34', borderWidth: 1, borderColor: '#168A8F', borderRadius: 13 },
+  exportTabellareButton: { flex: 1, alignItems: 'flex-start', justifyContent: 'center', gap: 5, padding: 12, backgroundColor: COLORS.bgUtility, borderWidth: 1, borderColor: COLORS.borderUtility, borderRadius: 13 },
   exportTabellareButtonTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   exportTabellareExtension: { color: '#A5B3C7', fontSize: 11 },
   exportModalDetails: { backgroundColor: '#112D34', borderRadius: 12, padding: 14, marginBottom: 17, gap: 9 },
@@ -789,19 +791,20 @@ const styles = StyleSheet.create({
   pdfModalCancelText: { color: COLORS.muted, fontWeight: '700' },
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 16, paddingTop: 20, paddingBottom: 40 },
-  headerForm: { marginBottom: 20, width: '100%' },
+  headerForm: { marginBottom: 20, width: '100%', borderLeftWidth: 0, paddingLeft: 16, justifyContent: 'center', minHeight: 48 },
+  headerAccent: { position: 'absolute', left: 0, top: 0, height: 48, width: 4, backgroundColor: COLORS.brandPrimary, borderRadius: 8 },
   title: { fontFamily: 'Space Grotesk', fontSize: 26, fontWeight: '700', color: COLORS.onSurface },
   subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: COLORS.muted, marginTop: 4 },
   
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, marginTop: 22, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   
-  cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: COLORS.borderGlass, width: '100%', overflow: 'hidden', marginBottom: 12 },
+  cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: "#30303A", width: '100%', overflow: 'hidden', marginBottom: 12 },
   rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
   rowAzioneLabel: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, cursor: 'pointer', width: '100%', boxSizing: 'border-box', borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass },
   
-  dividerAzione: { height: 1, backgroundColor: COLORS.borderGlass, width: '100%' },
+  dividerAzione: { height: 1, backgroundColor: '#30303A', width: '100%' },
   leftAzione: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
+  iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bgUtility },
   titoloAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
   descAzione: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: COLORS.muted, marginTop: 2 },
 
@@ -809,9 +812,9 @@ const styles = StyleSheet.create({
   rowPdfClickArea: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 12 },
   
   containerMiniFiltriPdf: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', gap: 6, paddingLeft: 2 },
-  chipMiniPdf: { flex: 1, backgroundColor: '#1A1A24', paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
-  chipMiniPdfAttiva: { backgroundColor: 'rgba(0, 229, 255, 0.08)', borderColor: COLORS.brandPrimary },
-  textMiniChipPdf: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600', color: COLORS.muted },
+  chipMiniPdf: { flex: 1, backgroundColor: '#1A1A24', paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#30303A' },
+  chipMiniPdfAttiva: { backgroundColor: '#123E48', borderColor: COLORS.brandPrimary },
+  textMiniChipPdf: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, fontWeight: '600', color: '#A5B3C7' },
   textMiniChipPdfAttivo: { color: COLORS.brandPrimary, fontWeight: '700' },
 
   accordionWrapper: { width: '100%', marginBottom: 10 },
@@ -823,7 +826,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.borderGlass,
+    borderColor: '#30303A',
     width: '100%'
   },
   accordionHeaderActive: {
@@ -842,7 +845,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 16,
     borderWidth: 1,
     borderTopWidth: 0,
-    borderColor: COLORS.borderGlass,
+    borderColor: '#30303A',
     width: '100%'
   },
   contentText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: COLORS.muted, lineHeight: 22, textAlign: 'left', paddingLeft: 2 },
@@ -850,4 +853,3 @@ const styles = StyleSheet.create({
   notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
   notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 13 }
 });
-
