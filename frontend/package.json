@@ -52,7 +52,7 @@
     "react-native-webview": "13.16.1",
     "react-native-worklets": "0.10.1",
     "html2pdf.js": "^0.10.3",
-    "exceljs": "^4.4.0",
+    "exceljs": "^4.4.0"
   },
   "devDependencies": {
     "@types/react": "19.2.10",
