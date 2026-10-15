@@ -28,7 +28,7 @@ const MOMENTI_COLONNE = [
   "Prima Cena", "Dopo Cena", "Notte"
 ];
 
-// Le due colonne PDF Notte condividono un unico periodo notturno (23:00–06:00).
+// Le colonne PDF Notte sono distinte: 00:00–06:00 e 22:30–23:59 della stessa data.
 // Le altre voci, inclusi Spuntino e Merenda, rimangono invariate.
 const COLONNE_PDF = ['Notte iniziale', ...MOMENTI_COLONNE.filter(m => m !== 'Notte'), 'Notte finale'];
 const minutiPdf = (ora: unknown): number | null => {
@@ -61,21 +61,15 @@ const scegliMisurePdf = (righe: any[], tuttiIRecord: any[], dataRiga: string): M
   });
   const giorno = giornoPdf(dataRiga);
   if (giorno) {
-    const mezzanotte = giorno.getTime();
-    // Notte iniziale: 23:00 del giorno precedente fino alle 06:00 di oggi.
-    // Notte finale: 23:00 di oggi fino alle 06:00 del giorno successivo.
-    tuttiIRecord.forEach((item: any) => {
+    // Ogni valore Notte appare soltanto nella riga della propria data.
+    // Prima colonna: 00:00–06:00; ultima colonna: 22:30–23:59.
+    // Per più misure nello stesso intervallo prevale l'orario più antico.
+    righe.forEach((item: any) => {
       if (item.tipo !== 'Notte') return;
-      const data = giornoPdf(item.dataTesto);
       const minuti = minutiPdf(item.ora);
-      if (!data || minuti === null) return;
-      const istante = data.getTime() + minuti * 60000;
-      const inizioNottePrecedente = mezzanotte - 60 * 60000;
-      const fineNottePrecedente = mezzanotte + 360 * 60000;
-      const inizioNotteSuccessiva = mezzanotte + 23 * 60 * 60000;
-      const fineNotteSuccessiva = mezzanotte + 30 * 60 * 60000;
-      if (istante >= inizioNottePrecedente && istante <= fineNottePrecedente) considera('Notte iniziale', item, istante);
-      if (istante >= inizioNotteSuccessiva && istante <= fineNotteSuccessiva) considera('Notte finale', item, istante);
+      if (minuti === null) return;
+      if (minuti >= 0 && minuti <= 6 * 60) considera('Notte iniziale', item, minuti);
+      if (minuti >= 22 * 60 + 30 && minuti <= 23 * 60 + 59) considera('Notte finale', item, minuti);
     });
   }
   return new Map(Array.from(scelta.entries()).map(([k, v]) => [k, v.item]));
@@ -253,7 +247,7 @@ export default function StoricoScreen() {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
       let dati = storicoEsistente ? JSON.parse(storicoEsistente) : [];
       if (dati.length === 0) { alert("Non ci sono dati disponibili nel diario per generare il report."); return; }
-      const tuttiIRecordPdf: any[] = dati; // Inclusi i giorni adiacenti al filtro per il raccordo Notte.
+      const tuttiIRecordPdf: any[] = dati; // Le due colonne Notte usano solo i record della data della riga.
 
       if (filtroAttivo !== 'all') {
         const giorniFiltro = parseInt(filtroAttivo); const oggi = new Date(); const dataInizioOggi = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate()).getTime();
