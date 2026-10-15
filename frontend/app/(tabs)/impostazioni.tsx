@@ -91,7 +91,7 @@ const ETICHETTE_MOMENTI: Record<string, string> = {
 };
 const MOMENTI_RIEPILOGO = Object.keys(ETICHETTE_MOMENTI);
 const PERIODI_EXPORT = ['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'];
-const CSV_HEADERS = ['DATA', 'ORA', 'GLICEMIA (mg/dL)', 'INSULINA (UI)', 'MOMENTO DELLA GIORNATA', 'ANNOTAZIONI'];
+const CSV_HEADERS = ['DATA', 'ORA', 'GLICEMIA (mg/dL)', 'INSULINA (UI)', 'CHO (g)', 'MOMENTO DELLA GIORNATA', 'ANNOTAZIONI'];
 
 const leggiDataMisurazione = (testo: unknown): Date | null => {
   if (typeof testo !== 'string') return null;
@@ -125,6 +125,12 @@ const valoreInsulina = (valore: unknown): number | null => {
   if (typeof valore !== 'string' || !valore.trim() || valore.trim() === '-') return null;
   const numero = Number(valore.replace(/\s*UI\s*$/i, '').replace(',', '.'));
   return Number.isFinite(numero) ? numero : null;
+};
+
+const valoreCHO = (valore: unknown): number | null => {
+  if (valore === null || valore === undefined || valore === '') return null;
+  const numero = typeof valore === 'string' ? Number(valore.replace(',', '.')) : Number(valore);
+  return Number.isFinite(numero) && numero >= 0 ? numero : null;
 };
 
 const scaricaBlobWeb = (blob: Blob, nome: string) => {
@@ -191,6 +197,7 @@ export default function StrumentiScreen() {
         String(m.ora || ''),
         Number(m.glicemia),
         valoreInsulina(m.insulina),
+        valoreCHO(m.cho),
         ETICHETTE_MOMENTI[m.tipo] || String(m.tipo || ''),
         String(m.note || ''),
       ]);
@@ -237,8 +244,8 @@ export default function StrumentiScreen() {
           });
         };
         const ws = wb.addWorksheet('Misurazioni', { views: [{ state: 'frozen', ySplit: 4 }] });
-        ws.columns = [{ width: 16 }, { width: 11 }, { width: 23 }, { width: 18 }, { width: 27 }, { width: 50 }];
-        impostaTitolo(ws, 6);
+        ws.columns = [{ width: 16 }, { width: 11 }, { width: 23 }, { width: 18 }, { width: 15 }, { width: 27 }, { width: 50 }];
+        impostaTitolo(ws, 7);
         ws.getRow(4).values = CSV_HEADERS;
         intestazione(ws.getRow(4));
         righe.forEach((riga, i) => {
@@ -247,8 +254,9 @@ export default function StrumentiScreen() {
           if (i % 2 === 1) row.eachCell((c: any) => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F8FB' } }; });
           row.getCell(3).numFmt = '0';
           row.getCell(4).numFmt = '0.##';
+          row.getCell(5).numFmt = '0.##';
         });
-        ws.autoFilter = { from: 'A4', to: 'F4' };
+        ws.autoFilter = { from: 'A4', to: 'G4' };
         ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
         ws.headerFooter.oddHeader = '&CDIABETY - Report Glicemico';
 
@@ -309,6 +317,9 @@ export default function StrumentiScreen() {
     if (typeof item.id !== 'string' || item.id.trim() === '') return false;
     if (typeof item.glicemia !== 'number' || !Number.isInteger(item.glicemia) || item.glicemia < 1 || item.glicemia > 999) return false;
     if (typeof item.insulina !== 'string' || !/^(?:-|\d{1,2} UI)$/.test(item.insulina)) return false;
+    // CHO facoltativo: i backup precedenti senza questo campo restano validi.
+    if (item.cho !== undefined && item.cho !== null &&
+        (typeof item.cho !== 'number' || !Number.isFinite(item.cho) || item.cho < 0 || item.cho > 9999)) return false;
     if (typeof item.tipo !== 'string' || !MOMENTI_COLONNE.includes(item.tipo)) return false;
     if (typeof item.note !== 'string') return false;
     if (typeof item.ora !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(item.ora)) return false;
@@ -408,7 +419,10 @@ export default function StrumentiScreen() {
           primaPerMomento.forEach((item: any, chiave: string) => {
             let col = '#34C759'; if (item.glicemia > 180) col = '#FF3B30'; if (item.glicemia < 70) col = '#FF9F0A';
             rG[chiave] = `<span style="color: ${col}; font-weight: bold;">${item.glicemia} mg/dL</span>`;
-            rI[chiave] = item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : '-';
+            const insulinaPdf = item.insulina && item.insulina !== '-' ? `<span style="font-weight: 600;">${String(item.insulina).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>` : '';
+            const cho = valoreCHO(item.cho);
+            const choPdf = cho !== null ? `<span style="font-weight: normal;">${cho} CHO</span>` : '';
+            rI[chiave] = [insulinaPdf, choPdf].filter(Boolean).join(' - ') || '-';
             rN[chiave] = item.note ? `<span style="font-style: italic; color: #555;">${String(item.note).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}</span>` : '-';
           });
           let tG = ''; let tI = ''; let tN = '';
@@ -585,7 +599,7 @@ export default function StrumentiScreen() {
     }
   };
   const manualPoints = [
-    { id: 1, title: "1. Registrazione dei Dati", icon: "pulse-outline", color: "#00C8D7", content: "Registra i tuoi dati in un attimo. Nella schermata 'Inserisci' puoi selezionare Data e Ora per la registrazione dei tuoi dati. Di default l'app indicherà sempre Data e Ora attuali ma puoi comunque modificare a tuo piacimento questi parametri per aggiungere dei dati in moments specifici del tuo registro Storico. Tramite i riquadri 'Glicemia' e 'Insulina' puoi inserire i valori corrispondenti che ti interessa registrare, nella sezione subito sotto puoi impostare il momento della giornata relativo al dato che stai registrando. Nel box 'Note' puoi inserire ulteriori informazioni che verranno registrate nel tuo Storico dei dati. L'app Diabety è stata programmata per inserire all'interno del riquadro delle 'Note' l'orario in cui stai effettuando il test cosi da tenerne traccia quando esporti il file in PDF." },
+    { id: 1, title: "1. Registrazione dei Dati", icon: "pulse-outline", color: "#00C8D7", content: "Nella schermata 'Inserisci' puoi registrare manualmente una misurazione, scegliendo Data e Ora del Test. L'app propone automaticamente data e ora attuali, ma puoi modificarle per registrare un test precedente.\n\nGLICEMIA (mg/dL)\nInserisci il valore della glicemia misurata in milligrammi per decilitro (mg/dL). Questo campo è obbligatorio per salvare una misurazione. Il valore viene conservato nello Storico e utilizzato nei Grafici e nelle analisi dell'app. Puoi correggerlo dalla finestra 'Modifica Misurazione'.\n\nINSULINA (UI)\nInserisci la quantità di insulina somministrata, espressa in UI. Il campo è facoltativo: puoi salvare una misurazione anche senza insulina. Se presente, il valore viene memorizzato nello Storico e può essere modificato o cancellato in seguito.\n\nCARBOIDRATI - CHO (g)\nInserisci i carboidrati assunti, espressi in grammi (g). Il campo è facoltativo. Il valore viene salvato con la misurazione, visualizzato nello Storico accanto all'insulina e può essere aggiunto, corretto o cancellato dalla finestra di modifica.\n\nMOMENTO DELLA GIORNATA\nSeleziona il momento a cui si riferisce la misurazione, ad esempio prima di colazione, dopo pranzo o notte.\n\nNOTE ALIMENTARI / SINTOMI\nPuoi inserire informazioni aggiuntive su pasti, attività o sintomi. Le note sono facoltative e vengono salvate con il test; l'app può riportare nelle note anche l'orario della misurazione.\n\nSALVATAGGIO ED ESPORTAZIONE\nPremendo 'Salva misurazione', i dati vengono registrati nel diario locale di DIABETY. Le registrazioni seguono la pulizia automatica prevista dall'app dopo 90 giorni." },
     { id: 7, title: "7. Calcolatore del Bolo Insulinico", icon: "calculator-outline", color: "#E9A45B", content: "Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro. Puoi inserire il valore della tua Glicemia con la quantità di Carboidrati (CHO) che stai assumendo per elaborare secondo i tuoi parametri la dose di Insulina da fare. Puoi anche inserire solo il valore della Glicemia per calcolare la quantità di Insulina per la correzione della Glicemia per rientrare nel tuo target." },
     { id: 8, title: "8. Database Alimenti e Carboidrati", icon: "restaurant-outline", color: "#53C98B", content: "Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente. Usa la barra di ricerca per trovare l'alimento che ti interessa, impostane la quantità che stai assumendo espressa in grammi e clicca sull'icona ' + ' per aggiungerla al Piatto Virtuale. L'applicazione genererà in basso una scheda momentanea dove simulerà l'insieme del tuo pasto. Qui puoi aggiungere tutti gli alimenti relativi al pasto tenendo traccia del totale dei Carboidrati (CHO)." },
     { id: 3, title: "3. Archivio e Auto-Pulizia", icon: "trash-outline", color: "#D5D7DE", content: "L'applicazione applica un algoritmo rigoroso di conservazione locale calcolato su una finestra mobile di 90 giorni rispetto al record più recente. I vecchi dati vengono eliminati automaticamente per ottimizzare la memoria del dispositivo: ricordati di salvare periodicamente un file di backup per non perderli. L'Eliminazione dei vecchi dati non significa perdere 'Tutti i dati' ma si intende perdere la singola misurazione registrata a partire da 90 giorni precedenti la data attuale." },
