@@ -174,6 +174,8 @@ export default function GraficiScreen() {
       // non minuti dalla mezzanotte: nessun azzeramento alle 00:00.
       const fineFinestra = Date.now();
       const inizioFinestra = fineFinestra - 24 * 60 * 60 * 1000;
+      // Non raggruppare per tipo/momento: ogni record valido genera un punto,
+      // anche se piu misurazioni hanno lo stesso momento della giornata.
       const puntiMobili: Punto24[] = elenco.flatMap(v => {
         const giorno = dataValida(v.dataTesto);
         const minuti = oraInMinuti(v.ora);
