@@ -652,7 +652,7 @@ export default function StrumentiScreen() {
             <input type="file" accept=".json" onChange={gestisciImportazioneWeb} style={{ display: 'none' }} />
           </label>
         ) : (
-          <TouchableOpacity style={styles.rowAzione}>
+          <TouchableOpacity style={[styles.rowAzione, { borderBottomWidth: 0 }]}>
             <View style={styles.leftAzione}>
               <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
                 <Ionicons name="cloud-upload-outline" size={20} color="#A855F7" />
@@ -665,6 +665,7 @@ export default function StrumentiScreen() {
             <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
           </TouchableOpacity>
         )}
+        <View style={styles.dividerBackupPdf} />
 
         <View style={styles.rowAzionePdfComplessa}>
           <TouchableOpacity style={styles.rowPdfClickArea} onPress={() => setModalPdfVisibile(true)}>
@@ -860,8 +861,9 @@ const styles = StyleSheet.create({
   
   cardAzioni: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 16, borderWidth: 1, borderColor: "#30303A", width: '100%', overflow: 'hidden', marginBottom: 12 },
   rowAzione: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass, width: '100%' },
-  rowAzioneLabel: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, cursor: 'pointer', width: '100%', boxSizing: 'border-box', borderBottomWidth: 1, borderBottomColor: COLORS.borderGlass },
+  rowAzioneLabel: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, height: 68, cursor: 'pointer', width: '100%', boxSizing: 'border-box', borderBottomWidth: 0 },
   
+  dividerBackupPdf: { height: 1, backgroundColor: COLORS.borderGlass, width: '100%' },
   dividerAzione: { height: 1, backgroundColor: '#30303A', width: '100%' },
   leftAzione: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   iconWrapper: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bgUtility },
