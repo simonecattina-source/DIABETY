@@ -36,16 +36,16 @@ const MOMENTI_SHORT = {
 };
 // Fasce orarie del quadrante: intervalli semiaperti, ultimo fino a mezzanotte.
 const FASCE_GIORNATA = [
-  { nome: 'Notte iniziale', orario: '00:00–06:00', inizio: 0, fine: 360, colore: '#1464FF' },
-  { nome: 'Prima di colazione', orario: '06:00–09:00', inizio: 360, fine: 540, colore: '#00E68B' },
-  { nome: 'Dopo colazione', orario: '09:00–11:00', inizio: 540, fine: 660, colore: '#FF49B7' },
-  { nome: 'Spuntino', orario: '11:00–12:30', inizio: 660, fine: 750, colore: '#3AE7E9' },
-  { nome: 'Prima di pranzo', orario: '12:30–14:30', inizio: 750, fine: 870, colore: '#993CFF' },
-  { nome: 'Dopo pranzo', orario: '14:30–16:00', inizio: 870, fine: 960, colore: '#00C5FA' },
-  { nome: 'Merenda', orario: '16:00–18:30', inizio: 960, fine: 1110, colore: '#FF4CC7' },
-  { nome: 'Prima di cena', orario: '18:30–21:30', inizio: 1110, fine: 1290, colore: '#FFE500' },
-  { nome: 'Dopo cena', orario: '21:30–22:30', inizio: 1290, fine: 1350, colore: '#FF8500' },
-  { nome: 'Notte finale', orario: '22:30–23:59', inizio: 1350, fine: 1440, colore: '#B32DFF' },
+  { nome: 'Notte iniziale', orario: '00:00–06:00', inizio: 0, fine: 360, colore: '#105077' },
+  { nome: 'Prima di colazione', orario: '06:00–09:00', inizio: 360, fine: 540, colore: '#17658C' },
+  { nome: 'Dopo colazione', orario: '09:00–11:00', inizio: 540, fine: 660, colore: '#187B9C' },
+  { nome: 'Spuntino', orario: '11:00–12:30', inizio: 660, fine: 750, colore: '#146E95' },
+  { nome: 'Prima di pranzo', orario: '12:30–14:30', inizio: 750, fine: 870, colore: '#247E9F' },
+  { nome: 'Dopo pranzo', orario: '14:30–16:00', inizio: 870, fine: 960, colore: '#145B87' },
+  { nome: 'Merenda', orario: '16:00–18:30', inizio: 960, fine: 1110, colore: '#1B7196' },
+  { nome: 'Prima di cena', orario: '18:30–21:30', inizio: 1110, fine: 1290, colore: '#125778' },
+  { nome: 'Dopo cena', orario: '21:30–22:30', inizio: 1290, fine: 1350, colore: '#1C91A5' },
+  { nome: 'Notte finale', orario: '22:30–23:59', inizio: 1350, fine: 1440, colore: '#125A82' },
 ] as const;
 
 type Misurazione = { glicemia: number; dataTesto: string; ora?: string; tipo?: string };
@@ -397,7 +397,8 @@ export default function GraficiScreen() {
       const inRange = valori.filter(v => v.glicemia >= 70 && v.glicemia <= 180).length;
       return { ...fascia, percentuale: valori.length ? Math.round(inRange * 100 / valori.length) : null };
     });
-    const centro = 160, esterno = 139, interno = 78;
+    // Dieci settori identici da 36°, indipendenti dalla durata delle fasce.
+    const centro = 200, esterno = 190, interno = 94;
     const punto = (r: number, gradi: number) => {
       const angolo = (gradi - 90) * Math.PI / 180;
       return [centro + r * Math.cos(angolo), centro + r * Math.sin(angolo)];
@@ -405,8 +406,13 @@ export default function GraficiScreen() {
     const settore = (da: number, a: number) => {
       const [x1,y1] = punto(esterno,da), [x2,y2] = punto(esterno,a);
       const [x3,y3] = punto(interno,a), [x4,y4] = punto(interno,da);
-      return `M ${x1} ${y1} A ${esterno} ${esterno} 0 ${a-da>180?1:0} 1 ${x2} ${y2} L ${x3} ${y3} A ${interno} ${interno} 0 ${a-da>180?1:0} 0 ${x4} ${y4} Z`;
+      return `M ${x1} ${y1} A ${esterno} ${esterno} 0 0 1 ${x2} ${y2} L ${x3} ${y3} A ${interno} ${interno} 0 0 0 ${x4} ${y4} Z`;
     };
+    const nomiSuRighe: string[][] = [
+      ['Notte iniziale'], ['Prima', 'di colazione'], ['Dopo', 'colazione'],
+      ['Spuntino'], ['Prima', 'di pranzo'], ['Dopo', 'pranzo'],
+      ['Merenda'], ['Prima', 'di cena'], ['Dopo cena'], ['Notte finale'],
+    ];
     return (
       <View style={[styles.cardGraficoContenitore, { marginTop: 16, borderColor: '#17465C' }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
@@ -427,32 +433,39 @@ export default function GraficiScreen() {
         </View>
         <Text style={{ color: '#A9C8E8', fontSize: 11, marginTop: 10 }}>Periodo selezionato: ultimi {periodoQuadrante} giorni, oggi compreso.</Text>
         <View style={{ alignItems: 'center', marginTop: 12 }}>
-          <Svg width={320} height={320} viewBox="0 0 320 320" style={{ maxWidth: '100%' }}>
+          <Svg width="100%" height={400} viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
             <Defs>
-              {statistiche.map((f,i) => <LinearGradient key={i} id={`fasciaNeon${i}`} x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor={f.colore} stopOpacity="1"/><Stop offset="1" stopColor={f.colore} stopOpacity="0.73"/></LinearGradient>)}
+              {statistiche.map((f, i) => (
+                <LinearGradient key={i} id={`fasciaBlu${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <Stop offset="0%" stopColor={f.colore} />
+                  <Stop offset="100%" stopColor="#092F4B" />
+                </LinearGradient>
+              ))}
             </Defs>
-            {statistiche.map((f,i) => {
-              const da = f.inizio / 1440 * 360, a = f.fine / 1440 * 360;
-              const [tx,ty] = punto(109,(da+a)/2);
-              const testo = f.percentuale === null ? '—' : `${f.percentuale}%`;
-              return <G key={i}>
-                <Path d={settore(da,a)} fill={`url(#fasciaNeon${i})`} stroke={f.colore} strokeWidth={2.5}/>
-                <SvgText x={tx} y={ty+4} fill={['#FFE500','#3AE7E9','#00E68B','#FF4CC7'].includes(f.colore) ? '#06101C' : '#FFFFFF'} fontSize={f.fine-f.inizio<=90?12:14} fontWeight="bold" textAnchor="middle">{testo}</SvgText>
-              </G>;
+            {statistiche.map((f, i) => {
+              const da = i * 36 + 0.5, a = (i + 1) * 36 - 0.5;
+              const [tx, ty] = punto(145, i * 36 + 18);
+              const nome = nomiSuRighe[i];
+              const primaRiga = ty - (nome.length === 2 ? 26 : 19);
+              return (
+                <G key={i}>
+                  <Path d={settore(da, a)} fill={`url(#fasciaBlu${i})`} />
+                  {nome.map((riga, j) => (
+                    <SvgText key={j} x={tx} y={primaRiga + j * 15} fill="#FFFFFF" fontSize={13} fontWeight="700" textAnchor="middle">{riga}</SvgText>
+                  ))}
+                  <SvgText x={tx} y={primaRiga + nome.length * 15 + 1} fill="#C8E3F1" fontSize={11.5} textAnchor="middle">{f.orario}</SvgText>
+                  <SvgText x={tx} y={primaRiga + nome.length * 15 + 27} fill="#FFFFFF" fontSize={21} fontWeight="bold" textAnchor="middle">{f.percentuale === null ? '—' : `${f.percentuale}%`}</SvgText>
+                </G>
+              );
             })}
-            <Circle cx={centro} cy={centro} r={interno-2} fill="#071421" stroke="#1C5271" strokeWidth={1.5}/>
-            <SvgText x={centro} y={centro-1} fill="#FFFFFF" fontSize={23} fontWeight="bold" textAnchor="middle">24 ORE</SvgText>
-            <SvgText x={centro} y={centro+19} fill="#B3D3ED" fontSize={11} textAnchor="middle">DELLA GIORNATA</SvgText>
+            <Circle cx={centro} cy={centro} r={interno-4} fill="#050B10" stroke="#08364C" strokeWidth={5} />
+            <Circle cx={centro} cy={centro} r={interno-15} fill="none" stroke="#00C8E7" strokeWidth={4} />
+            <Path d="M 200 121 A 79 79 0 0 1 270 164" fill="none" stroke="#C8F9FF" strokeWidth={3} strokeLinecap="round" />
+            <Path d="M 265 155 L 280 174 L 258 169 Z" fill="#C8F9FF" />
+            <SvgText x={centro} y={centro-3} fill="#FFFFFF" fontSize={51} fontWeight="bold" textAnchor="middle">24</SvgText>
+            <SvgText x={centro} y={centro+30} fill="#00E5FF" fontSize={30} fontWeight="bold" textAnchor="middle">ORE</SvgText>
+            <SvgText x={centro} y={centro+54} fill="#FFFFFF" fontSize={12} letterSpacing={2.3} textAnchor="middle">DELLA GIORNATA</SvgText>
           </Svg>
-        </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 }}>
-          {statistiche.map((f,i) => <View key={i} style={{ width: '50%', flexDirection: 'row', paddingVertical: 7, paddingRight: 5, alignItems: 'flex-start', gap: 6 }}>
-            <View style={{ backgroundColor: f.colore, width: 9, height: 9, borderRadius: 5, marginTop: 3 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>{f.nome}</Text>
-              <Text style={{ color: '#A9C8E8', fontSize: 10 }}>{f.orario}</Text>
-            </View>
-          </View>)}
         </View>
         <View style={{ flexDirection: 'row', backgroundColor: '#0A1C2C', borderWidth: 1, borderColor: '#18435B', borderRadius: 11, padding: 10, marginTop: 10, gap: 9 }}>
           <Ionicons name="information-circle-outline" size={21} color="#8CB9FF" />
