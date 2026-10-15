@@ -111,6 +111,7 @@ export default function GraficiScreen() {
   const [glicataMmol, setGlicataMmol] = useState<number>(0);
   const [larghezza24, setLarghezza24] = useState(0);
   const [larghezza90, setLarghezza90] = useState(0);
+  const [larghezzaMomenti, setLarghezzaMomenti] = useState(0);
 
   const [modalVisibile, setModalVisibile] = useState<boolean>(false);
   const [modalTitolo, setModalTitolo] = useState<string>("");
@@ -314,63 +315,67 @@ export default function GraficiScreen() {
   // Le chiavi dei momenti restano identiche a quelle salvate nel diario:
   // cambiano soltanto le etichette visibili, per non perdere misurazioni.
   const renderizzaGraficoColonneMomenti = () => {
-    const dettagli: Record<string, { nome: string; icona: keyof typeof Ionicons.glyphMap; colore: string; chiaro: string }> = {
-      "Prima Colazione": { nome: "Al risveglio", icona: "sunny-outline", colore: "#00CFFF", chiaro: "#31F5EF" },
-      "Dopo Colazione": { nome: "Dopo la colazione", icona: "cafe-outline", colore: "#7054FF", chiaro: "#B878FF" },
-      "Prima Pranzo": { nome: "Prima di pranzo", icona: "sunny-outline", colore: "#FF8B39", chiaro: "#FFDB49" },
-      "Dopo Pranzo": { nome: "Dopo pranzo", icona: "restaurant-outline", colore: "#FF317B", chiaro: "#FF7291" },
-      "Prima Cena": { nome: "Prima di cena", icona: "partly-sunny-outline", colore: "#8752FF", chiaro: "#789AFF" },
-      "Dopo Cena": { nome: "Dopo cena", icona: "moon-outline", colore: "#00C8BC", chiaro: "#29F5D7" },
-      "Notte": { nome: "Notte", icona: "moon-outline", colore: "#575EFF", chiaro: "#8C9CFF" },
+    const dettagli: Record<string, { nome: string; icona: keyof typeof Ionicons.glyphMap }> = {
+      "Prima Colazione": { nome: "Al risveglio", icona: "sunny-outline" },
+      "Dopo Colazione": { nome: "Dopo la colazione", icona: "cafe-outline" },
+      "Prima Pranzo": { nome: "Prima di pranzo", icona: "sunny-outline" },
+      "Dopo Pranzo": { nome: "Dopo pranzo", icona: "restaurant-outline" },
+      "Prima Cena": { nome: "Prima di cena", icona: "partly-sunny-outline" },
+      "Dopo Cena": { nome: "Dopo cena", icona: "moon-outline" },
+      "Notte": { nome: "Notte", icona: "moon-outline" },
     };
-    // Barra 50–350 mg/dL; soglie di riferimento a 70 e 180.
-    // Colori e valori si basano sempre sulle medie REALI, non sul clipping grafico.
+    // Le due soglie attraversano l'intera area delle barre, anche tra una riga e l'altra.
+    // Un unico SVG evita disallineamenti su schermi piccoli e sul Web.
     const posizione = (v: number) => Math.max(0, Math.min(100, (v - 50) / 300 * 100));
+    const larghezzaArea = larghezzaMomenti;
+    const altezzaRiga = 53;
+    const distanzaRighe = 5;
+    const passo = altezzaRiga + distanzaRighe;
+    const altezzaTotale = medieMomenti.length * passo - distanzaRighe;
+    const xBarra = 7 + (larghezzaArea - 14) * 0.37 + 6;
+    const larghezzaBarra = Math.max(1, larghezzaArea - 14 - 12 - 60 - (larghezzaArea - 14) * 0.37);
+    const xSoglia = (v: number) => xBarra + larghezzaBarra * posizione(v) / 100;
     return (
       <View style={styles.momentiLista}>
-        {medieMomenti.map(m => {
-          const info = dettagli[m.momento];
-          if (!info) return null;
-          const presente = m.media !== null;
-          const coloreRange = presente ? coloreValore(m.media!) : COLORS.muted;
-          const percentuale = presente ? posizione(m.media!) : 0;
-          return (
-            <View key={m.momento} style={styles.momentoRigaPremium}>
-              <View style={styles.momentoNomeGruppo}>
-                <Ionicons name={info.icona} size={18} color="#B5D9FF" />
-                <Text style={styles.momentoNomePremium} numberOfLines={2}>{info.nome}</Text>
+        <View onLayout={e => setLarghezzaMomenti(e.nativeEvent.layout.width)} style={{ position: 'relative', width: '100%', height: altezzaTotale }}>
+          {medieMomenti.map((m, i) => {
+            const info = dettagli[m.momento];
+            if (!info) return null;
+            const presente = m.media !== null;
+            const colore = presente ? coloreValore(m.media!) : COLORS.muted;
+            return (
+              <View key={m.momento} style={[styles.momentoRigaPremium, { position: 'absolute', top: i * passo, left: 0, right: 0, height: altezzaRiga }]}>
+                <View style={[styles.momentoNomeGruppo, { width: '37%', paddingRight: 3 }]}>
+                  <Ionicons name={info.icona} size={16} color="#B5D9FF" />
+                  <Text style={styles.momentoNomePremium} numberOfLines={2}>{info.nome}</Text>
+                </View>
+                <View style={{ flex: 1, height: 16, borderRadius: 8, backgroundColor: '#132333', overflow: 'hidden' }}>
+                  {presente && <View style={{ height: '100%', width: `${posizione(m.media!)}%`, borderRadius: 8, backgroundColor: colore }} />}
+                </View>
+                <View style={styles.momentoValoreGruppo}>
+                  <Text style={[styles.momentoValorePremium, { color: colore }]}>{presente ? m.media : '-'}</Text>
+                  <Text style={styles.momentoUnitaPremium}>mg/dL</Text>
+                </View>
               </View>
-              <View style={styles.momentoBinario}>
-                <Svg width="100%" height="100%" viewBox="0 0 100 16" preserveAspectRatio="none">
-                  <Rect x="0" y="0" width="100" height="16" rx="8" fill="#132333" />
-                  <Rect x={posizione(70)} y="0" width={posizione(180)-posizione(70)} height="16" fill="#00E676" opacity={0.08} />
-                  {presente && percentuale > 0 && <Rect x="0" y="1" width={percentuale} height="14" rx={Math.min(7,percentuale/2)} fill={coloreRange} />}
-                  <Line x1={posizione(70)} y1="0" x2={posizione(70)} y2="16" stroke="#FFB02E" strokeWidth="0.8" strokeDasharray="2 2" />
-                  <Line x1={posizione(180)} y1="0" x2={posizione(180)} y2="16" stroke="#FF5252" strokeWidth="0.8" strokeDasharray="2 2" />
-                </Svg>
-              </View>
-              <View style={styles.momentoValoreGruppo}>
-                <Text style={[styles.momentoValorePremium, { color: coloreRange }]}>{presente ? m.media : '-'}</Text>
-                <Text style={styles.momentoUnitaPremium}>mg/dL</Text>
-              </View>
-            </View>
-          );
-        })}
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, gap: 9 }}>
-          <View style={{ width: '34%' }} />
-          <View style={{ flex: 1, height: 23 }}>
-            <Svg width="100%" height={23} viewBox="0 0 100 23" preserveAspectRatio="none">
-              <SvgText x="0" y="12" fontSize={9} fill={COLORS.muted}>50</SvgText>
-              <SvgText x={posizione(70)} y="22" fontSize={9} fill={COLORS.warning} textAnchor="middle">70</SvgText>
-              <SvgText x={posizione(180)} y="12" fontSize={9} fill={COLORS.error} textAnchor="middle">180</SvgText>
-              <SvgText x="100" y="12" fontSize={9} fill={COLORS.muted} textAnchor="end">350</SvgText>
+            );
+          })}
+          {larghezzaArea > 0 && (
+            <Svg pointerEvents="none" width="100%" height={altezzaTotale} style={{ position: 'absolute', top: 0, left: 0 }}>
+              <Line x1={xSoglia(70)} x2={xSoglia(70)} y1={0} y2={altezzaTotale} stroke="#FFB02E" strokeWidth={1.5} strokeDasharray="5 4" opacity={1} />
+              <Line x1={xSoglia(180)} x2={xSoglia(180)} y1={0} y2={altezzaTotale} stroke="#FF5252" strokeWidth={1.5} strokeDasharray="5 4" opacity={1} />
             </Svg>
-          </View>
-          <View style={{ width: 69 }} />
+          )}
         </View>
+        {larghezzaArea > 0 && (
+          <View style={{ height: 22, position: 'relative' }}>
+            <Text style={{ position: 'absolute', left: xSoglia(70) - 12, width: 24, textAlign: 'center', color: '#FFB02E', fontSize: 11, fontWeight: '700' }}>70</Text>
+            <Text style={{ position: 'absolute', left: xSoglia(180) - 15, width: 30, textAlign: 'center', color: '#FF5252', fontSize: 11, fontWeight: '700' }}>180</Text>
+          </View>
+        )}
       </View>
     );
   };
+
   // Le fasce sono una legenda grafica orientativa, non obiettivi terapeutici individuali.
   const fasciaGlicata = (val: number) => {
     if (val < 5.7) return { nome: 'Ottimale', colore: '#00E6A0' };
@@ -769,13 +774,13 @@ const styles = StyleSheet.create({
   cardMomentiPremium: { backgroundColor: '#0C0E20', borderColor: '#5940AD', borderRadius: 20, padding: 16 },
   titoloMomentiPremium: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10, paddingRight: 8 },
   sottotitoloMomentiPremium: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: '#AAA6D7', marginTop: 3 },
-  momentiLista: { gap: 7, marginTop: 19 },
-  momentoRigaPremium: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0A1229', borderWidth: 1, borderColor: '#1D2850', borderRadius: 12, paddingVertical: 13, paddingHorizontal: 10, gap: 9, minHeight: 64 },
+  momentiLista: { marginTop: 13 },
+  momentoRigaPremium: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0A1229', borderWidth: 1, borderColor: '#1D2850', borderRadius: 10, paddingVertical: 5, paddingHorizontal: 7, gap: 6 },
   momentoNomeGruppo: { width: '34%', flexDirection: 'row', alignItems: 'center', gap: 7 },
-  momentoNomePremium: { fontFamily: 'Plus Jakarta Sans', color: '#F4F0FF', fontSize: 11, fontWeight: '700', flex: 1, lineHeight: 15 },
+  momentoNomePremium: { fontFamily: 'Plus Jakarta Sans', color: '#F4F0FF', fontSize: 10, fontWeight: '700', flex: 1, lineHeight: 13 },
   momentoBinario: { flex: 1, height: 16, borderRadius: 8, overflow: 'hidden', backgroundColor: '#24284E' },
-  momentoValoreGruppo: { width: 69, alignItems: 'flex-end', justifyContent: 'center' },
-  momentoValorePremium: { fontFamily: 'Space Grotesk', fontSize: 19, fontWeight: '800' },
+  momentoValoreGruppo: { width: 60, alignItems: 'flex-end', justifyContent: 'center' },
+  momentoValorePremium: { fontFamily: 'Space Grotesk', fontSize: 17, fontWeight: '800' },
   momentoUnitaPremium: { fontFamily: 'Plus Jakarta Sans', fontSize: 9, color: '#B3B9D8', marginTop: -2 },
   notaMomentiPremium: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 12, borderRadius: 12, backgroundColor: '#12162F', borderWidth: 1, borderColor: '#343A73', marginTop: 17 },
   notaMomentiTesto: { fontFamily: 'Plus Jakarta Sans', color: '#B9C1E9', fontSize: 11, lineHeight: 17, flex: 1 },
