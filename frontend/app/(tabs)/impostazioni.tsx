@@ -31,6 +31,60 @@ const MOMENTI_COLONNE = [
   "Prima Pranzo", "Dopo Pranzo", "Merenda", 
   "Prima Cena", "Dopo Cena", "Notte"
 ];
+
+// Le due colonne PDF Notte condividono un unico periodo notturno (23:00–06:00).
+// Le altre voci, inclusi Spuntino e Merenda, rimangono invariate.
+const COLONNE_PDF = ['Notte iniziale', ...MOMENTI_COLONNE.filter(m => m !== 'Notte'), 'Notte finale'];
+const minutiPdf = (ora: unknown): number | null => {
+  if (typeof ora !== 'string') return null;
+  const match = /^(\d{1,2}):(\d{2})$/.exec(ora.trim());
+  if (!match) return null;
+  const h = Number(match[1]), m = Number(match[2]);
+  return h < 24 && m < 60 ? h * 60 + m : null;
+};
+const giornoPdf = (testo: unknown): Date | null => {
+  if (typeof testo !== 'string') return null;
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(testo);
+  if (!match) return null;
+  const d = Number(match[1]), m = Number(match[2]);
+  const n = Number(match[3]);
+  const a = match[3].length === 4 ? n : n < 50 ? 2000 + n : 1900 + n;
+  const date = new Date(a, m - 1, d);
+  return date.getFullYear() === a && date.getMonth() === m - 1 && date.getDate() === d ? date : null;
+};
+const scegliMisurePdf = (righe: any[], tuttiIRecord: any[], dataRiga: string): Map<string, any> => {
+  const scelta = new Map<string, any>();
+  const considera = (chiave: string, item: any, istante: number) => {
+    const precedente = scelta.get(chiave);
+    if (!precedente || istante < precedente.istante) scelta.set(chiave, { item, istante });
+  };
+  righe.forEach((item: any) => {
+    if (item.tipo === 'Notte' || !MOMENTI_COLONNE.includes(item.tipo)) return;
+    const minuti = minutiPdf(item.ora);
+    considera(item.tipo, item, minuti === null ? Number.POSITIVE_INFINITY : minuti);
+  });
+  const giorno = giornoPdf(dataRiga);
+  if (giorno) {
+    const mezzanotte = giorno.getTime();
+    // Notte iniziale: 23:00 del giorno precedente fino alle 06:00 di oggi.
+    // Notte finale: 23:00 di oggi fino alle 06:00 del giorno successivo.
+    tuttiIRecord.forEach((item: any) => {
+      if (item.tipo !== 'Notte') return;
+      const data = giornoPdf(item.dataTesto);
+      const minuti = minutiPdf(item.ora);
+      if (!data || minuti === null) return;
+      const istante = data.getTime() + minuti * 60000;
+      const inizioNottePrecedente = mezzanotte - 60 * 60000;
+      const fineNottePrecedente = mezzanotte + 360 * 60000;
+      const inizioNotteSuccessiva = mezzanotte + 23 * 60 * 60000;
+      const fineNotteSuccessiva = mezzanotte + 30 * 60 * 60000;
+      if (istante >= inizioNottePrecedente && istante <= fineNottePrecedente) considera('Notte iniziale', item, istante);
+      if (istante >= inizioNotteSuccessiva && istante <= fineNotteSuccessiva) considera('Notte finale', item, istante);
+    });
+  }
+  return new Map(Array.from(scelta.entries()).map(([k, v]) => [k, v.item]));
+};
+
 // Etichette utilizzate nella scheda Grafici.
 const ETICHETTE_MOMENTI: Record<string, string> = {
   'Prima Colazione': 'Al risveglio',
@@ -327,6 +381,7 @@ export default function StrumentiScreen() {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
       let dati = storicoEsistente ? JSON.parse(storicoEsistente) : [];
       if (dati.length === 0) { alert("Non ci sono dati disponibili nel diario per generare il report."); return; }
+      const tuttiIRecordPdf: any[] = dati; // Inclusi i giorni adiacenti al filtro per il raccordo Notte.
 
       if (filtroPdfSelezionato !== 'Tutti') {
         const giorniFiltro = parseInt(filtroPdfSelezionato); const oggi = new Date(); const dataInizioOggi = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate()).getTime();
@@ -354,36 +409,24 @@ export default function StrumentiScreen() {
       sezioniOrdinate.forEach(sez => {
         let righe = "";
           const rG: Record<string, string> = {}; const rI: Record<string, string> = {}; const rN: Record<string, string> = {};
-          MOMENTI_COLONNE.forEach(m => { rG[m] = "-"; rI[m] = "-"; rN[m] = "-"; });
-          // Una sola misurazione per momento della giornata nel PDF:
-          // sceglie l'orario più antico, indipendentemente dall'ordine di inserimento.
-          // In caso di parità conserva la prima incontrata nell'array originale.
-          const primaPerMomento = new Map<string, any>();
-          sez.data.forEach((item: any) => {
-            if (!MOMENTI_COLONNE.includes(item.tipo)) return;
-            const precedente = primaPerMomento.get(item.tipo);
-            const orario = typeof item.ora === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(item.ora)
-              ? item.ora : '99:99';
-            const orarioPrecedente = typeof precedente?.ora === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(precedente.ora)
-              ? precedente.ora : '99:99';
-            if (!precedente || orario < orarioPrecedente) primaPerMomento.set(item.tipo, item);
-          });
-          primaPerMomento.forEach((item: any) => {
+          COLONNE_PDF.forEach(m => { rG[m] = '-'; rI[m] = '-'; rN[m] = '-'; });
+          const primaPerMomento = scegliMisurePdf(sez.data, tuttiIRecordPdf, sez.title);
+          primaPerMomento.forEach((item: any, chiave: string) => {
             let col = '#34C759'; if (item.glicemia > 180) col = '#FF3B30'; if (item.glicemia < 70) col = '#FF9F0A';
-            rG[item.tipo] = `<span style="color: ${col}; font-weight: bold;">${item.glicemia} mg/dL</span>`;
-            rI[item.tipo] = item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : "-";
-            rN[item.tipo] = item.note ? `<span style="font-style: italic; color: #555;">${String(item.note).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}</span>` : "-";
+            rG[chiave] = `<span style="color: ${col}; font-weight: bold;">${item.glicemia} mg/dL</span>`;
+            rI[chiave] = item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : '-';
+            rN[chiave] = item.note ? `<span style="font-style: italic; color: #555;">${String(item.note).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}</span>` : '-';
           });
-          let tG = ""; let tI = ""; let tN = "";
-          MOMENTI_COLONNE.forEach(m => { tG += `<td>${rG[m]}</td>`; tI += `<td>${rI[m]}</td>`; tN += `<td>${rN[m]}</td>`; });
+          let tG = ''; let tI = ''; let tN = '';
+          COLONNE_PDF.forEach(m => { tG += `<td>${rG[m]}</td>`; tI += `<td>${rI[m]}</td>`; tN += `<td>${rN[m]}</td>`; });
           righe += `<tr><td class="cell-data" rowspan="3">${sez.title}</td><td class="cell-label">Glicemia</td>${tG}</tr><tr><td class="cell-label">Insulina</td>${tI}</tr><tr class="row-separator"><td class="cell-label">Note</td>${tN}</tr>`;
         righePerGiorno.push(righe);
       });
 
-      const intestazioneTabella = '<thead><tr><th>Data</th><th>Parametro</th><th>Prima Colazione</th><th>Dopo Colazione</th><th>Spuntino</th><th>Prima Pranzo</th><th>Dopo Pranzo</th><th>Merenda</th><th>Prima Cena</th><th>Dopo Cena</th><th>Notte</th></tr></thead>';
+      const intestazioneTabella = '<thead><tr><th class="head-data">Data</th><th class="head-label">Parametro</th><th>Notte</th><th>Prima Colazione</th><th>Dopo Colazione</th><th>Spuntino</th><th>Prima Pranzo</th><th>Dopo Pranzo</th><th>Merenda</th><th>Prima Cena</th><th>Dopo Cena</th><th>Notte</th></tr></thead>';
       const titoloPrimaPagina = '<h1>Diabety - Registro Storico Giornaliero</h1>';
       const titoloAltrePagine = '<div style="height:10px;"></div>';
-      const stileDocumento = `@page { size: A4 landscape; margin: 0; } body { font-family: sans-serif; color: #1c1c1e; padding: 0; margin: 0; background: #ffffff; } .pagina-pdf { box-sizing: border-box; width: 1122px; height: 793px; padding: 36px; background: #ffffff; overflow: hidden; } .pagina-pdf:not(:last-child) { page-break-after: always; break-after: page; } h1 { font-size: 18px; color: #0A66C2; margin: 0 0 10px 0; font-weight: bold; border-bottom: 2px solid #0A66C2; padding-bottom: 4px; } table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 5px; } th, td { border: 1px solid #c7c7cc; padding: 6px 4px; font-size: 10px; text-align: center; vertical-align: middle; word-wrap: break-word; } th { background-color: #f2f2f7; font-weight: bold; font-size: 9px; text-transform: uppercase; } .cell-data { font-weight: bold; background-color: #f0f5fa; color: #0A66C2; font-size: 10.5px; width: 75px; } .cell-label { font-weight: 600; background-color: #f2f2f7; text-align: left; padding-left: 5px; width: 80px; } .row-separator td { background-color: #ffffff; }`;
+      const stileDocumento = `@page { size: A4 landscape; margin: 0; } body { font-family: sans-serif; color: #1c1c1e; padding: 0; margin: 0; background: #ffffff; } .pagina-pdf { box-sizing: border-box; width: 1122px; height: 793px; padding: 36px; background: #ffffff; overflow: hidden; } .pagina-pdf:not(:last-child) { page-break-after: always; break-after: page; } h1 { font-size: 18px; color: #0A66C2; margin: 0 0 10px 0; font-weight: bold; border-bottom: 2px solid #0A66C2; padding-bottom: 4px; } table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 5px; } th, td { border: 1px solid #c7c7cc; padding: 6px 4px; font-size: 10px; text-align: center; vertical-align: middle; word-wrap: break-word; } th { background-color: #f2f2f7; font-weight: bold; font-size: 9px; text-transform: uppercase; } .cell-data { font-weight: bold; background-color: #f0f5fa; color: #0A66C2; font-size: 10.5px; width: 42px; } .cell-label { font-weight: 600; background-color: #f2f2f7; text-align: left; padding-left: 5px; width: 60px; } .head-data { width: 42px; } .head-label { width: 60px; } .row-separator td { background-color: #ffffff; }`;
       const creaPagina = (righe: string[], indice: number) => `<div class="pagina-pdf">${indice === 0 ? titoloPrimaPagina : titoloAltrePagine}<table>${intestazioneTabella}<tbody>${righe.join('')}</tbody></table></div>`;
 
       let pagine: string[][] = [];
