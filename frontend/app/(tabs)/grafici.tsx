@@ -457,12 +457,9 @@ export default function GraficiScreen() {
               const [tx, ty] = punto(145, i * 36 + 18);
               const nome = nomiSuRighe[i];
               const primaRiga = ty - (nome.length === 2 ? 26 : 19);
-              // Simboli piccoli accanto ai nomi, senza cambiare le etichette originali.
-              const simboli = ['☾', '☀', '☕', '◦', '♧', '♧', '☀', '♧', '☾', '☾'];
               return (
                 <G key={i}>
                   <Path d={settore(da, a)} fill="url(#spicchioScuro)" stroke="#00DDF5" strokeWidth={1.7} strokeLinejoin="round" />
-                  <SvgText x={tx-43} y={primaRiga+3} fill="#B5D9FF" fontSize={13} textAnchor="middle">{simboli[i]}</SvgText>
                   {nome.map((riga, j) => (
                     <SvgText key={j} x={tx} y={primaRiga + j * 15} fill="#FFFFFF" fontSize={13} fontWeight="700" textAnchor="middle">{riga}</SvgText>
                   ))}
@@ -474,8 +471,8 @@ export default function GraficiScreen() {
             <Circle cx={centro} cy={centro} r={interno-4} fill="#050B10" stroke="#08364C" strokeWidth={5} />
             <Circle cx={centro} cy={centro} r={interno-15} fill="none" stroke="#00C8E7" strokeWidth={4} />
             {/* Freccia discreta sul bordo interno, senza invadere il testo centrale. */}
-            <Path d="M 215 123 A 79 79 0 0 1 265 155" fill="none" stroke="#C8F9FF" strokeWidth={2.5} strokeLinecap="round" />
-            <Path d="M 258 151 L 271 164 L 253 160 Z" fill="#C8F9FF" />
+            <Path d="M 213.72 122.20 A 79 79 0 0 1 264.71 154.69" fill="none" stroke="#C8F9FF" strokeWidth={2.5} strokeLinecap="round" />
+            <Path d="M 264.71 154.69 L 253.73 147.73 L 261.93 141.99 Z" fill="#C8F9FF" />
             {/* Testo centrale compatto: tutte le righe restano nel disco nero. */}
             <SvgText x={centro-5} y={centro+3} fill="#FFFFFF" fontSize={42} fontWeight="bold" textAnchor="end">24</SvgText>
             <SvgText x={centro-1} y={centro+3} fill="#00E5FF" fontSize={27} fontWeight="bold" textAnchor="start">ORE</SvgText>
