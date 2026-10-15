@@ -34,6 +34,20 @@ const MOMENTI_SHORT = {
   "Dopo Cena": "22:00",
   "Notte": "24:00"
 };
+// Fasce orarie del quadrante: intervalli semiaperti, ultimo fino a mezzanotte.
+const FASCE_GIORNATA = [
+  { nome: 'Notte iniziale', orario: '00:00–06:00', inizio: 0, fine: 360, colore: '#1464FF' },
+  { nome: 'Prima di colazione', orario: '06:00–09:00', inizio: 360, fine: 540, colore: '#00E68B' },
+  { nome: 'Dopo colazione', orario: '09:00–11:00', inizio: 540, fine: 660, colore: '#FF49B7' },
+  { nome: 'Spuntino', orario: '11:00–12:30', inizio: 660, fine: 750, colore: '#3AE7E9' },
+  { nome: 'Prima di pranzo', orario: '12:30–14:30', inizio: 750, fine: 870, colore: '#993CFF' },
+  { nome: 'Dopo pranzo', orario: '14:30–16:00', inizio: 870, fine: 960, colore: '#00C5FA' },
+  { nome: 'Merenda', orario: '16:00–18:30', inizio: 960, fine: 1110, colore: '#FF4CC7' },
+  { nome: 'Prima di cena', orario: '18:30–21:30', inizio: 1110, fine: 1290, colore: '#FFE500' },
+  { nome: 'Dopo cena', orario: '21:30–22:30', inizio: 1290, fine: 1350, colore: '#FF8500' },
+  { nome: 'Notte finale', orario: '22:30–23:59', inizio: 1350, fine: 1440, colore: '#B32DFF' },
+] as const;
+
 type Misurazione = { glicemia: number; dataTesto: string; ora?: string; tipo?: string };
 type Punto24 = { minutiAssoluti: number; glicemia: number };
 type PuntoGiorno = { giornoIndice: number; dataLabel: string; media: number };
@@ -81,6 +95,7 @@ function QuadranteNeon({ valore, colore, testo, dimensione = 76 }: { valore: num
 }
 export default function GraficiScreen() {
   const [datiReali, setDatiReali] = useState<Misurazione[]>([]);
+  const [periodoQuadrante, setPeriodoQuadrante] = useState<7 | 14 | 30 | 90>(90);
   const [mediaGlicemia, setMediaGlicemia] = useState<number>(0);
   const [mediaOggi, setMediaOggi] = useState<number>(0); 
   const [totaleMisurazioni, setTotaleMisurazioni] = useState<number>(0);
@@ -305,7 +320,7 @@ export default function GraficiScreen() {
       "Dopo Pranzo": { nome: "Dopo pranzo", icona: "restaurant-outline", colore: "#FF317B", chiaro: "#FF7291" },
       "Prima Cena": { nome: "Prima di cena", icona: "partly-sunny-outline", colore: "#8752FF", chiaro: "#789AFF" },
       "Dopo Cena": { nome: "Dopo cena", icona: "moon-outline", colore: "#00C8BC", chiaro: "#29F5D7" },
-      "Notte": { nome: "Prima di Dormire", icona: "moon-outline", colore: "#575EFF", chiaro: "#8C9CFF" },
+      "Notte": { nome: "Notte", icona: "moon-outline", colore: "#575EFF", chiaro: "#8C9CFF" },
     };
     // Scala condivisa: i rapporti tra le barre riflettono le medie reali.
     // I valori superiori al limite visivo mantengono comunque il numero originale.
@@ -365,6 +380,87 @@ export default function GraficiScreen() {
     { limite: '6,5 – 7,0%', nome: 'Da monitorare', colore: '#FFBC39', sfondo: '#45300C' },
     { limite: '> 7,0%', nome: 'Elevato', colore: '#FF526E', sfondo: '#3B0D21' },
   ];
+
+  const renderizzaQuadranteGiornata = () => {
+    const oggiIndice = dataIndice(new Date());
+    const misurazioniPeriodo = datiReali.filter(v => {
+      const data = dataValida(v.dataTesto);
+      if (!data || oraInMinuti(v.ora) === null) return false;
+      const giorni = oggiIndice - dataIndice(data);
+      return giorni >= 0 && giorni < periodoQuadrante;
+    });
+    const statistiche = FASCE_GIORNATA.map(fascia => {
+      const valori = misurazioniPeriodo.filter(v => {
+        const minuti = oraInMinuti(v.ora)!;
+        return minuti >= fascia.inizio && minuti < fascia.fine;
+      });
+      const inRange = valori.filter(v => v.glicemia >= 70 && v.glicemia <= 180).length;
+      return { ...fascia, percentuale: valori.length ? Math.round(inRange * 100 / valori.length) : null };
+    });
+    const centro = 160, esterno = 139, interno = 78;
+    const punto = (r: number, gradi: number) => {
+      const angolo = (gradi - 90) * Math.PI / 180;
+      return [centro + r * Math.cos(angolo), centro + r * Math.sin(angolo)];
+    };
+    const settore = (da: number, a: number) => {
+      const [x1,y1] = punto(esterno,da), [x2,y2] = punto(esterno,a);
+      const [x3,y3] = punto(interno,a), [x4,y4] = punto(interno,da);
+      return `M ${x1} ${y1} A ${esterno} ${esterno} 0 ${a-da>180?1:0} 1 ${x2} ${y2} L ${x3} ${y3} A ${interno} ${interno} 0 ${a-da>180?1:0} 0 ${x4} ${y4} Z`;
+    };
+    return (
+      <View style={[styles.cardGraficoContenitore, { marginTop: 16, borderColor: '#17465C' }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+          <Ionicons name="pie-chart-outline" size={26} color="#00E5FF" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionLabel}>Suddivisione dei momenti della giornata</Text>
+            <Text style={{ color: '#A9C8E8', fontSize: 11, marginTop: 4 }}>Percentuale di misurazioni in range (70–180 mg/dL) per fascia oraria.</Text>
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', marginTop: 16, borderRadius: 10, borderWidth: 1, borderColor: '#24516B', overflow: 'hidden' }}>
+          {([7,14,30,90] as const).map(giorni => (
+            <TouchableOpacity key={giorni} onPress={() => setPeriodoQuadrante(giorni)} accessibilityRole="button"
+              accessibilityState={{ selected: periodoQuadrante === giorni }}
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 11, backgroundColor: periodoQuadrante === giorni ? '#07354B' : 'transparent', borderWidth: periodoQuadrante === giorni ? 1 : 0, borderColor: '#00E5FF', borderRadius: 9 }}>
+              <Text style={{ color: periodoQuadrante === giorni ? '#00E5FF' : '#B0C4E1', fontSize: 12, fontWeight: '700' }}>{giorni} giorni</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={{ color: '#A9C8E8', fontSize: 11, marginTop: 10 }}>Periodo selezionato: ultimi {periodoQuadrante} giorni, oggi compreso.</Text>
+        <View style={{ alignItems: 'center', marginTop: 12 }}>
+          <Svg width={320} height={320} viewBox="0 0 320 320" style={{ maxWidth: '100%' }}>
+            <Defs>
+              {statistiche.map((f,i) => <LinearGradient key={i} id={`fasciaNeon${i}`} x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor={f.colore} stopOpacity="1"/><Stop offset="1" stopColor={f.colore} stopOpacity="0.73"/></LinearGradient>)}
+            </Defs>
+            {statistiche.map((f,i) => {
+              const da = f.inizio / 1440 * 360, a = f.fine / 1440 * 360;
+              const [tx,ty] = punto(109,(da+a)/2);
+              const testo = f.percentuale === null ? '—' : `${f.percentuale}%`;
+              return <G key={i}>
+                <Path d={settore(da,a)} fill={`url(#fasciaNeon${i})`} stroke={f.colore} strokeWidth={2.5}/>
+                <SvgText x={tx} y={ty+4} fill={['#FFE500','#3AE7E9','#00E68B','#FF4CC7'].includes(f.colore) ? '#06101C' : '#FFFFFF'} fontSize={f.fine-f.inizio<=90?12:14} fontWeight="bold" textAnchor="middle">{testo}</SvgText>
+              </G>;
+            })}
+            <Circle cx={centro} cy={centro} r={interno-2} fill="#071421" stroke="#1C5271" strokeWidth={1.5}/>
+            <SvgText x={centro} y={centro-1} fill="#FFFFFF" fontSize={23} fontWeight="bold" textAnchor="middle">24 ORE</SvgText>
+            <SvgText x={centro} y={centro+19} fill="#B3D3ED" fontSize={11} textAnchor="middle">DELLA GIORNATA</SvgText>
+          </Svg>
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 }}>
+          {statistiche.map((f,i) => <View key={i} style={{ width: '50%', flexDirection: 'row', paddingVertical: 7, paddingRight: 5, alignItems: 'flex-start', gap: 6 }}>
+            <View style={{ backgroundColor: f.colore, width: 9, height: 9, borderRadius: 5, marginTop: 3 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>{f.nome}</Text>
+              <Text style={{ color: '#A9C8E8', fontSize: 10 }}>{f.orario}</Text>
+            </View>
+          </View>)}
+        </View>
+        <View style={{ flexDirection: 'row', backgroundColor: '#0A1C2C', borderWidth: 1, borderColor: '#18435B', borderRadius: 11, padding: 10, marginTop: 10, gap: 9 }}>
+          <Ionicons name="information-circle-outline" size={21} color="#8CB9FF" />
+          <Text style={{ flex: 1, color: '#A9C8E8', fontSize: 11, lineHeight: 17 }}>Ogni spicchio mostra la percentuale di misurazioni in range (70–180 mg/dL) per la corrispondente fascia oraria, calcolata sul periodo selezionato. Le percentuali si aggiornano automaticamente con le tue misurazioni. Il trattino indica assenza di dati.</Text>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -502,6 +598,7 @@ export default function GraficiScreen() {
           <Text style={styles.notaMomentiTesto}>Le medie per momento della giornata sono calcolate sulle misurazioni disponibili negli ultimi 90 giorni e possono variare in base alla disponibilità dei dati.</Text>
         </View>
       </View>
+      {renderizzaQuadranteGiornata()}
       <View style={[styles.cardGraficoContenitore, styles.cardHbPremium, { marginTop: 16 }]}>
         <View style={styles.rigaTitoloGrafico}>
           <View style={styles.titoloHbRiga}>
