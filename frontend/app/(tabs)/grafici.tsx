@@ -222,8 +222,9 @@ export default function GraficiScreen() {
     }
   };
 
+  // Scala visiva condivisa dai due grafici a linea: i valori reali non vengono alterati.
   const calcolaCoordinateLineaX = (valore: number, altezza: number) => {
-    return altezza - ((Math.max(40,Math.min(500,valore))-40)/460)*altezza;
+    return altezza - ((Math.max(50, Math.min(350, valore)) - 50) / 300) * altezza;
   };
 
   const generaPercorsoCurvoBezier = (punti: any[]) => {
@@ -322,36 +323,30 @@ export default function GraficiScreen() {
       "Dopo Cena": { nome: "Dopo cena", icona: "moon-outline", colore: "#00C8BC", chiaro: "#29F5D7" },
       "Notte": { nome: "Notte", icona: "moon-outline", colore: "#575EFF", chiaro: "#8C9CFF" },
     };
-    // Scala condivisa: i rapporti tra le barre riflettono le medie reali.
-    // I valori superiori al limite visivo mantengono comunque il numero originale.
-    const massimo = Math.max(180, ...medieMomenti.map(m => m.media ?? 0));
+    // Barra 50–350 mg/dL; soglie di riferimento a 70 e 180.
+    // Colori e valori si basano sempre sulle medie REALI, non sul clipping grafico.
+    const posizione = (v: number) => Math.max(0, Math.min(100, (v - 50) / 300 * 100));
     return (
       <View style={styles.momentiLista}>
-        {medieMomenti.map((m) => {
+        {medieMomenti.map(m => {
           const info = dettagli[m.momento];
           if (!info) return null;
           const presente = m.media !== null;
-          const percentuale = presente ? Math.max(0, Math.min(100, (m.media! / massimo) * 100)) : 0;
-          const gradId = `momentoGrad${MOMENTI_ELENCO.indexOf(m.momento)}`;
           const coloreRange = presente ? coloreValore(m.media!) : COLORS.muted;
+          const percentuale = presente ? posizione(m.media!) : 0;
           return (
             <View key={m.momento} style={styles.momentoRigaPremium}>
               <View style={styles.momentoNomeGruppo}>
-                <Ionicons name={info.icona} size={22} color={info.colore} />
+                <Ionicons name={info.icona} size={18} color="#B5D9FF" />
                 <Text style={styles.momentoNomePremium} numberOfLines={2}>{info.nome}</Text>
               </View>
               <View style={styles.momentoBinario}>
                 <Svg width="100%" height="100%" viewBox="0 0 100 16" preserveAspectRatio="none">
-                  <Defs>
-                    <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
-                      <Stop offset="0%" stopColor={coloreRange} />
-                      <Stop offset="100%" stopColor={coloreRange} />
-                    </LinearGradient>
-                  </Defs>
-                  <Rect x="0" y="0" width="100" height="16" rx="8" fill="#24284E" />
-                  {presente && percentuale > 0 && (
-                    <Rect x="0" y="0" width={percentuale} height="16" rx={Math.min(8,percentuale/2)} fill={`url(#${gradId})`} />
-                  )}
+                  <Rect x="0" y="0" width="100" height="16" rx="8" fill="#132333" />
+                  <Rect x={posizione(70)} y="0" width={posizione(180)-posizione(70)} height="16" fill="#00E676" opacity={0.08} />
+                  {presente && percentuale > 0 && <Rect x="0" y="1" width={percentuale} height="14" rx={Math.min(7,percentuale/2)} fill={coloreRange} />}
+                  <Line x1={posizione(70)} y1="0" x2={posizione(70)} y2="16" stroke="#FFB02E" strokeWidth="0.8" strokeDasharray="2 2" />
+                  <Line x1={posizione(180)} y1="0" x2={posizione(180)} y2="16" stroke="#FF5252" strokeWidth="0.8" strokeDasharray="2 2" />
                 </Svg>
               </View>
               <View style={styles.momentoValoreGruppo}>
@@ -361,6 +356,18 @@ export default function GraficiScreen() {
             </View>
           );
         })}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, gap: 9 }}>
+          <View style={{ width: '34%' }} />
+          <View style={{ flex: 1, height: 23 }}>
+            <Svg width="100%" height={23} viewBox="0 0 100 23" preserveAspectRatio="none">
+              <SvgText x="0" y="12" fontSize={9} fill={COLORS.muted}>50</SvgText>
+              <SvgText x={posizione(70)} y="22" fontSize={9} fill={COLORS.warning} textAnchor="middle">70</SvgText>
+              <SvgText x={posizione(180)} y="12" fontSize={9} fill={COLORS.error} textAnchor="middle">180</SvgText>
+              <SvgText x="100" y="12" fontSize={9} fill={COLORS.muted} textAnchor="end">350</SvgText>
+            </Svg>
+          </View>
+          <View style={{ width: 69 }} />
+        </View>
       </View>
     );
   };
@@ -435,21 +442,22 @@ export default function GraficiScreen() {
         <View style={{ alignItems: 'center', marginTop: 12 }}>
           <Svg width="100%" height={400} viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
             <Defs>
-              {statistiche.map((f, i) => (
-                <LinearGradient key={i} id={`fasciaBlu${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                  <Stop offset="0%" stopColor={f.colore} />
-                  <Stop offset="100%" stopColor="#092F4B" />
-                </LinearGradient>
-              ))}
+              <LinearGradient id="spicchioScuro" x1="0%" y1="0%" x2="100%" y2="100%">
+                <Stop offset="0%" stopColor="#0B1529" />
+                <Stop offset="100%" stopColor="#050B10" />
+              </LinearGradient>
             </Defs>
             {statistiche.map((f, i) => {
               const da = i * 36 + 0.5, a = (i + 1) * 36 - 0.5;
               const [tx, ty] = punto(145, i * 36 + 18);
               const nome = nomiSuRighe[i];
               const primaRiga = ty - (nome.length === 2 ? 26 : 19);
+              // Simboli piccoli accanto ai nomi, senza cambiare le etichette originali.
+              const simboli = ['☾', '☀', '☕', '◦', '♧', '♧', '☀', '♧', '☾', '☾'];
               return (
                 <G key={i}>
-                  <Path d={settore(da, a)} fill={`url(#fasciaBlu${i})`} />
+                  <Path d={settore(da, a)} fill="url(#spicchioScuro)" stroke="#00DDF5" strokeWidth={1.7} strokeLinejoin="round" />
+                  <SvgText x={tx-43} y={primaRiga+3} fill="#B5D9FF" fontSize={13} textAnchor="middle">{simboli[i]}</SvgText>
                   {nome.map((riga, j) => (
                     <SvgText key={j} x={tx} y={primaRiga + j * 15} fill="#FFFFFF" fontSize={13} fontWeight="700" textAnchor="middle">{riga}</SvgText>
                   ))}
@@ -460,9 +468,9 @@ export default function GraficiScreen() {
             })}
             <Circle cx={centro} cy={centro} r={interno-4} fill="#050B10" stroke="#08364C" strokeWidth={5} />
             <Circle cx={centro} cy={centro} r={interno-15} fill="none" stroke="#00C8E7" strokeWidth={4} />
-            {/* Freccia oraria: arco e punta condividono la stessa tangente geometrica. */}
-            <Path d="M 215.07 122.45 A 79 79 0 0 1 262.25 151.36" fill="none" stroke="#C8F9FF" strokeWidth={2.5} strokeLinecap="round" />
-            <Path d="M 268.35 159.15 L 262.50 145.90 L 256.25 150.85 Z" fill="#C8F9FF" />
+            {/* Freccia discreta sul bordo interno, senza invadere il testo centrale. */}
+            <Path d="M 215 123 A 79 79 0 0 1 265 155" fill="none" stroke="#C8F9FF" strokeWidth={2.5} strokeLinecap="round" />
+            <Path d="M 258 151 L 271 164 L 253 160 Z" fill="#C8F9FF" />
             {/* Testo centrale compatto: tutte le righe restano nel disco nero. */}
             <SvgText x={centro-5} y={centro+3} fill="#FFFFFF" fontSize={42} fontWeight="bold" textAnchor="end">24</SvgText>
             <SvgText x={centro-1} y={centro+3} fill="#00E5FF" fontSize={27} fontWeight="bold" textAnchor="start">ORE</SvgText>
@@ -514,14 +522,14 @@ export default function GraficiScreen() {
       <View style={styles.rigaCardSuperioriContainer}>
         <View style={[styles.cardSuperioreDueTerzi, styles.cardNeonTrimestre]}>
           <View style={styles.rigaTitoloGrafico}>
-            <Text style={styles.sectionLabel} numberOfLines={1}>Trimestre (90 GG)</Text>
+            <Text style={styles.sectionLabel} >Trimestre (90 GG)</Text>
             <TouchableOpacity onPress={() => apriSpiegazione('trimestrale')} style={styles.pulsanteInfoTocco}>
               <Ionicons name="help-circle-outline" size={17} color="#AA7AFF" />
             </TouchableOpacity>
           </View>
           <View style={styles.rigaQuadranteTrimestre}>
             <View style={styles.quadranteColonna}>
-              <QuadranteNeon valore={totaleMisurazioni ? timeInRange : 0}
+              <QuadranteNeon dimensione={62} valore={totaleMisurazioni ? timeInRange : 0}
                 colore={totaleMisurazioni === 0 ? '#596078' : timeInRange >= 70 ? COLORS.success : timeInRange >= 50 ? COLORS.warning : COLORS.error}
                 testo={totaleMisurazioni ? `${timeInRange}%` : '-'} />
               <Text style={styles.testoSottoQuadrante}>In range</Text>
@@ -541,13 +549,13 @@ export default function GraficiScreen() {
 
         <View style={[styles.cardSuperioreUnTerzo, styles.cardNeonOggi]}>
           <View style={styles.rigaTitoloGrafico}>
-            <Text style={styles.sectionLabel} numberOfLines={1}>Media di oggi</Text>
+            <Text style={styles.sectionLabel} >Media di oggi</Text>
             <TouchableOpacity onPress={() => apriSpiegazione('oggi')} style={styles.pulsanteInfoTocco}>
               <Ionicons name="help-circle-outline" size={17} color={COLORS.brandPrimary} />
             </TouchableOpacity>
           </View>
           <View style={styles.contenutoOggiNeon}>
-            <QuadranteNeon dimensione={76}
+            <QuadranteNeon dimensione={62}
               valore={mediaOggi ? Math.min(100, mediaOggi / 250 * 100) : 0}
               colore={mediaOggi ? coloreValore(mediaOggi) : '#596078'}
               testo={mediaOggi ? String(mediaOggi) : '-'} />
@@ -703,8 +711,8 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Space Grotesk', fontSize: 24, fontWeight: '800', color: COLORS.onSurface, marginBottom: 16, letterSpacing: -0.5 },
   sectionLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: COLORS.onSurface, letterSpacing: -0.2 },
   subLabelSpiegazione: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: COLORS.muted, marginTop: 4, marginBottom: 16 },
-  rigaCardSuperioriContainer: { flexDirection: 'row', width: '100%', gap: 10, marginBottom: 16 },
-  cardSuperioreDueTerzi: { flex: 2, backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: COLORS.borderGlass, justifyContent: 'space-between' },
+  rigaCardSuperioriContainer: { flexDirection: 'row', width: '100%', gap: 6, marginBottom: 16, minHeight: 145 },
+  cardSuperioreDueTerzi: { flex: 1.2, backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: COLORS.borderGlass, justifyContent: 'space-between' },
   cardNeonTrimestre: { backgroundColor: '#0E1329', borderColor: '#7551C5', borderRadius: 16, padding: 10, minWidth: 0 },
   cardNeonOggi: { backgroundColor: '#0B1529', borderColor: '#1A9FC0', borderRadius: 16, padding: 10, minWidth: 0 },
   rigaQuadranteTrimestre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', marginTop: 5, gap: 3 },
@@ -712,7 +720,7 @@ const styles = StyleSheet.create({
   testoSottoQuadrante: { fontSize: 9, color: '#B4A9D4', marginTop: 0, fontFamily: 'Plus Jakarta Sans' },
   datiLateraliNeon: { flex: 1, minWidth: 0, justifyContent: 'center', alignItems: 'center' },
   labelNeonPiccola: { fontSize: 8, color: '#AAA4D1', fontWeight: '700', textAlign: 'center' },
-  valoreNeonGrande: { fontFamily: 'Space Grotesk', fontSize: 24, fontWeight: '900', marginTop: 1 },
+  valoreNeonGrande: { fontFamily: 'Space Grotesk', fontSize: 19, fontWeight: '900', marginTop: 1 },
   unitaNeon: { fontSize: 9, color: '#AEB8D4', fontFamily: 'Plus Jakarta Sans' },
   statoNeon: { fontSize: 9, fontWeight: '800', marginTop: 3, textAlign: 'center' },
   contenutoOggiNeon: { alignItems: 'center', justifyContent: 'center', marginTop: 4 },
