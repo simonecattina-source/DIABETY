@@ -460,9 +460,9 @@ export default function GraficiScreen() {
             })}
             <Circle cx={centro} cy={centro} r={interno-4} fill="#050B10" stroke="#08364C" strokeWidth={5} />
             <Circle cx={centro} cy={centro} r={interno-15} fill="none" stroke="#00C8E7" strokeWidth={4} />
-            {/* Freccia discreta sul bordo interno, senza invadere il testo centrale. */}
-            <Path d="M 215 123 A 79 79 0 0 1 265 155" fill="none" stroke="#C8F9FF" strokeWidth={2.5} strokeLinecap="round" />
-            <Path d="M 258 151 L 271 164 L 253 160 Z" fill="#C8F9FF" />
+            {/* Freccia oraria: arco e punta condividono la stessa tangente geometrica. */}
+            <Path d="M 215.07 122.45 A 79 79 0 0 1 262.25 151.36" fill="none" stroke="#C8F9FF" strokeWidth={2.5} strokeLinecap="round" />
+            <Path d="M 266.56 156.87 L 262.44 147.64 L 258.02 151.09 Z" fill="#C8F9FF" />
             {/* Testo centrale compatto: tutte le righe restano nel disco nero. */}
             <SvgText x={centro-5} y={centro+3} fill="#FFFFFF" fontSize={42} fontWeight="bold" textAnchor="end">24</SvgText>
             <SvgText x={centro-1} y={centro+3} fill="#00E5FF" fontSize={27} fontWeight="bold" textAnchor="start">ORE</SvgText>
