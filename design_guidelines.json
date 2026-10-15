@@ -203,12 +203,23 @@
       "updates": "Ricalcolare al focus della scheda e periodicamente ogni minuto mentre la schermata resta aperta.",
       "x_axis": "Distribuzione temporale proporzionale all’intervallo mobile di 24 ore, con etichette riferite al tempo reale.",
       "title": "Andamento sulle ultime 24 ore",
-      "independence": "La card Media di oggi resta basata solo sulle misurazioni del giorno corrente."
+      "independence": "La card Media di oggi resta basata solo sulle misurazioni del giorno corrente.",
+      "all_measurements_rule": "Ogni misurazione valida nella finestra mobile di 24 ore è un punto distinto, anche se condivide data e momento della giornata con altre misurazioni. Ordinare per timestamp composto da dataTesto + ora; non deduplicare per tipo/momento.",
+      "same_timestamp_rule": "Misurazioni con identici data e ora restano record distinti; prevedere visualizzazione distinguibile di punti sovrapposti senza alterare i dati."
     },
     "data_storage_policy": {
       "rolling_window_days": 91,
       "action": "Automatic purge filter executed during saves and modifications to enforce privacy and storage efficiency",
       "note": "Verificare la regola esatta per ogni schermata: nel codice esaminato il ripristino usa una soglia di 91 giorni, mentre le statistiche trimestrali usano 90 giorni di calendario incluso oggi. Non confondere le due finestre."
+    },
+    "tabular_export_specification": {
+      "formats": [
+        "Excel .xlsx",
+        "CSV .csv"
+      ],
+      "record_selection": "Tutte le misurazioni valide nel periodo selezionato, incluse più misurazioni con la stessa data e lo stesso momento della giornata. Nessuna deduplicazione per tipo. Conservare data e ora proprie di ciascun record.",
+      "filter": "Filtro temporale autonomo rispetto al PDF",
+      "invalid_records": "Le implementazioni esaminate possono escludere date o glicemie non valide; verificare il codice pubblicato prima di affermare che ogni record, anche invalido, venga esportato."
     }
   },
   "screens": [
@@ -267,42 +278,139 @@
       "route": "app/(tabs)/impostazioni.tsx",
       "purpose": "Pannello di controllo per manutenzione, report e manuale integrato.",
       "header": {
-        "title": "Pannello di controllo",
-        "subtitle": "Gestione database e informazioni mediche dell'app"
+        "title": "Pannello di Controllo",
+        "subtitle": "Gestione database e informazioni mediche dell'app",
+        "accent": "Barra verticale cyan #00E5FF"
       },
       "maintenance_layout": {
-        "section": "Manutenzione e Report",
-        "row_1": "Due card affiancate di pari dimensioni: Esporta Backup (cyan) e Importa Backup (viola).",
-        "export_card": {
-          "border": "1 px",
-          "border_color": "#226C83",
-          "background": "#11162B",
-          "radius": 16
+        "section": "MANUTENZIONE E REPORT",
+        "structure": "Unica card esterna scura #13131A con bordo #30303A e angoli arrotondati. Righe Esporta Backup, Importa Backup, Esporta PDF; separatore sottile; sezione Esporta Excel / CSV con due pulsanti affiancati e filtro dedicato.",
+        "backup_export": {
+          "label": "Esporta Backup",
+          "icon": "cloud-download",
+          "icon_color": "#FF9800",
+          "subtitle": "Salva un file JSON con tutto lo storico dei log"
         },
-        "import_card": {
-          "border": "1 px visibile e arrotondato come Esporta Backup",
-          "border_color": "#6946AD",
-          "background": "#17132C",
-          "radius": 16,
-          "web_implementation": "HTML label con input type=file; usare CSS border: 1px solid #6946AD oppure contenitore React Native con bordo reale, evitando borderWidth su elemento DOM non interpretato come CSS."
+        "backup_import": {
+          "label": "Importa Backup",
+          "icon": "cloud-upload",
+          "icon_color": "#A855F7",
+          "subtitle": "Ripristina il database caricando un file JSON"
         },
-        "row_2": "Card Esporta PDF a tutta larghezza con chip 7 GG, 14 GG, 30 GG, 90 GG, Tutti.",
-        "pdf_modal": "Scelta tra Visualizza HTML e Scarica PDF."
+        "pdf": {
+          "label": "Esporta PDF",
+          "icon": "file-text",
+          "icon_color": "#ED1C24",
+          "subtitle": "Esporta le misurazioni del diario glicemico",
+          "filters": [
+            "7 GG",
+            "14 GG",
+            "30 GG",
+            "90 GG",
+            "Tutti"
+          ],
+          "default_filter": "Tutti",
+          "filter_independence": "Indipendente dal filtro Excel/CSV",
+          "modal": "Visualizza HTML e Scarica PDF; mantenere paginazione dinamica."
+        },
+        "excel_csv": {
+          "label": "Esporta Excel / CSV",
+          "icon": "files",
+          "icon_color": "#00E676",
+          "subtitle": "Esporta le misurazioni del diario glicemico",
+          "buttons": [
+            {
+              "label": "Esporta Excel",
+              "extension": ".xlsx"
+            },
+            {
+              "label": "Esporta CSV",
+              "extension": ".csv"
+            }
+          ],
+          "filters": [
+            "7 GG",
+            "14 GG",
+            "30 GG",
+            "90 GG",
+            "Tutti"
+          ],
+          "default_filter": "Tutti",
+          "filter_independence": "Indipendente dal filtro PDF",
+          "data_policy": "Esportare ogni misurazione valida nel periodo selezionato, con data, ora e momento, senza deduplicare per momento della giornata."
+        },
+        "colors": {
+          "screen_background": "#0A0A0C",
+          "card_background": "#13131A",
+          "card_border": "#30303A",
+          "button_background": "#1A1A24",
+          "button_border": "#3A3A4A",
+          "accent": "#00E5FF",
+          "title": "#FFFFFF",
+          "subtitle": "#7E7E86"
+        }
       },
       "manual": {
-        "section": "Manuale & Linee Guida",
-        "layout": "Otto card neon in due colonne; apertura del testo integrale in modal.",
-        "order": [
-          "Registrazione dei Dati",
-          "Target Colorati",
-          "Calcolatore del Bolo Insulinico",
-          "Database Alimenti e Carboidrati",
-          "Archivio e Auto-Pulizia",
-          "Analisi Avanzata e Grafici",
-          "Esportazione dei File",
-          "Backup e Sicurezza Dati"
+        "section": "MANUALE & LINEE GUIDA",
+        "layout": "Otto card scure singole impilate, con icona colorata, titolo bianco e chevron; contenuti espandibili. Conservare integralmente i testi delle altre sette voci.",
+        "order_with_original_numbering": [
+          {
+            "id": 1,
+            "title": "Registrazione dei Dati",
+            "icon": "activity",
+            "color": "#00C8D7"
+          },
+          {
+            "id": 7,
+            "title": "Calcolatore del Bolo Insulinico",
+            "icon": "calculator",
+            "color": "#E9A45B"
+          },
+          {
+            "id": 8,
+            "title": "Database Alimenti e Carboidrati",
+            "icon": "utensils",
+            "color": "#53C98B"
+          },
+          {
+            "id": 3,
+            "title": "Archivio e Auto-Pulizia",
+            "icon": "trash-2",
+            "color": "#D5D7DE"
+          },
+          {
+            "id": 6,
+            "title": "Analisi Avanzata e Grafici",
+            "icon": "chart-no-axes-column",
+            "color": "#A78BFA"
+          },
+          {
+            "id": 2,
+            "title": "Target Colorati",
+            "icon": "palette",
+            "color": "#E38BB5"
+          },
+          {
+            "id": 4,
+            "title": "Esportazione dei File",
+            "icon": "file-text",
+            "color": "#5BA8F2"
+          },
+          {
+            "id": 5,
+            "title": "Backup e Sicurezza Dati",
+            "icon": "refresh-cw",
+            "color": "#BA93E8"
+          }
         ],
-        "preservation": "Mantenere integralmente i testi guida già presenti e la numerazione coerente."
+        "section_4_approved_text": [
+          "La sezione Manutenzione e Report, situata nella parte superiore del Pannello di Controllo, permette di salvare, ripristinare ed esportare i dati registrati in DIABETY. Contiene quattro funzioni principali.",
+          "Esporta Backup: Crea un file JSON contenente il database dell’app. Premendo il pulsante puoi salvare una copia dei dati, utile per conservarli al sicuro o trasferirli su un altro dispositivo.",
+          "Importa Backup: Permette di caricare un file di backup JSON precedentemente esportato per ripristinare i dati nell’app. Prima di procedere, verifica di aver selezionato il file corretto.",
+          "Esporta PDF: Genera un documento PDF con le misurazioni del diario glicemico, comodo da consultare, stampare o condividere con il medico. Seleziona prima il periodo desiderato (7, 14, 30, 90 giorni oppure Tutti) e poi premi Esporta PDF.",
+          "Esporta Excel / CSV: Esporta le misurazioni in formato Excel (.xlsx) oppure CSV (.csv), per consultarle ed elaborarle con programmi di foglio di calcolo. Seleziona il periodo desiderato e premi Esporta Excel oppure Esporta CSV, in base al formato che preferisci.",
+          "Da sapere: I filtri temporali del PDF e di Excel/CSV sono indipendenti: puoi scegliere periodi diversi per ciascuna esportazione. L’esportazione dei report non modifica le misurazioni salvate."
+        ]
       }
     }
   ],
@@ -321,7 +429,10 @@
       "Tutti"
     ],
     "data_layout": "Intestazione con Data, Parametro e nove momenti; per ogni data righe Glicemia, Insulina, Note.",
-    "legacy_conflict": "Le precedenti regole «10 colonne» e «blocchi fissi di 4 giorni» sono storiche e non corrispondono al flusso PDF web esaminato; prevale la paginazione dinamica per altezza reale."
+    "legacy_conflict": "Le precedenti regole «10 colonne» e «blocchi fissi di 4 giorni» sono storiche e non corrispondono al flusso PDF web esaminato; prevale la paginazione dinamica per altezza reale.",
+    "record_selection_rule": "Per ciascuna coppia (dataTesto, tipo/momento della giornata), esportare soltanto la misurazione cronologicamente più vecchia in base a dataTesto e ora (HH:mm). A parità di timestamp, mantenere la prima nell’ordine di inserimento originale. Non modificare né cancellare record nel database.",
+    "example": "15/10/2026, Prima Colazione: 08:30 125 mg/dL inserita per prima, 08:00 100 mg/dL inserita per seconda, 08:45 110 mg/dL inserita per terza -> PDF: 08:00, 100 mg/dL.",
+    "scope": "Applicare identica selezione nei PDF delle schede Storico e Impostazioni. Non applicarla a Excel, CSV, backup JSON o grafici."
   },
   "historical_changelog_and_modifications": [
     {
@@ -375,6 +486,10 @@
     {
       "scope": "Documentazione / 360°",
       "action": "Esteso design_guidelines.json a tutte le sezioni, UX, logica dati, privacy, piattaforme, PDF, accessibilità, verifica e release."
+    },
+    {
+      "scope": "Grafici 24h / PDF / Excel e CSV / Impostazioni",
+      "action": "Decisione approvata: grafico 24h con tutti i punti per timestamp; PDF Storico e Impostazioni con misurazione cronologicamente più vecchia per data e momento, spareggio ordine inserimento; Excel/CSV senza deduplicazione; Impostazioni a card unica su sfondo #0A0A0C e manuale nell’ordine 1,7,8,3,6,2,4,5. Documentazione aggiornata, non prova di build o deploy."
     }
   ],
   "instructions_to_main_agent": [
@@ -391,14 +506,19 @@
     "PDF: mantenere paginazione dinamica senza pagine bianche; verificare HTML e PDF.",
     "Non confondere le regole di conservazione dati (91 giorni) con le analisi trimestrali (90 giorni).",
     "Le stime glicemiche e HbA1c sono indicative e non sostituiscono il medico.",
-    "Non dichiarare feature o test non verificati nel codice/deploy corrente."
+    "Non dichiarare feature o test non verificati nel codice/deploy corrente.",
+    "PDF Storico e Impostazioni: scegliere per data e momento la misurazione con ora più antica, a parità scegliere la prima inserita.",
+    "Excel e CSV: esportare tutte le misurazioni valide nel filtro autonomo, anche ripetute nello stesso momento.",
+    "Grafico 24h: non deduplicare per momento della giornata; usare data e ora di ogni record.",
+    "Impostazioni: mantenere sfondo #0A0A0C, card Manutenzione e Report unica e manuale nell’ordine 1,7,8,3,6,2,4,5."
   ],
   "document_metadata": {
-    "version": "7.0",
-    "updated_on": "2026-10-12",
+    "version": "7.1",
+    "updated_on": "2026-10-15",
     "scope": "Guida completa 360°: design, UX, funzionalità, dati, report, piattaforme, sicurezza e manutenzione",
     "authority": "Documento di riferimento progettuale aggiornato dalle versioni TSX disponibili e dalle decisioni dell’utente; non certifica il deploy GitHub/Vercel",
-    "change_policy": "Conservare comportamenti funzionanti; intervenire soltanto sulle parti richieste; verificare sintassi TSX e compilazione prima del rilascio."
+    "change_policy": "Conservare comportamenti funzionanti; intervenire soltanto sulle parti richieste; verificare sintassi TSX e compilazione prima del rilascio.",
+    "change_note": "Allineamento alle decisioni approvate su PDF, Excel/CSV, grafico 24h e design Impostazioni. Specifica, non attestazione di build o deploy."
   },
   "visual_components_and_accessibility": {
     "cards": "Sfondo scuro, bordo da 1 px visibile, radius 12–20 px secondo componente, padding coerente, nessun bordo mancante.",
