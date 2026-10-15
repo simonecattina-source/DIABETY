@@ -82,6 +82,7 @@ export default function StoricoScreen() {
   const [itemSelezionato, setItemSelezionato] = useState<any | null>(null);
   const [modGlicemia, setModGlicemia] = useState('');
   const [modInsulina, setModInsulina] = useState('');
+  const [modCho, setModCho] = useState('');
   const [modNote, setModNote] = useState('');
   const [modMomento, setModMomento] = useState('');
   
@@ -177,6 +178,7 @@ export default function StoricoScreen() {
     setItemSelezionato(item);
     setModGlicemia(item.glicemia.toString());
     setModInsulina(item.insulina ? item.insulina.replace(' UI', '').replace('-', '') : '');
+    setModCho(item.cho === null || item.cho === undefined || item.cho === '' ? '' : String(item.cho));
     setModMomento(item.tipo || 'Prima Colazione');
     setModOraText(item.ora || '12:00');
     const testoNotePulito = item.note ? item.note.replace(/^\[\d{2}:\d{2}\]\s*/, '') : '';
@@ -196,13 +198,16 @@ export default function StoricoScreen() {
     if (!valoreGlicemia || isNaN(valoreGlicemia)) {
       alert("Inserisci un valore di glicemia valido."); return;
     }
+    if (modCho.trim() !== '' && (!/^\d+(?:[.,]\d+)?$/.test(modCho.trim()) || !Number.isFinite(Number(modCho.replace(',', '.'))))) {
+      alert('Inserisci una quantità di CHO valida oppure lascia il campo vuoto.'); return;
+    }
     const [aaaa, mm, gg] = modDataISO.split('-');
     const dataRiconvertita = `${gg}/${mm}/${aaaa.slice(-2)}`;
     const noteConOrarioFuso = modNote.trim() ? `[${modOraText}] ${modNote.trim()}` : `[${modOraText}]`;
     try {
       let datiAggiornati = datiReali.map(item => {
         if (item.id === itemSelezionato.id) {
-          return { ...item, glicemia: valoreGlicemia, insulina: modInsulina ? `${modInsulina} UI` : '-', tipo: modMomento, note: noteConOrarioFuso, ora: modOraText, dataTesto: dataRiconvertita };
+          return { ...item, glicemia: valoreGlicemia, insulina: modInsulina ? `${modInsulina} UI` : '-', cho: modCho.trim() === '' ? null : Number(modCho.replace(',', '.')), tipo: modMomento, note: noteConOrarioFuso, ora: modOraText, dataTesto: dataRiconvertita };
         }
         return item;
       });
@@ -281,7 +286,9 @@ export default function StoricoScreen() {
           primaPerMomento.forEach((item: any, chiave: string) => {
             let col = '#34C759'; if (item.glicemia > 180) col = '#FF3B30'; if (item.glicemia < 70) col = '#FF9F0A';
             rG[chiave] = `<span style="color: ${col}; font-weight: bold;">${item.glicemia} mg/dL</span>`;
-            rI[chiave] = item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : '-';
+            const insulinaPdf = item.insulina && item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : '';
+            const choPdf = item.cho !== null && item.cho !== undefined && item.cho !== '' && Number.isFinite(Number(item.cho)) ? `<span style="font-weight: normal;">${Number(item.cho)} CHO</span>` : '';
+            rI[chiave] = [insulinaPdf, choPdf].filter(Boolean).join(' - ') || '-';
             rN[chiave] = item.note ? `<span style="font-style: italic; color: #555;">${String(item.note).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}</span>` : '-';
           });
           let tG = ''; let tI = ''; let tN = '';
@@ -535,6 +542,9 @@ export default function StoricoScreen() {
                   <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
                     <Ionicons name="medkit-outline" size={14} color={COLORS.brandSecondary}/>
                     <Text style={styles.newInsulin}>{item.insulina && item.insulina!=='-' ? item.insulina : '—'}</Text>
+                    {item.cho !== null && item.cho !== undefined && item.cho !== '' && Number.isFinite(Number(item.cho)) && (
+                      <Text style={styles.newCho}>· {Number(item.cho)} CHO</Text>
+                    )}
                   </View>
                 </View>
                 {!!notePulite && (
@@ -646,7 +656,12 @@ export default function StoricoScreen() {
                   <TextInput style={styles.newEditInput} keyboardType="numeric" value={modInsulina} onChangeText={setModInsulina} maxLength={2} placeholder="Nessuna" placeholderTextColor="#758A9A"/>
                   <Text style={styles.newUnit}>UI</Text>
                 </View>
-              </View>
+                <View style={styles.newEditCard}>
+                    <Text style={styles.newEditLabel}>CHO</Text>
+                    <TextInput style={styles.newEditInput} keyboardType="decimal-pad" value={modCho} onChangeText={setModCho} maxLength={7} placeholder="Nessuno" placeholderTextColor="#758A9A"/>
+                    <Text style={styles.newUnit}>g CHO</Text>
+                  </View>
+                </View>
               <Text style={styles.newEditSectionTitle}>☼  Momento della Giornata</Text>
               <View style={styles.newMomentGrid}>
                 {MOMENTI_COLONNE.map(m=><TouchableOpacity key={m} style={[styles.newMoment,m===modMomento && styles.newMomentSelected]} onPress={()=>setModMomento(m)}><Text style={[styles.newMomentText,m===modMomento && {color:COLORS.brandPrimary,fontWeight:'800'}]}>{m}</Text></TouchableOpacity>)}
@@ -720,6 +735,7 @@ const styles = StyleSheet.create({
   newRecordDetails:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},
   newMeal:{flex:1,color:'#FFFFFF',fontSize:12,fontWeight:'600'},
   newInsulin:{fontSize:12,color:'#C3CFDB'},
+  newCho:{fontSize:12,color:'#C3CFDB',fontWeight:'400'},
   newNotes:{flex:1,fontSize:12,color:'#93A7B9'},
   newOverlay:{flex:1,backgroundColor:'rgba(0,0,0,0.86)',justifyContent:'center',padding:14},
   newModal:{backgroundColor:'#111B27',borderWidth:1,borderColor:'#26536A',borderRadius:22,padding:15,maxWidth:440,width:'100%',maxHeight:'90%',alignSelf:'center',gap:12},
