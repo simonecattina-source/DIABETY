@@ -460,11 +460,13 @@ export default function GraficiScreen() {
             })}
             <Circle cx={centro} cy={centro} r={interno-4} fill="#050B10" stroke="#08364C" strokeWidth={5} />
             <Circle cx={centro} cy={centro} r={interno-15} fill="none" stroke="#00C8E7" strokeWidth={4} />
-            <Path d="M 200 121 A 79 79 0 0 1 270 164" fill="none" stroke="#C8F9FF" strokeWidth={3} strokeLinecap="round" />
-            <Path d="M 265 155 L 280 174 L 258 169 Z" fill="#C8F9FF" />
-            <SvgText x={centro} y={centro-3} fill="#FFFFFF" fontSize={51} fontWeight="bold" textAnchor="middle">24</SvgText>
-            <SvgText x={centro} y={centro+30} fill="#00E5FF" fontSize={30} fontWeight="bold" textAnchor="middle">ORE</SvgText>
-            <SvgText x={centro} y={centro+54} fill="#FFFFFF" fontSize={12} letterSpacing={2.3} textAnchor="middle">DELLA GIORNATA</SvgText>
+            {/* Freccia discreta sul bordo interno, senza invadere il testo centrale. */}
+            <Path d="M 215 123 A 79 79 0 0 1 265 155" fill="none" stroke="#C8F9FF" strokeWidth={2.5} strokeLinecap="round" />
+            <Path d="M 258 151 L 271 164 L 253 160 Z" fill="#C8F9FF" />
+            {/* Testo centrale compatto: tutte le righe restano nel disco nero. */}
+            <SvgText x={centro-5} y={centro+3} fill="#FFFFFF" fontSize={42} fontWeight="bold" textAnchor="end">24</SvgText>
+            <SvgText x={centro-1} y={centro+3} fill="#00E5FF" fontSize={27} fontWeight="bold" textAnchor="start">ORE</SvgText>
+            <SvgText x={centro} y={centro+29} fill="#FFFFFF" fontSize={9.5} letterSpacing={1.1} textAnchor="middle">DELLA GIORNATA</SvgText>
           </Svg>
         </View>
         <View style={{ flexDirection: 'row', backgroundColor: '#0A1C2C', borderWidth: 1, borderColor: '#18435B', borderRadius: 11, padding: 10, marginTop: 10, gap: 9 }}>
