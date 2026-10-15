@@ -51,6 +51,7 @@ export default function InserimentoScreen() {
   const [oraInserita, setOraInserita] = useState(ottieniOraCorrente());
   const [glicemia, setGlicemia] = useState('');
   const [insulina, setInsulina] = useState('');
+  const [cho, setCho] = useState('');
   const [momentoSelezionato, setMomentoSelezionato] = useState('Prima Colazione');
   const [note, setNote] = useState('');
   const [mostraNotifica, setMostraNotifica] = useState(false);
@@ -58,12 +59,12 @@ export default function InserimentoScreen() {
   const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
   useEffect(() => {
     const timer = setInterval(() => {
-      if (glicemia === '' && insulina === '' && note === '') {
+      if (glicemia === '' && insulina === '' && cho === '' && note === '') {
         setOraInserita(ottieniOraCorrente());
       }
     }, 60000);
     return () => clearInterval(timer);
-  }, [glicemia, insulina, note]);
+  }, [glicemia, insulina, cho, note]);
 
   const ottieniDataFormattataStorico = (stringaISO: string) => {
     if (!stringaISO) return "";
@@ -141,6 +142,11 @@ export default function InserimentoScreen() {
       return;
     }
 
+    if (cho !== '' && (!/^\d{1,4}$/.test(cho) || Number(cho) > 9999)) {
+      alert("Inserisci i CHO come numero intero di grammi oppure lascia il campo vuoto.");
+      return;
+    }
+
     const dataParsata = /^\d{4}-\d{2}-\d{2}$/.test(dataISO)
       ? new Date(`${dataISO}T00:00:00`)
       : null;
@@ -169,6 +175,7 @@ export default function InserimentoScreen() {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         glicemia: Number(glicemia),
         insulina: insulina ? `${insulina} UI` : '-',
+        cho: cho === '' ? null : Number(cho),
         tipo: momentoSelezionato,
         note: noteConOrarioFuso,
         ora: oraInserita,
@@ -189,6 +196,7 @@ export default function InserimentoScreen() {
 
       setGlicemia('');
       setInsulina('');
+      setCho('');
       setNote('');
       setOraInserita(ottieniOraCorrente());
       setMostraNotifica(true);
@@ -250,6 +258,13 @@ export default function InserimentoScreen() {
             <Text style={styles.cardTitle}>Insulina</Text><Text style={styles.cardUnit}>(UI)</Text>
           </View>
           <TextInput style={styles.insulinaInput} placeholder="00" placeholderTextColor="#93A7B9" keyboardType="numeric" value={insulina} onChangeText={setInsulina} maxLength={2} />
+        </View>
+        <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
+          <View style={styles.cardTitleRow}>
+            <Ionicons name="nutrition-outline" size={16} color={COLORS.brandPrimary} />
+            <Text style={styles.cardTitle}>CHO</Text><Text style={styles.cardUnit}>(g)</Text>
+          </View>
+          <TextInput style={styles.insulinaInput} placeholder="00" placeholderTextColor="#93A7B9" keyboardType="numeric" value={cho} onChangeText={setCho} maxLength={4} accessibilityLabel="Carboidrati in grammi" />
         </View>
       </View>
 
@@ -328,6 +343,10 @@ export default function InserimentoScreen() {
                 <Text style={styles.infoBlockText}>Indica le unità (UI) somministrate. Se non hai assunto insulina, lascia il campo vuoto.</Text>
               </View>
               <View style={styles.infoBlockPremium}>
+                <View style={styles.helpBlockHeading}><Ionicons name="nutrition-outline" size={19} color="#00E5FF" /><Text style={styles.infoBlockTitle}>Inserimento carboidrati (CHO)</Text></View>
+                <Text style={styles.infoBlockText}>Indica i grammi di carboidrati del pasto. Il campo è facoltativo e viene salvato con la misurazione.</Text>
+              </View>
+              <View style={styles.infoBlockPremium}>
                 <View style={styles.helpBlockHeading}><Ionicons name="time-outline" size={19} color="#FFCA75" /><Text style={styles.infoBlockTitle}>Momenti della giornata</Text></View>
                 <Text style={styles.infoBlockText}>Seleziona il momento del controllo per organizzare correttamente lo storico e i report.</Text>
               </View>
@@ -367,11 +386,11 @@ const styles = StyleSheet.create({
   cardUnit: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, color: '#93A7B9' },
   optionalLabel: { fontFamily: 'Plus Jakarta Sans', fontSize: 9, color: '#8493A5' },
   timeInputBackup: { height: 54, fontSize: 14, color: '#FFFFFF', backgroundColor: '#080F18', borderRadius: 8, padding: 9, borderWidth: 1, borderColor: '#344C63', width: '100%' },
-  rigaDatiPrincipali: { flexDirection: 'row', gap: 8, width: '100%' },
+  rigaDatiPrincipali: { flexDirection: 'row', gap: 6, width: '100%' },
   metaLarghezza: { flex: 1, minWidth: 0 },
-  cardInputHighlight: { backgroundColor: '#111B27', borderRadius: 16, padding: 10, borderWidth: 1, borderColor: '#26536A', gap: 8 },
-  glicemiaInput: { fontFamily: 'Space Grotesk', fontSize: 28, fontWeight: '700', width: '100%', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 7, height: 54 },
-  insulinaInput: { fontFamily: 'Space Grotesk', fontSize: 28, fontWeight: '700', color: '#FFFFFF', width: '100%', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 7, height: 54 },
+  cardInputHighlight: { backgroundColor: '#111B27', borderRadius: 16, padding: 7, borderWidth: 1, borderColor: '#26536A', gap: 8 },
+  glicemiaInput: { fontFamily: 'Space Grotesk', fontSize: 24, fontWeight: '700', width: '100%', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 7, height: 54 },
+  insulinaInput: { fontFamily: 'Space Grotesk', fontSize: 24, fontWeight: '700', color: '#FFFFFF', width: '100%', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 7, height: 54 },
   sectionCard: { backgroundColor: '#111B27', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 12, gap: 12 },
   sectionTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
   chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, width: '100%' },
