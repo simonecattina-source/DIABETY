@@ -211,7 +211,8 @@ export default function StoricoScreen() {
 
       if (dati.length === 0) { alert(`Nessun dato registrato nell'intervallo selezionato.`); return; }
 
-      // L'ordine dell'array salvato viene mantenuto: la prima registrazione inserita vince.
+      // Il PDF seleziona per ciascuna data e momento la misurazione con orario più antico.
+      // A parità di orario vince la prima registrazione inserita.
       const sezioni: Record<string, any[]> = {};
       dati.forEach((item: any) => { const k = item.dataTesto || "Oggi"; if (!sezioni[k]) sezioni[k] = []; sezioni[k].push(item); });
 
@@ -228,7 +229,20 @@ export default function StoricoScreen() {
           const rG: Record<string, string> = {}; const rI: Record<string, string> = {}; const rN: Record<string, string> = {};
           MOMENTI_COLONNE.forEach(m => { rG[m] = "-"; rI[m] = "-"; rN[m] = "-"; });
           const momentiGiaInseriti = new Set<string>();
-          sez.data.forEach(item => {
+          // Ordinamento stabile: ora più antica prima; gli orari mancanti o non validi in fondo.
+          // L'indice originale risolve gli eventuali pari merito senza cambiare il database.
+          const datiPerPdf = sez.data.map((item: any, indice: number) => ({ item, indice }))
+            .sort((a, b) => {
+              const minuti = (ora: unknown): number => {
+                if (typeof ora !== 'string') return Number.POSITIVE_INFINITY;
+                const m = /^(\d{1,2}):(\d{2})$/.exec(ora.trim());
+                if (!m) return Number.POSITIVE_INFINITY;
+                const h = Number(m[1]), min = Number(m[2]);
+                return h < 24 && min < 60 ? h * 60 + min : Number.POSITIVE_INFINITY;
+              };
+              return minuti(a.item.ora) - minuti(b.item.ora) || a.indice - b.indice;
+            }).map(({ item }) => item);
+          datiPerPdf.forEach(item => {
             if (MOMENTI_COLONNE.includes(item.tipo) && !momentiGiaInseriti.has(item.tipo)) {
               momentiGiaInseriti.add(item.tipo);
               let col = '#34C759'; if (item.glicemia > 180) col = '#FF3B30'; if (item.glicemia < 70) col = '#FF9F0A';
