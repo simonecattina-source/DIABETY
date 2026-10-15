@@ -580,13 +580,13 @@ export default function StoricoScreen() {
                 <View style={styles.newEditCard}>
                   <Text style={styles.newEditLabel}>▣  Data del Test</Text>
                   <View style={styles.newWebFieldWrap}>
-                    {Platform.OS==='web' ? <input type="date" value={modDataISO} onChange={e=>setModDataISO(e.target.value)} style={{display:'block',width:'100%',maxWidth:'100%',minWidth:0,boxSizing:'border-box',fontSize:'13px',color:'#FFFFFF',colorScheme:'dark',backgroundColor:'#080F18',border:'1px solid #344C63',borderRadius:'8px',padding:'10px 3px',outline:'none'}}/> : <TextInput style={styles.newEditInput} value={modDataISO} onChangeText={setModDataISO}/>}
+                    {Platform.OS==='web' ? <input type="date" value={modDataISO} onChange={e=>setModDataISO(e.target.value)} style={{display:'block',width:'100%',maxWidth:'100%',minWidth:0,boxSizing:'border-box',fontSize:'16px',color:'#FFFFFF',colorScheme:'dark',backgroundColor:'#080F18',border:'1px solid #344C63',borderRadius:'8px',padding:'10px 3px',outline:'none'}}/> : <TextInput style={styles.newEditInput} value={modDataISO} onChangeText={setModDataISO}/>}
                   </View>
                 </View>
                 <View style={styles.newEditCard}>
                   <Text style={styles.newEditLabel}>◷  Orario del Test</Text>
                   <View style={styles.newWebFieldWrap}>
-                    {Platform.OS==='web' ? <input type="time" value={modOraText} onChange={e=>setModOraText(e.target.value)} style={{display:'block',width:'100%',maxWidth:'100%',minWidth:0,boxSizing:'border-box',fontSize:'13px',color:'#FFFFFF',colorScheme:'dark',backgroundColor:'#080F18',border:'1px solid #344C63',borderRadius:'8px',padding:'10px 3px',outline:'none'}}/> : <TextInput style={styles.newEditInput} value={modOraText} onChangeText={setModOraText}/>}
+                    {Platform.OS==='web' ? <input type="time" value={modOraText} onChange={e=>setModOraText(e.target.value)} style={{display:'block',width:'100%',maxWidth:'100%',minWidth:0,boxSizing:'border-box',fontSize:'16px',color:'#FFFFFF',colorScheme:'dark',backgroundColor:'#080F18',border:'1px solid #344C63',borderRadius:'8px',padding:'10px 3px',outline:'none'}}/> : <TextInput style={styles.newEditInput} value={modOraText} onChangeText={setModOraText}/>}
                   </View>
                 </View>
                 <View style={styles.newEditCard}>
@@ -692,7 +692,7 @@ const styles = StyleSheet.create({
   newEditCard:{width:'48.5%',flexGrow:1,minWidth:0,backgroundColor:'#101B28',borderWidth:1,borderColor:'#26536A',borderRadius:13,padding:9,gap:8,overflow:'hidden'},
   newEditLabel:{fontSize:11,color:'#FFFFFF',fontWeight:'700'},
   newWebFieldWrap:{width:'100%',minWidth:0,overflow:'hidden'},
-  newEditInput:{backgroundColor:'#080F18',borderWidth:1,borderColor:'#344C63',borderRadius:8,paddingHorizontal:8,paddingVertical:10,fontSize:14,color:'#FFFFFF',width:'100%'},
+  newEditInput:{backgroundColor:'#080F18',borderWidth:1,borderColor:'#344C63',borderRadius:8,paddingHorizontal:8,paddingVertical:10,fontSize:16,color:'#FFFFFF',width:'100%'},
   newEditSectionTitle:{fontSize:13,fontWeight:'700',color:'#FFFFFF'},
   newMomentGrid:{flexDirection:'row',flexWrap:'wrap',gap:5},
   newMoment:{width:'32%',flexGrow:1,minHeight:40,justifyContent:'center',alignItems:'center',backgroundColor:'#080F18',borderWidth:1,borderColor:'#344C63',borderRadius:9,padding:4},
