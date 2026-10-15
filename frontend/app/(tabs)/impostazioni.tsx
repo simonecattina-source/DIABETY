@@ -339,7 +339,7 @@ export default function StrumentiScreen() {
 
       if (dati.length === 0) { alert(`Nessun dato registrato nell'intervallo selezionato.`); return; }
 
-      // L'ordine dell'array salvato viene mantenuto: la prima registrazione inserita vince.
+      // Il PDF seleziona per ogni data e momento la misurazione con orario più antico.
       const sezioni: Record<string, any[]> = {};
       dati.forEach((item: any) => { const k = item.dataTesto || "Oggi"; if (!sezioni[k]) sezioni[k] = []; sezioni[k].push(item); });
 
@@ -355,15 +355,24 @@ export default function StrumentiScreen() {
         let righe = "";
           const rG: Record<string, string> = {}; const rI: Record<string, string> = {}; const rN: Record<string, string> = {};
           MOMENTI_COLONNE.forEach(m => { rG[m] = "-"; rI[m] = "-"; rN[m] = "-"; });
-          const momentiGiaInseriti = new Set<string>();
-          sez.data.forEach(item => {
-            if (MOMENTI_COLONNE.includes(item.tipo) && !momentiGiaInseriti.has(item.tipo)) {
-              momentiGiaInseriti.add(item.tipo);
-              let col = '#34C759'; if (item.glicemia > 180) col = '#FF3B30'; if (item.glicemia < 70) col = '#FF9F0A';
-              rG[item.tipo] = `<span style="color: ${col}; font-weight: bold;">${item.glicemia} mg/dL</span>`;
-              rI[item.tipo] = item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : "-";
-              rN[item.tipo] = item.note ? `<span style="font-style: italic; color: #555;">${String(item.note).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}</span>` : "-";
-            }
+          // Una sola misurazione per momento della giornata nel PDF:
+          // sceglie l'orario più antico, indipendentemente dall'ordine di inserimento.
+          // In caso di parità conserva la prima incontrata nell'array originale.
+          const primaPerMomento = new Map<string, any>();
+          sez.data.forEach((item: any) => {
+            if (!MOMENTI_COLONNE.includes(item.tipo)) return;
+            const precedente = primaPerMomento.get(item.tipo);
+            const orario = typeof item.ora === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(item.ora)
+              ? item.ora : '99:99';
+            const orarioPrecedente = typeof precedente?.ora === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(precedente.ora)
+              ? precedente.ora : '99:99';
+            if (!precedente || orario < orarioPrecedente) primaPerMomento.set(item.tipo, item);
+          });
+          primaPerMomento.forEach((item: any) => {
+            let col = '#34C759'; if (item.glicemia > 180) col = '#FF3B30'; if (item.glicemia < 70) col = '#FF9F0A';
+            rG[item.tipo] = `<span style="color: ${col}; font-weight: bold;">${item.glicemia} mg/dL</span>`;
+            rI[item.tipo] = item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : "-";
+            rN[item.tipo] = item.note ? `<span style="font-style: italic; color: #555;">${String(item.note).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}</span>` : "-";
           });
           let tG = ""; let tI = ""; let tN = "";
           MOMENTI_COLONNE.forEach(m => { tG += `<td>${rG[m]}</td>`; tI += `<td>${rI[m]}</td>`; tN += `<td>${rN[m]}</td>`; });
