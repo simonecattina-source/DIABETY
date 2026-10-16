@@ -288,30 +288,64 @@ export default function StrumentiScreen() {
     }
   };
 
+  // Backup v2: il piatto alimentare resta escluso per scelta dell'utente.
+  const CHIAVE_STORICO = 'glicotrack_data';
+  const CHIAVE_BOLO = 'glicotrack_parametri_bolo';
+  const CHIAVE_PREFERITI = 'diabety_alimenti_preferiti_v1';
+  const parametriBoloValidi = (valore: any): boolean => {
+    if (!valore || typeof valore !== 'object' || Array.isArray(valore)) return false;
+    return ['rapportoCHO', 'sensibilitaISF', 'targetGlicemico'].every(chiave => {
+      const campo = valore[chiave];
+      if (typeof campo !== 'string' && typeof campo !== 'number') return false;
+      const testo = String(campo).trim();
+      if (!/^\d+(?:[.,]\d+)?$/.test(testo)) return false;
+      const numero = Number(testo.replace(',', '.'));
+      return Number.isFinite(numero) && numero > 0;
+    });
+  };
+  const preferitiValidi = (valore: any): boolean =>
+    Array.isArray(valore) && valore.every(id => typeof id === 'string' && id.length > 0);
+
   const esportaBackupJSON = async () => {
     try {
-      const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
-      if (!storicoEsistente || !Array.isArray(JSON.parse(storicoEsistente)) || JSON.parse(storicoEsistente).length === 0) {
-        alert("Non ci sono misurazioni salvate da esportare.");
-        return;
-      }
+      const [storicoRaw, boloRaw, preferitiRaw] = await Promise.all([
+        AsyncStorage.getItem(CHIAVE_STORICO),
+        AsyncStorage.getItem(CHIAVE_BOLO),
+        AsyncStorage.getItem(CHIAVE_PREFERITI),
+      ]);
+      const storico = storicoRaw ? JSON.parse(storicoRaw) : [];
+      const bolo = boloRaw ? JSON.parse(boloRaw) : null;
+      const preferiti = preferitiRaw ? JSON.parse(preferitiRaw) : [];
+      if (!Array.isArray(storico) || !storico.every(validaMisurazioneBackup)) throw new Error('Storico non valido');
+      if (bolo !== null && !parametriBoloValidi(bolo)) throw new Error('Parametri bolo non validi');
+      if (!preferitiValidi(preferiti)) throw new Error('Preferiti non validi');
+      const backup = JSON.stringify({
+        formato: 'DIABETY_BACKUP', versione: 2,
+        esportatoIl: new Date().toISOString(),
+        storico, parametriBolo: bolo, alimentiPreferiti: preferiti,
+      }, null, 2);
       if (Platform.OS === 'web') {
-        const blob = new Blob([storicoEsistente], { type: 'application/json' });
+        const blob = new Blob([backup], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = 'backup_diabety_diario.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-        mostraMessaggioNotifica("✓ Backup scaricato correttamente");
+        a.href = url; a.download = 'backup_diabety_completo.json';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        mostraMessaggioNotifica('✓ Backup completo scaricato');
       } else {
-        const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(storicoEsistente)}`;
+        const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(backup)}`;
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(dataUri, { dialogTitle: 'Salva il tuo Backup Diabety' });
         } else {
-          alert("La condivisione non è supportata su questo dispositivo.");
+          alert('La condivisione non è supportata su questo dispositivo.');
         }
       }
-    } catch (error) { alert("Errore durante la creazione del file di backup."); }
+    } catch (errore) {
+      console.error('Errore backup:', errore);
+      alert('Impossibile creare il backup: alcuni dati salvati non sono validi. Nessun dato è stato modificato.');
+    }
   };
-  // Il formato JSON rimane un array di misurazioni, compatibile con i backup esistenti.
+  // I vecchi backup in formato array restano importabili.
   const validaMisurazioneBackup = (item: any): boolean => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
     if (typeof item.id !== 'string' || item.id.trim() === '') return false;
@@ -343,9 +377,22 @@ export default function StrumentiScreen() {
 
     try {
       const contenutoTesto = await file.text();
-      const datiImportati: unknown = JSON.parse(contenutoTesto);
-      if (!Array.isArray(datiImportati) || datiImportati.length === 0 || !datiImportati.every(validaMisurazioneBackup)) {
-        alert('Backup non valido: il file deve contenere misurazioni complete e correttamente formattate. Lo storico attuale non è stato modificato.');
+      const contenuto: any = JSON.parse(contenutoTesto);
+      const vecchioFormato = Array.isArray(contenuto);
+      if (!vecchioFormato && (!contenuto || contenuto.formato !== 'DIABETY_BACKUP' || contenuto.versione !== 2)) {
+        alert('Formato backup non riconosciuto. Nessun dato modificato.');
+        return;
+      }
+      const datiImportati: any[] = vecchioFormato ? contenuto : contenuto.storico;
+      if (!Array.isArray(datiImportati) || !datiImportati.every(validaMisurazioneBackup)) {
+        alert('Backup non valido: storico malformato. Nessun dato modificato.');
+        return;
+      }
+      if (!vecchioFormato && (
+        !(contenuto.parametriBolo === null || parametriBoloValidi(contenuto.parametriBolo)) ||
+        !preferitiValidi(contenuto.alimentiPreferiti)
+      )) {
+        alert('Backup non valido: parametri del bolo o preferiti non corretti. Nessun dato modificato.');
         return;
       }
       const ids = datiImportati.map((item: any) => item.id);
@@ -364,18 +411,35 @@ export default function StrumentiScreen() {
         return new Date(annoCompleto, mese - 1, giorno).getTime() >= soglia.getTime();
       });
       const esclusi = datiImportati.length - datiValidi.length;
-      if (datiValidi.length === 0) {
+      if (datiValidi.length === 0 && datiImportati.length > 0) {
         alert(`Il backup contiene ${datiImportati.length} misurazioni, tutte oltre il limite di 91 giorni. Nessun dato è stato sovrascritto.`);
         return;
       }
 
       const conferma = window.confirm(
-        `Backup verificato.\n\nMisurazioni da ripristinare: ${datiValidi.length}\nMisurazioni escluse perché più vecchie di 91 giorni: ${esclusi}\n\nATTENZIONE: il ripristino sostituirà tutto lo storico attuale. Prima di procedere, assicurati di averne salvato un backup.\n\nVuoi continuare?`
+        `Backup verificato.\n\nMisurazioni da ripristinare: ${datiValidi.length}\nMisurazioni escluse perché più vecchie di 91 giorni: ${esclusi}\n${vecchioFormato ? 'Backup precedente: verrà ripristinato solo lo storico.' : 'Verranno ripristinati anche parametri del bolo e preferiti (non il piatto).'}\n\nATTENZIONE: il ripristino sostituirà tutto lo storico attuale. Prima di procedere, assicurati di averne salvato un backup.\n\nVuoi continuare?`
       );
       if (!conferma) return;
 
-      await AsyncStorage.setItem('glicotrack_data', JSON.stringify(datiValidi));
-      mostraMessaggioNotifica(`✓ Ripristinate ${datiValidi.length} misurazioni`);
+      // In caso di errore durante la scrittura, ripristina i valori precedenti.
+      const chiavi = vecchioFormato ? [CHIAVE_STORICO] : [CHIAVE_STORICO, CHIAVE_BOLO, CHIAVE_PREFERITI];
+      const precedenti = await AsyncStorage.multiGet(chiavi);
+      try {
+        const nuovi: [string, string][] = [[CHIAVE_STORICO, JSON.stringify(datiValidi)]];
+        if (!vecchioFormato) {
+          if (contenuto.parametriBolo !== null) nuovi.push([CHIAVE_BOLO, JSON.stringify(contenuto.parametriBolo)]);
+          nuovi.push([CHIAVE_PREFERITI, JSON.stringify(contenuto.alimentiPreferiti)]);
+        }
+        await AsyncStorage.multiSet(nuovi);
+        if (!vecchioFormato && contenuto.parametriBolo === null) await AsyncStorage.removeItem(CHIAVE_BOLO);
+      } catch (erroreScrittura) {
+        for (const [chiave, valore] of precedenti) {
+          if (valore === null) await AsyncStorage.removeItem(chiave);
+          else await AsyncStorage.setItem(chiave, valore);
+        }
+        throw erroreScrittura;
+      }
+      mostraMessaggioNotifica(`✓ Ripristinate ${datiValidi.length} misurazioni${vecchioFormato ? '' : ', parametri e preferiti'}`);
     } catch (errore) {
       alert('Impossibile leggere o importare il backup. Lo storico attuale non è stato modificato se la scrittura non è riuscita.');
     }
@@ -631,7 +695,7 @@ export default function StrumentiScreen() {
             </View>
             <View>
               <Text style={styles.titoloAzione}>Esporta Backup</Text>
-              <Text style={styles.descAzione}>Salva un file JSON con tutto lo storico dei log</Text>
+              <Text style={styles.descAzione}>Salva storico, parametri del bolo e alimenti preferiti</Text>
             </View>
           </View>
           <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
@@ -645,7 +709,7 @@ export default function StrumentiScreen() {
               </View>
               <View>
                 <Text style={styles.titoloAzione}>Importa Backup</Text>
-                <Text style={styles.descAzione}>Ripristina il database caricando un file JSON</Text>
+                <Text style={styles.descAzione}>Ripristina i dati da un backup JSON</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
@@ -659,7 +723,7 @@ export default function StrumentiScreen() {
               </View>
               <View>
                 <Text style={styles.titoloAzione}>Importa Backup</Text>
-                <Text style={styles.descAzione}>Ripristina il database caricando un file JSON</Text>
+                <Text style={styles.descAzione}>Ripristina i dati da un backup JSON</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
