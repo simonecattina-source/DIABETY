@@ -22,9 +22,9 @@ export default function CalcolatoreBoloScreen() {
   const [carboidratiPasto, setCarboidratiPasto] = useState('');
 
   // Parametri Personali Terapeutici Persistenti (Pre-caricati)
-  const [rapportoCHO, setRapportoCHO] = useState('10'); 
-  const [sensibilitaISF, setSensibilitaISF] = useState('40'); 
-  const [targetGlicemico, setTargetGlicemico] = useState('100'); 
+  const [rapportoCHO, setRapportoCHO] = useState(''); 
+  const [sensibilitaISF, setSensibilitaISF] = useState(''); 
+  const [targetGlicemico, setTargetGlicemico] = useState(''); 
 
   // Stati per il Risultato, Pop-up e Sicurezza Blocco
   const [risultatoBolo, setRisultatoBolo] = useState<number | null>(null);
@@ -32,68 +32,111 @@ export default function CalcolatoreBoloScreen() {
   const [quotaCorrezione, setQuotaCorrezione] = useState<number>(0);
   const [mostraHelpParametri, setMostraHelpParametri] = useState(false);
   const [modificaAttiva, setModificaAttiva] = useState(false);
-  // 💾 CARICAMENTO AUTOMATICO DEI PARAMETRI SALVATI ALL'AVVIO DELLA SCHEDA
+  const [parametriCaricati, setParametriCaricati] = useState(false);
+  const [parametriConfermati, setParametriConfermati] = useState(false);
+
+  const numeroPositivo = (testo: string): number | null => {
+    const pulito = testo.trim();
+    if (!/^(?:\d+)(?:[.,]\d+)?$/.test(pulito)) return null;
+    const valore = Number(pulito.replace(',', '.'));
+    return Number.isFinite(valore) && valore > 0 ? valore : null;
+  };
+  const invalidaRisultato = () => {
+    setRisultatoBolo(null);
+    setQuotaPasto(0);
+    setQuotaCorrezione(0);
+  };
+
+  // Carica solo parametri realmente salvati e validi: nessun valore terapeutico di ripiego.
   useEffect(() => {
-    const caricaParametriTerapeutici = async () => {
+    let montato = true;
+    const carica = async () => {
       try {
-        const parametriSalvati = await AsyncStorage.getItem('glicotrack_parametri_bolo');
-        if (parametriSalvati) {
-          const parsed = JSON.parse(parametriSalvati);
-          if (parsed.rapportoCHO) setRapportoCHO(parsed.rapportoCHO);
-          if (parsed.sensibilitaISF) setSensibilitaISF(parsed.sensibilitaISF);
-          if (parsed.targetGlicemico) setTargetGlicemico(parsed.targetGlicemico);
+        const salvati = await AsyncStorage.getItem('glicotrack_parametri_bolo');
+        if (!montato || !salvati) return;
+        const parsed = JSON.parse(salvati);
+        const r = String(parsed?.rapportoCHO ?? '');
+        const i = String(parsed?.sensibilitaISF ?? '');
+        const t = String(parsed?.targetGlicemico ?? '');
+        if (numeroPositivo(r) !== null && numeroPositivo(i) !== null && numeroPositivo(t) !== null) {
+          setRapportoCHO(r);
+          setSensibilitaISF(i);
+          setTargetGlicemico(t);
+          setParametriConfermati(true);
         }
       } catch (error) {
-        console.log("Errore nel recupero dei parametri locali.");
+        console.log('Impossibile recuperare i parametri del bolo.');
+      } finally {
+        if (montato) setParametriCaricati(true);
       }
     };
-    caricaParametriTerapeutici();
+    carica();
+    return () => { montato = false; };
   }, []);
 
-  // 🔐 INTERRUTTORE DI SICUREZZA: SE PASSA DA ATTIVO A DISATTIVO SALVA IN MODO PERMANENTE
   const gestisciCambioStatoSicurezza = async () => {
-    if (modificaAttiva) {
-      const r_cho = rapportoCHO.trim() || '10';
-      const isf = sensibilitaISF.trim() || '40';
-      const target = targetGlicemico.trim() || '100';
-
-      try {
-        const pacchettoParametri = {
-          rapportoCHO: r_cho,
-          sensibilitaISF: isf,
-          targetGlicemico: target
-        };
-        await AsyncStorage.setItem('glicotrack_parametri_bolo', JSON.stringify(pacchettoParametri));
-        setModificaAttiva(false);
-      } catch (error) {
-        alert("Impossibile salvare i parametri sul dispositivo.");
-      }
-    } else {
+    if (!parametriCaricati) return;
+    if (!modificaAttiva) {
+      invalidaRisultato();
       setModificaAttiva(true);
+      return;
+    }
+    if (numeroPositivo(rapportoCHO) === null || numeroPositivo(sensibilitaISF) === null || numeroPositivo(targetGlicemico) === null) {
+      alert('Compila tutti e tre i parametri personali con numeri maggiori di zero, concordati con il medico.');
+      return;
+    }
+    try {
+      await AsyncStorage.setItem('glicotrack_parametri_bolo', JSON.stringify({ rapportoCHO: rapportoCHO.trim(), sensibilitaISF: sensibilitaISF.trim(), targetGlicemico: targetGlicemico.trim() }));
+      setParametriConfermati(true);
+      setModificaAttiva(false);
+      invalidaRisultato();
+    } catch (error) {
+      alert('Impossibile salvare i parametri sul dispositivo.');
     }
   };
 
   const calcolaBoloInsulinico = () => {
-    const cho = parseFloat(carboidratiPasto) || 0;
-    const glic = parseFloat(glicemiaAttuale) || 0;
-    const r_cho = parseFloat(rapportoCHO) || 10;
-    const isf = parseFloat(sensibilitaISF) || 40;
-    const target = parseFloat(targetGlicemico) || 100;
-
-    if (cho === 0 && glic === 0) {
-      alert("Inserisci almeno il valore della glicemia o i carboidrati del pasto.");
+    invalidaRisultato();
+    if (!parametriCaricati || !parametriConfermati || modificaAttiva) {
+      alert('Prima configura e salva i tuoi tre parametri terapeutici personali.');
       return;
     }
-
+    const r_cho = numeroPositivo(rapportoCHO);
+    const isf = numeroPositivo(sensibilitaISF);
+    const target = numeroPositivo(targetGlicemico);
+    if (r_cho === null || isf === null || target === null) {
+      alert('Parametri personali non validi. Verifica e salva nuovamente la configurazione.');
+      return;
+    }
+    const leggiInput = (testo: string): number | null => {
+      if (!/^\d+$/.test(testo.trim())) return null;
+      const valore = Number(testo.trim());
+      return Number.isSafeInteger(valore) && valore >= 0 ? valore : null;
+    };
+    const cho = carboidratiPasto.trim() === '' ? 0 : leggiInput(carboidratiPasto);
+    const glic = glicemiaAttuale.trim() === '' ? 0 : leggiInput(glicemiaAttuale);
+    if (cho === null || glic === null || (glicemiaAttuale.trim() !== '' && glic === 0)) {
+      alert('Inserisci valori validi per glicemia e carboidrati.');
+      return;
+    }
+    if (cho === 0 && glic === 0) {
+      alert('Inserisci almeno il valore della glicemia o i carboidrati del pasto.');
+      return;
+    }
+    if (glic > 0 && glic < 70) {
+      alert('Glicemia inferiore a 70 mg/dL: il calcolo è sospeso. Segui il piano di gestione dell’ipoglicemia concordato con il medico.');
+      return;
+    }
     const insulinaPasto = cho > 0 ? cho / r_cho : 0;
     const insulinaCorrezione = glic > target ? (glic - target) / isf : 0;
     const totaleTeorico = insulinaPasto + insulinaCorrezione;
-
+    if (!Number.isFinite(totaleTeorico)) {
+      alert('Impossibile calcolare il bolo con i valori inseriti.');
+      return;
+    }
     setQuotaPasto(Math.round(insulinaPasto * 10) / 10);
     setQuotaCorrezione(Math.round(insulinaCorrezione * 10) / 10);
-    
-    const totaleArrotondato = Math.round(totaleTeorico * 2) / 2;
-    setRisultatoBolo(totaleArrotondato);
+    setRisultatoBolo(Math.round(totaleTeorico * 2) / 2);
   };
 
   const resettaCampi = () => {
@@ -160,7 +203,7 @@ export default function CalcolatoreBoloScreen() {
             placeholderTextColor="#93A7B9"
             keyboardType="numeric"
             value={glicemiaAttuale}
-            onChangeText={setGlicemiaAttuale}
+            onChangeText={(v) => { setGlicemiaAttuale(v); invalidaRisultato(); }}
             maxLength={3}
           />
         </View>
@@ -176,7 +219,7 @@ export default function CalcolatoreBoloScreen() {
             placeholderTextColor="#93A7B9"
             keyboardType="numeric"
             value={carboidratiPasto}
-            onChangeText={setCarboidratiPasto}
+            onChangeText={(v) => { setCarboidratiPasto(v); invalidaRisultato(); }}
             maxLength={3}
           />
         </View>
@@ -189,7 +232,7 @@ export default function CalcolatoreBoloScreen() {
             <Ionicons name="refresh-outline" size={20} color={COLORS.onSurface} />
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.saveButton} onPress={calcolaBoloInsulinico}>
+        <TouchableOpacity style={[styles.saveButton, (!parametriCaricati || modificaAttiva || !parametriConfermati) && { opacity: 0.45 }]} onPress={calcolaBoloInsulinico} disabled={!parametriCaricati || modificaAttiva || !parametriConfermati}>
           <Text style={styles.saveButtonText}>Calcola Bolo</Text>
         </TouchableOpacity>
       </View>
@@ -207,7 +250,7 @@ export default function CalcolatoreBoloScreen() {
 
           {/* 🔐 Pulsante di Destra: Attiva/Disattiva Modifica Parametri Permanenti */}
           <TouchableOpacity 
-            onPress={gestisciCambioStatoSicurezza} 
+            onPress={gestisciCambioStatoSicurezza} disabled={!parametriCaricati} 
             style={[styles.pulsanteDestroAzioneBolo, modificaAttiva ? styles.pulsanteStatoAttivoBg : styles.pulsanteStatoDisattivoBg]}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
@@ -233,7 +276,7 @@ export default function CalcolatoreBoloScreen() {
               <Text style={styles.descParametro}>Quanti grammi di carboidrati copre 1 UI</Text>
             </View>
           </View>
-          <TextInput style={[styles.inputParametroFisso, { color: modificaAttiva ? COLORS.success : COLORS.brandPrimary }]} keyboardType="numeric" value={rapportoCHO} onChangeText={setRapportoCHO} maxLength={2} editable={modificaAttiva} />
+          <TextInput style={[styles.inputParametroFisso, { color: modificaAttiva ? COLORS.success : COLORS.brandPrimary }]} keyboardType="numeric" value={rapportoCHO} onChangeText={(v) => { setRapportoCHO(v); setParametriConfermati(false); invalidaRisultato(); }} maxLength={2} editable={modificaAttiva} />
         </View>
 
         <View style={styles.dividerParametri} />
@@ -246,7 +289,7 @@ export default function CalcolatoreBoloScreen() {
               <Text style={styles.descParametro}>Di quanto mg/dL scende con 1 UI</Text>
             </View>
           </View>
-          <TextInput style={[styles.inputParametroFisso, { color: modificaAttiva ? COLORS.success : COLORS.brandPrimary }]} keyboardType="numeric" value={sensibilitaISF} onChangeText={setSensibilitaISF} maxLength={3} editable={modificaAttiva} />
+          <TextInput style={[styles.inputParametroFisso, { color: modificaAttiva ? COLORS.success : COLORS.brandPrimary }]} keyboardType="numeric" value={sensibilitaISF} onChangeText={(v) => { setSensibilitaISF(v); setParametriConfermati(false); invalidaRisultato(); }} maxLength={3} editable={modificaAttiva} />
         </View>
 
         <View style={styles.dividerParametri} />
@@ -259,7 +302,7 @@ export default function CalcolatoreBoloScreen() {
               <Text style={styles.descParametro}>Il tuo valore ideale di riferimento</Text>
             </View>
           </View>
-          <TextInput style={[styles.inputParametroFisso, { color: modificaAttiva ? COLORS.success : COLORS.brandPrimary }]} keyboardType="numeric" value={targetGlicemico} onChangeText={setTargetGlicemico} maxLength={3} editable={modificaAttiva} />
+          <TextInput style={[styles.inputParametroFisso, { color: modificaAttiva ? COLORS.success : COLORS.brandPrimary }]} keyboardType="numeric" value={targetGlicemico} onChangeText={(v) => { setTargetGlicemico(v); setParametriConfermati(false); invalidaRisultato(); }} maxLength={3} editable={modificaAttiva} />
         </View>
       </View>
 
