@@ -21,10 +21,10 @@ const COLORS = {
 
 // Ordiniamo alfabeticamente l'array importato per garantire una ricerca utente ottimale
 const DATABASE_ALIMENTI = [...DATABASE_ALIMENTI_ESTERNO].sort((a, b) => a.nome.localeCompare(b.nome));
-// Solo i valori che coincidono con le verifiche documentate sono mostrati senza ≈.
-// Tutti gli altri sono indicativi: il JSON conserva esclusivamente i valori numerici.
-const ID_CHO_VERIFICATI = new Set(['37', '40', '50', '54']);
-const valoreIndicativo = (id: string) => !ID_CHO_VERIFICATI.has(id);
+// Il simbolo ≈ dipende dal campo 'approssimato' del database JSON.
+// Se il campo non è disponibile, il valore viene considerato indicativo per prudenza.
+const ALIMENTI_PER_ID = new Map(DATABASE_ALIMENTI.map(alimento => [alimento.id, alimento]));
+const valoreIndicativo = (id: string) => ALIMENTI_PER_ID.get(id)?.approssimato ?? true;
 const STORAGE_PREFERITI = 'diabety_alimenti_preferiti_v1';
 const STORAGE_PIATTO = 'diabety_alimenti_piatto_v1';
 const normalizzaRicerca = (testo: string) => testo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('it').trim();
