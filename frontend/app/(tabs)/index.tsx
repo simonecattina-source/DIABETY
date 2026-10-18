@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useDiabetyAlert } from '@/src/components/diabety-alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 🎨 PALETTE COLORI ELEVATA PER MASSIMO STACCO IN DARK MODE
@@ -32,6 +33,7 @@ const MOMENTI = [
   "Prima Cena", "Dopo Cena", "Notte"
 ];
 export default function InserimentoScreen() {
+  const mostraAvviso = useDiabetyAlert();
   const ottieniDataOdiernaISO = () => {
     const oggi = new Date();
     const g = String(oggi.getDate()).padStart(2, '0');
@@ -133,17 +135,17 @@ export default function InserimentoScreen() {
   };
   const salvaMisurazione = async () => {
     if (!/^\d{1,3}$/.test(glicemia) || Number(glicemia) <= 0) {
-      alert("Inserisci un valore di glicemia valido in mg/dL.");
+      mostraAvviso("Inserisci un valore di glicemia valido in mg/dL.");
       return;
     }
 
     if (insulina !== '' && !/^\d{1,2}$/.test(insulina)) {
-      alert("Inserisci l'insulina come numero intero di UI oppure lascia il campo vuoto.");
+      mostraAvviso("Inserisci l'insulina come numero intero di UI oppure lascia il campo vuoto.");
       return;
     }
 
     if (cho !== '' && (!/^\d{1,4}$/.test(cho) || Number(cho) > 9999)) {
-      alert("Inserisci i CHO come numero intero di grammi oppure lascia il campo vuoto.");
+      mostraAvviso("Inserisci i CHO come numero intero di grammi oppure lascia il campo vuoto.");
       return;
     }
 
@@ -154,12 +156,12 @@ export default function InserimentoScreen() {
       && !Number.isNaN(dataParsata.getTime())
       && `${dataParsata.getFullYear()}-${String(dataParsata.getMonth() + 1).padStart(2, '0')}-${String(dataParsata.getDate()).padStart(2, '0')}` === dataISO;
     if (!dataValida || dataISO > ottieniDataOdiernaISO()) {
-      alert("Inserisci una data valida, non successiva a oggi.");
+      mostraAvviso("Inserisci una data valida, non successiva a oggi.");
       return;
     }
 
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(oraInserita)) {
-      alert("Inserisci un orario valido nel formato HH:MM.");
+      mostraAvviso("Inserisci un orario valido nel formato HH:MM.");
       return;
     }
 
@@ -202,7 +204,7 @@ export default function InserimentoScreen() {
       setMostraNotifica(true);
       setTimeout(() => setMostraNotifica(false), 3000);
     } catch (error) {
-      alert("Impossibile salvare i dati localmente. I dati precedenti non sono stati eliminati.");
+      mostraAvviso("Impossibile salvare i dati localmente. I dati precedenti non sono stati eliminati.");
     } finally {
       setSalvataggioInCorso(false);
     }
