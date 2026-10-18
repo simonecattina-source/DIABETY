@@ -1,3 +1,4 @@
+import { DIABETY_COLORS } from '@/src/theme/diabety';
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -5,20 +6,7 @@ import { useDiabetyAlert } from '@/src/components/diabety-alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 🎨 PALETTE COLORI ELEVATA PER MASSIMO STACCO IN DARK MODE
-const COLORS = {
-  background: "#0A0A0C",        
-  surfaceSecondary: "#13131A",  // Nero profondo tech per i contenitori
-  brandPrimary: "#00E5FF",      // Azzurro Cyan elettrico neon coordinato
-  onSurface: "#FFFFFF",         // Bianco purissimo ultra-nitido
-  muted: "#7E7E86",             
-  success: "#00E676",           // Verde smeraldo Oled
-  warning: "#FF9100",           // Arancione vivo
-  error: "#FF5252",             // Rosso corallo neon
-  borderGlass: "rgba(255, 255, 255, 0.08)",
-  borderGlassBright: "rgba(255, 255, 255, 0.15)", // Bordo ad alto contrasto per i box principali
-  bgUtility: "#1A1A24",         
-  borderUtility: "#3A3A4A"      
-};
+const COLORS = DIABETY_COLORS;
 
 const ETICHETTE_MOMENTI: Record<string, string> = {
   "Prima Colazione": "Prima di colazione", "Dopo Colazione": "Dopo colazione",
