@@ -1,3 +1,4 @@
+import { DIABETY_COLORS } from '@/src/theme/diabety';
 import { Tabs } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,10 +9,10 @@ import { usesNativeTabs } from "@/src/navigation";
 export default function TabsLayout() {
   // 🎨 PALETTE NEON HIGH-CONTRAST SINFONICA ED OLED OPTIMIZED
   const DESIGN_NEON = {
-    backgroundBar: "#0A0A0C",      // Nero Oled profondo per la barra
-    activeNeon: "#00E5FF",         // Azzurro Cyan elettrico neon attivo
-    inactiveTech: "#636366",       // Grigio scuro tech per l'inattivo
-    borderGlass: "rgba(255, 255, 255, 0.08)" // Finissimo contorno superiore lucido
+    backgroundBar: DIABETY_COLORS.background,
+    activeNeon: DIABETY_COLORS.brandPrimary,
+    inactiveTech: DIABETY_COLORS.tabInactive,
+    borderGlass: DIABETY_COLORS.borderGlass,
   };
 
   if (usesNativeTabs) {
