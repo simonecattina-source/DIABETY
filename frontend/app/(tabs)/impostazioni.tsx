@@ -1,3 +1,4 @@
+import { DIABETY_COLORS } from '@/src/theme/diabety';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform, LayoutAnimation, UIManager, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,21 +12,7 @@ import ExcelJS from 'exceljs';
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-const COLORS = {
-  background: "#0A0A0C",        
-  surfaceSecondary: "#13131A",  
-  brandPrimary: "#00E5FF",      
-  brandSecondary: "#7D52FF",    
-  onSurface: "#FFFFFF",         
-  muted: "#7E7E86",             
-  success: "#00E676",           
-  warning: "#FF9100",           
-  error: "#FF5252",             
-  borderGlass: "rgba(255, 255, 255, 0.08)",
-  borderGlassBright: "rgba(255, 255, 255, 0.15)",
-  bgUtility: "#1A1A24",         
-  borderUtility: "#3A3A4A"      
-};
+const COLORS = DIABETY_COLORS;
 
 const MOMENTI_COLONNE = [
   "Prima Colazione", "Dopo Colazione", "Spuntino", 
