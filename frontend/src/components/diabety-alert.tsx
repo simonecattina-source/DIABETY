@@ -1,3 +1,4 @@
+import { DIABETY_COLORS, DIABETY_ALERT_COLORS } from '@/src/theme/diabety';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,7 +32,7 @@ export function DiabetyAlertProvider({ children }: { children: React.ReactNode }
   const chiudiAvviso = useCallback(() => setCoda(prec => prec.slice(1)), []);
   const corrente = coda[0];
   const valoreContesto = useMemo(() => mostraAvviso, [mostraAvviso]);
-  const colore = corrente?.tipo === 'errore' ? '#FF7373' : corrente?.tipo === 'avviso' ? '#FFB86B' : '#00E5FF';
+  const colore = corrente?.tipo === 'errore' ? DIABETY_ALERT_COLORS.error : corrente?.tipo === 'avviso' ? DIABETY_ALERT_COLORS.warning : DIABETY_COLORS.brandPrimary;
   const icona: 'alert-circle-outline' | 'warning-outline' | 'information-circle-outline' = corrente?.tipo === 'errore' ? 'alert-circle-outline' : corrente?.tipo === 'avviso' ? 'warning-outline' : 'information-circle-outline';
 
   return (
@@ -88,32 +89,32 @@ export function useDiabetyAlert(): MostraAvviso {
 
 const styles = StyleSheet.create({
   oscuramento: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.84)',
+    flex: 1, backgroundColor: DIABETY_ALERT_COLORS.overlay,
     justifyContent: 'center', paddingHorizontal: 18, paddingVertical: 26,
   },
   scheda: {
     width: '100%', maxWidth: 440, alignSelf: 'center',
-    backgroundColor: '#13131A', borderColor: '#32606B', borderWidth: 1,
+    backgroundColor: DIABETY_COLORS.surfaceSecondary, borderColor: DIABETY_ALERT_COLORS.border, borderWidth: 1,
     borderRadius: 20, overflow: 'hidden', padding: 18,
   },
   barraSuperiore: {
     position: 'absolute', left: 0, right: 0, top: 0,
-    height: 3, backgroundColor: '#00E5FF',
+    height: 3, backgroundColor: DIABETY_COLORS.brandPrimary,
   },
   intestazione: { flexDirection: 'row', alignItems: 'center', marginTop: 5, marginBottom: 17, gap: 12 },
   contenitoreIcona: {
     width: 44, height: 44, borderRadius: 12, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: '#10242C',
+    alignItems: 'center', justifyContent: 'center', backgroundColor: DIABETY_ALERT_COLORS.iconBackground,
   },
   areaTitolo: { flex: 1 },
-  marchio: { color: '#99ADBB', fontSize: 10, letterSpacing: 1, marginBottom: 4, fontWeight: '700' },
-  titolo: { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 23 },
-  scorrimento: { maxHeight: 260, backgroundColor: '#0C2029', borderRadius: 12, borderWidth: 1, borderColor: '#244651' },
+  marchio: { color: DIABETY_ALERT_COLORS.label, fontSize: 10, letterSpacing: 1, marginBottom: 4, fontWeight: '700' },
+  titolo: { color: DIABETY_COLORS.onSurface, fontSize: 18, fontWeight: '700', lineHeight: 23 },
+  scorrimento: { maxHeight: 260, backgroundColor: DIABETY_ALERT_COLORS.panelBackground, borderRadius: 12, borderWidth: 1, borderColor: DIABETY_ALERT_COLORS.panelBorder },
   testoContenitore: { padding: 15 },
-  messaggio: { color: '#DEE8EE', fontSize: 14, lineHeight: 22 },
+  messaggio: { color: DIABETY_ALERT_COLORS.message, fontSize: 14, lineHeight: 22 },
   pulsante: {
     marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#00E5FF', borderRadius: 12, minHeight: 46, paddingVertical: 11,
+    backgroundColor: DIABETY_COLORS.brandPrimary, borderRadius: 12, minHeight: 46, paddingVertical: 11,
   },
-  testoPulsante: { color: '#06171D', fontSize: 14, fontWeight: '800' },
+  testoPulsante: { color: DIABETY_ALERT_COLORS.onButton, fontSize: 14, fontWeight: '800' },
 });
