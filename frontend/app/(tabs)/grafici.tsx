@@ -1,3 +1,4 @@
+import { DIABETY_COLORS } from '@/src/theme/diabety';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,18 +7,7 @@ import { useFocusEffect } from 'expo-router';
 import Svg, { Defs, LinearGradient, Stop, Rect, Line, Path, Circle, Text as SvgText, G } from 'react-native-svg';
 
 // 🎨 PALETTE NEON HIGH-CONTRAST PREMIUM COORDINATA
-const COLORS = {
-  background: "#0A0A0C",        
-  surfaceSecondary: "#13131A",  
-  brandPrimary: "#00E5FF",      // Cyan elettrico neon (Grafico 24h)
-  brandSecondary: "#7D52FF",    // Viola tech (Trend macro)
-  onSurface: "#FFFFFF",         
-  muted: "#7E7E86",             
-  success: "#00E676",           // Verde smeraldo Oled (A Target)
-  warning: "#FF9100",           // Arancione vivo (Ipo/Attenzione)
-  error: "#FF5252",             // Rosso corallo neon (Iper/Alto)
-  borderGlass: "rgba(255, 255, 255, 0.06)" 
-};
+const COLORS = { ...DIABETY_COLORS, borderGlass: DIABETY_COLORS.borderGlassCharts };
 
 const MOMENTI_ELENCO = [
   "Prima Colazione", "Dopo Colazione",
