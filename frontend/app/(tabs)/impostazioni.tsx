@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform, LayoutAnimation, UIManager, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useDiabetyAlert } from '@/src/components/diabety-alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
@@ -152,12 +153,21 @@ const campoCSV = (valore: unknown): string => {
 };
 
 export default function StrumentiScreen() {
+  const mostraAvviso = useDiabetyAlert();
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
   const [filtroPdfSelezionato, setFiltroPdfSelezionato] = useState<string>('Tutti');
   const [modalPdfVisibile, setModalPdfVisibile] = useState(false);
   const [filtroTabellare, setFiltroTabellare] = useState('Tutti');
   const [modalTabellare, setModalTabellare] = useState<'excel' | 'csv' | null>(null);
   const [expandedPointId, setExpandedPointId] = useState<number | null>(null);
+  const [backupDaRipristinare, setBackupDaRipristinare] = useState<{
+    datiValidi: any[];
+    esclusi: number;
+    vecchioFormato: boolean;
+    parametriBolo: any;
+    alimentiPreferiti: string[];
+  } | null>(null);
+  const [importazioneInCorso, setImportazioneInCorso] = useState(false);
 
   const mostraMessaggioNotifica = (testo: string) => {
     setStatoNotifica(testo);
@@ -178,7 +188,7 @@ export default function StrumentiScreen() {
     setModalTabellare(null);
     try {
       if (Platform.OS !== 'web') {
-        alert('Questa esportazione è disponibile nella versione web di DIABETY.');
+        mostraAvviso('Questa esportazione è disponibile nella versione web di DIABETY.');
         return;
       }
       const salvati = await AsyncStorage.getItem('glicotrack_data');
@@ -186,7 +196,7 @@ export default function StrumentiScreen() {
       if (!Array.isArray(parsed)) throw new Error('Storico non valido');
       const misurazioni = selezionaMisurazioni(parsed, filtroTabellare);
       if (misurazioni.length === 0) {
-        alert('Non ci sono misurazioni nel periodo selezionato.');
+        mostraAvviso('Non ci sono misurazioni nel periodo selezionato.');
         return;
       }
       const periodoDescrizione = filtroTabellare === 'Tutti' ? 'Tutti i dati disponibili' : `Ultimi ${Number.parseInt(filtroTabellare, 10)} giorni`;
@@ -284,7 +294,7 @@ export default function StrumentiScreen() {
       mostraMessaggioNotifica(`✓ Esportazione ${formato.toUpperCase()} avviata`);
     } catch (errore) {
       console.error('Errore esportazione tabellare:', errore);
-      alert('Impossibile creare il file. Riprova.');
+      mostraAvviso('Impossibile creare il file. Riprova.');
     }
   };
 
@@ -337,12 +347,12 @@ export default function StrumentiScreen() {
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(dataUri, { dialogTitle: 'Salva il tuo Backup Diabety' });
         } else {
-          alert('La condivisione non è supportata su questo dispositivo.');
+          mostraAvviso('La condivisione non è supportata su questo dispositivo.');
         }
       }
     } catch (errore) {
       console.error('Errore backup:', errore);
-      alert('Impossibile creare il backup: alcuni dati salvati non sono validi. Nessun dato è stato modificato.');
+      mostraAvviso('Impossibile creare il backup: alcuni dati salvati non sono validi. Nessun dato è stato modificato.');
     }
   };
   // I vecchi backup in formato array restano importabili.
@@ -380,24 +390,24 @@ export default function StrumentiScreen() {
       const contenuto: any = JSON.parse(contenutoTesto);
       const vecchioFormato = Array.isArray(contenuto);
       if (!vecchioFormato && (!contenuto || contenuto.formato !== 'DIABETY_BACKUP' || contenuto.versione !== 2)) {
-        alert('Formato backup non riconosciuto. Nessun dato modificato.');
+        mostraAvviso('Formato backup non riconosciuto. Nessun dato modificato.');
         return;
       }
       const datiImportati: any[] = vecchioFormato ? contenuto : contenuto.storico;
       if (!Array.isArray(datiImportati) || !datiImportati.every(validaMisurazioneBackup)) {
-        alert('Backup non valido: storico malformato. Nessun dato modificato.');
+        mostraAvviso('Backup non valido: storico malformato. Nessun dato modificato.');
         return;
       }
       if (!vecchioFormato && (
         !(contenuto.parametriBolo === null || parametriBoloValidi(contenuto.parametriBolo)) ||
         !preferitiValidi(contenuto.alimentiPreferiti)
       )) {
-        alert('Backup non valido: parametri del bolo o preferiti non corretti. Nessun dato modificato.');
+        mostraAvviso('Backup non valido: parametri del bolo o preferiti non corretti. Nessun dato modificato.');
         return;
       }
       const ids = datiImportati.map((item: any) => item.id);
       if (new Set(ids).size !== ids.length) {
-        alert('Backup non valido: sono presenti identificativi duplicati. Lo storico attuale non è stato modificato.');
+        mostraAvviso('Backup non valido: sono presenti identificativi duplicati. Lo storico attuale non è stato modificato.');
         return;
       }
 
@@ -412,26 +422,43 @@ export default function StrumentiScreen() {
       });
       const esclusi = datiImportati.length - datiValidi.length;
       if (datiValidi.length === 0 && datiImportati.length > 0) {
-        alert(`Il backup contiene ${datiImportati.length} misurazioni, tutte oltre il limite di 91 giorni. Nessun dato è stato sovrascritto.`);
+        mostraAvviso(`Il backup contiene ${datiImportati.length} misurazioni, tutte oltre il limite di 91 giorni. Nessun dato è stato sovrascritto.`);
         return;
       }
 
-      const conferma = window.confirm(
-        `Backup verificato.\n\nMisurazioni da ripristinare: ${datiValidi.length}\nMisurazioni escluse perché più vecchie di 91 giorni: ${esclusi}\n${vecchioFormato ? 'Backup precedente: verrà ripristinato solo lo storico.' : 'Verranno ripristinati anche parametri del bolo e preferiti (non il piatto).'}\n\nATTENZIONE: il ripristino sostituirà tutto lo storico attuale. Prima di procedere, assicurati di averne salvato un backup.\n\nVuoi continuare?`
-      );
-      if (!conferma) return;
+      // Nessuna scrittura avviene qui: si attende la conferma nel popup DIABETY.
+      setBackupDaRipristinare({
+        datiValidi,
+        esclusi,
+        vecchioFormato,
+        parametriBolo: vecchioFormato ? null : contenuto.parametriBolo,
+        alimentiPreferiti: vecchioFormato ? [] : contenuto.alimentiPreferiti,
+      });
+    } catch (errore) {
+      mostraAvviso('Impossibile leggere o importare il backup. Nessun dato è stato modificato.');
+    }
+  };
 
-      // In caso di errore durante la scrittura, ripristina i valori precedenti.
+  const annullaImportazioneBackup = () => {
+    if (!importazioneInCorso) setBackupDaRipristinare(null);
+  };
+
+  const confermaImportazioneBackup = async () => {
+    if (!backupDaRipristinare || importazioneInCorso) return;
+    setImportazioneInCorso(true);
+    const { datiValidi, vecchioFormato, parametriBolo, alimentiPreferiti } = backupDaRipristinare;
+    try {
+      // Preserva il rollback della precedente importazione in caso di errore.
       const chiavi = vecchioFormato ? [CHIAVE_STORICO] : [CHIAVE_STORICO, CHIAVE_BOLO, CHIAVE_PREFERITI];
       const precedenti = await AsyncStorage.multiGet(chiavi);
       try {
         const nuovi: [string, string][] = [[CHIAVE_STORICO, JSON.stringify(datiValidi)]];
         if (!vecchioFormato) {
-          if (contenuto.parametriBolo !== null) nuovi.push([CHIAVE_BOLO, JSON.stringify(contenuto.parametriBolo)]);
-          nuovi.push([CHIAVE_PREFERITI, JSON.stringify(contenuto.alimentiPreferiti)]);
+          if (parametriBolo !== null) nuovi.push([CHIAVE_BOLO, JSON.stringify(parametriBolo)]);
+          nuovi.push([CHIAVE_PREFERITI, JSON.stringify(alimentiPreferiti)]);
         }
         await AsyncStorage.multiSet(nuovi);
-        if (!vecchioFormato && contenuto.parametriBolo === null) await AsyncStorage.removeItem(CHIAVE_BOLO);
+        if (!vecchioFormato && parametriBolo === null) await AsyncStorage.removeItem(CHIAVE_BOLO);
       } catch (erroreScrittura) {
         for (const [chiave, valore] of precedenti) {
           if (valore === null) await AsyncStorage.removeItem(chiave);
@@ -439,9 +466,12 @@ export default function StrumentiScreen() {
         }
         throw erroreScrittura;
       }
+      setBackupDaRipristinare(null);
       mostraMessaggioNotifica(`✓ Ripristinate ${datiValidi.length} misurazioni${vecchioFormato ? '' : ', parametri e preferiti'}`);
     } catch (errore) {
-      alert('Impossibile leggere o importare il backup. Lo storico attuale non è stato modificato se la scrittura non è riuscita.');
+      mostraAvviso('Impossibile importare il backup. È stato tentato il ripristino dei dati precedenti.');
+    } finally {
+      setImportazioneInCorso(false);
     }
   };
   const esportaDocumentoMatriceStoricoPDF = async (modalita: 'html' | 'pdf') => {
@@ -449,7 +479,7 @@ export default function StrumentiScreen() {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
       let dati = storicoEsistente ? JSON.parse(storicoEsistente) : [];
-      if (dati.length === 0) { alert("Non ci sono dati disponibili nel diario per generare il report."); return; }
+      if (dati.length === 0) { mostraAvviso("Non ci sono dati disponibili nel diario per generare il report."); return; }
       const tuttiIRecordPdf: any[] = dati; // Le due colonne Notte usano solo i record della data della riga.
 
       if (filtroPdfSelezionato !== 'Tutti') {
@@ -461,7 +491,7 @@ export default function StrumentiScreen() {
         });
       }
 
-      if (dati.length === 0) { alert(`Nessun dato registrato nell'intervallo selezionato.`); return; }
+      if (dati.length === 0) { mostraAvviso(`Nessun dato registrato nell'intervallo selezionato.`); return; }
 
       // Il PDF seleziona per ogni data e momento la misurazione con orario più antico.
       const sezioni: Record<string, any[]> = {};
@@ -559,7 +589,7 @@ export default function StrumentiScreen() {
           const finestra = window.open(url, '_blank');
           if (!finestra) {
             URL.revokeObjectURL(url);
-            alert('Il browser ha bloccato la nuova finestra. Consenti i popup per visualizzare il documento.');
+            mostraAvviso('Il browser ha bloccato la nuova finestra. Consenti i popup per visualizzare il documento.');
             return;
           }
           setTimeout(() => URL.revokeObjectURL(url), 60000);
@@ -651,7 +681,7 @@ export default function StrumentiScreen() {
         }
       } else {
         if (modalita === 'html') {
-          alert('La visualizzazione HTML è disponibile nella versione web.');
+          mostraAvviso('La visualizzazione HTML è disponibile nella versione web.');
         } else {
           const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
           await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
@@ -659,7 +689,7 @@ export default function StrumentiScreen() {
       }
     } catch (e) {
       console.error('DIABETY: errore durante esportazione PDF', e);
-      alert('Impossibile generare il PDF: ' + (e instanceof Error ? e.message : 'errore sconosciuto'));
+      mostraAvviso('Impossibile generare il PDF: ' + (e instanceof Error ? e.message : 'errore sconosciuto'));
     }
   };
   const manualPoints = [
@@ -790,6 +820,97 @@ export default function StrumentiScreen() {
         </View>
       </View>
 
+      {/* Conferma di importazione con lo stesso tema nero/ciano di DIABETY. */}
+      <Modal
+        visible={backupDaRipristinare !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={annullaImportazioneBackup}
+      >
+        <View style={styles.backupModalOverlay}>
+          <View style={styles.backupModalCard}>
+            <View style={styles.backupModalAccento} />
+            <View style={styles.backupModalHeader}>
+              <View style={styles.backupModalIcona}>
+                <Ionicons name="cloud-upload-outline" size={23} color={COLORS.brandPrimary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.backupModalTitolo}>Importa backup</Text>
+                <Text style={styles.backupModalSottotitolo}>DIABETY · Conferma ripristino</Text>
+              </View>
+              <TouchableOpacity
+                onPress={annullaImportazioneBackup}
+                disabled={importazioneInCorso}
+                accessibilityLabel="Chiudi finestra importazione"
+                accessibilityRole="button"
+              >
+                <Ionicons name="close" size={23} color="#9FAFB9" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.backupModalEsito}>
+              <Ionicons name="checkmark-circle-outline" size={19} color={COLORS.success} />
+              <Text style={styles.backupModalEsitoTesto}>Backup verificato e pronto al ripristino</Text>
+            </View>
+
+            <View style={styles.backupModalStatistiche}>
+              <View style={styles.backupModalStatRiga}>
+                <Text style={styles.backupModalStatEtichetta}>Misurazioni da ripristinare</Text>
+                <Text style={styles.backupModalStatValore}>{backupDaRipristinare?.datiValidi.length ?? 0}</Text>
+              </View>
+              <View style={styles.backupModalSeparatore} />
+              <View style={styles.backupModalStatRiga}>
+                <Text style={styles.backupModalStatEtichetta}>Misurazioni escluse perché più vecchie di 90 giorni</Text>
+                <Text style={styles.backupModalStatEscluse}>{backupDaRipristinare?.esclusi ?? 0}</Text>
+              </View>
+            </View>
+
+            <View style={styles.backupModalInfo}>
+              <Ionicons name="information-circle-outline" size={20} color={COLORS.brandPrimary} />
+              <Text style={styles.backupModalInfoTesto}>
+                {backupDaRipristinare?.vecchioFormato
+                  ? 'Backup precedente: verrà ripristinato soltanto lo storico.'
+                  : 'Verranno ripristinati anche i parametri del bolo e gli alimenti preferiti. Il piatto non sarà modificato.'}
+              </Text>
+            </View>
+
+            <View style={styles.backupModalAvviso}>
+              <Ionicons name="alert-circle-outline" size={21} color={COLORS.warning} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.backupModalAvvisoTitolo}>Attenzione alla sovrascrittura</Text>
+                <Text style={styles.backupModalAvvisoTesto}>
+                  Il ripristino sostituirà tutto lo storico attuale. Assicurati di aver salvato prima un backup dei tuoi dati.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.backupModalAzioni}>
+              <TouchableOpacity
+                style={styles.backupModalAnnulla}
+                onPress={annullaImportazioneBackup}
+                disabled={importazioneInCorso}
+                accessibilityRole="button"
+                accessibilityLabel="Annulla importazione backup"
+              >
+                <Text style={styles.backupModalAnnullaTesto}>Annulla</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.backupModalConferma, importazioneInCorso && styles.backupModalDisabilitato]}
+                onPress={confermaImportazioneBackup}
+                disabled={importazioneInCorso}
+                accessibilityRole="button"
+                accessibilityLabel="Conferma ripristino backup"
+              >
+                <Ionicons name="checkmark-outline" size={18} color="#051B21" />
+                <Text style={styles.backupModalConfermaTesto}>
+                  {importazioneInCorso ? 'Ripristino…' : 'Ripristina backup'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={modalTabellare !== null} transparent animationType="fade" onRequestClose={() => setModalTabellare(null)}>
         <View style={styles.pdfModalOverlay}>
           <View style={styles.pdfModalCard}>
@@ -902,6 +1023,33 @@ const styles = StyleSheet.create({
   exportModalCancelText: { color: '#A5B3C7', fontWeight: '700', fontSize: 12 },
   exportModalConfirm: { flex: 1.5, backgroundColor: '#123E48', borderColor: '#00DFFF', borderWidth: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' },
   exportModalConfirmText: { color: '#00E5FF', fontWeight: '700', fontSize: 12, textAlign: 'center' },
+
+  backupModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.84)', justifyContent: 'center', padding: 16 },
+  backupModalCard: { width: '100%', maxWidth: 440, alignSelf: 'center', backgroundColor: '#13131A', borderRadius: 20, borderWidth: 1, borderColor: '#32606B', overflow: 'hidden', padding: 18 },
+  backupModalAccento: { height: 3, backgroundColor: COLORS.brandPrimary, position: 'absolute', top: 0, left: 0, right: 0 },
+  backupModalHeader: { flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 3, marginBottom: 16 },
+  backupModalIcona: { width: 43, height: 43, backgroundColor: '#113039', borderRadius: 12, borderWidth: 1, borderColor: '#276577', justifyContent: 'center', alignItems: 'center' },
+  backupModalTitolo: { color: COLORS.onSurface, fontSize: 19, fontWeight: '700' },
+  backupModalSottotitolo: { color: '#9AABBB', fontSize: 11, marginTop: 3 },
+  backupModalEsito: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 13 },
+  backupModalEsitoTesto: { color: '#B6EBC8', fontSize: 12, fontWeight: '600', flex: 1 },
+  backupModalStatistiche: { backgroundColor: '#0C2029', borderWidth: 1, borderColor: '#244651', borderRadius: 13, paddingHorizontal: 13, paddingVertical: 7 },
+  backupModalStatRiga: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 13, paddingVertical: 10 },
+  backupModalStatEtichetta: { color: '#D5E0E7', fontSize: 12, lineHeight: 17, flex: 1 },
+  backupModalStatValore: { color: COLORS.brandPrimary, fontSize: 19, fontWeight: '800' },
+  backupModalStatEscluse: { color: '#F8B66B', fontSize: 19, fontWeight: '800' },
+  backupModalSeparatore: { height: 1, backgroundColor: '#244651' },
+  backupModalInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, marginTop: 13, marginBottom: 12 },
+  backupModalInfoTesto: { color: '#B5C8D3', fontSize: 12, lineHeight: 18, flex: 1 },
+  backupModalAvviso: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderRadius: 12, padding: 12, backgroundColor: '#291F17', borderWidth: 1, borderColor: '#655037' },
+  backupModalAvvisoTitolo: { color: '#FFBB78', fontSize: 12, fontWeight: '700', marginBottom: 4 },
+  backupModalAvvisoTesto: { color: '#E8C9A7', fontSize: 11, lineHeight: 17 },
+  backupModalAzioni: { flexDirection: 'row', gap: 9, marginTop: 17 },
+  backupModalAnnulla: { flex: 1, paddingVertical: 12, borderWidth: 1, borderColor: '#49505C', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  backupModalAnnullaTesto: { color: '#CCD1DB', fontSize: 13, fontWeight: '700' },
+  backupModalConferma: { flex: 1.55, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: COLORS.brandPrimary, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 4 },
+  backupModalConfermaTesto: { color: '#051B21', fontSize: 12, fontWeight: '800' },
+  backupModalDisabilitato: { opacity: 0.55 },
 
   pdfModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', padding: 20 },
   pdfModalCard: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 22, borderWidth: 1, borderColor: COLORS.borderGlassBright, padding: 20, maxWidth: 440, width: '100%', alignSelf: 'center' },
