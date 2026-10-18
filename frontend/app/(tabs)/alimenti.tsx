@@ -1,3 +1,4 @@
+import { DIABETY_COLORS } from '@/src/theme/diabety';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, ScrollView, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,17 +8,7 @@ import { useFocusEffect } from 'expo-router';
 // 📂 IMPORTAZIONE ASINCRONA DEL TUO DATABASE DI ALIMENTI ESTERNO JSON
 import DATABASE_ALIMENTI_ESTERNO from '../../constants/alimenti_database.json';
 
-const COLORS = {
-  background: "#0A0A0C",        
-  surfaceSecondary: "#13131A",  
-  brandPrimary: "#00E5FF",      // Cyan neon attivo
-  brandSecondary: "#7D52FF",    // Viola tech
-  onSurface: "#FFFFFF",         
-  muted: "#7E7E86",             
-  success: "#00E676",           // Verde smeraldo Oled per il totale CHO cumulativo
-  error: "#FF5252",             // Rosso per eliminare i cibi dal piatto
-  borderGlass: "rgba(255, 255, 255, 0.08)"
-};
+const COLORS = DIABETY_COLORS;
 
 // Ordiniamo alfabeticamente l'array importato per garantire una ricerca utente ottimale
 const DATABASE_ALIMENTI = [...DATABASE_ALIMENTI_ESTERNO].sort((a, b) => a.nome.localeCompare(b.nome));
