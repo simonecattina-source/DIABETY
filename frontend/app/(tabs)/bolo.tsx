@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useDiabetyAlert } from '@/src/components/diabety-alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const COLORS = {
@@ -17,6 +18,7 @@ const COLORS = {
 };
 
 export default function CalcolatoreBoloScreen() {
+  const mostraAvviso = useDiabetyAlert();
   // Input Utente per il calcolo estemporaneo (Inizializzato vuoto con controllo placeholder)
   const [glicemiaAttuale, setGlicemiaAttuale] = useState('');
   const [carboidratiPasto, setCarboidratiPasto] = useState('');
@@ -82,7 +84,7 @@ export default function CalcolatoreBoloScreen() {
       return;
     }
     if (numeroPositivo(rapportoCHO) === null || numeroPositivo(sensibilitaISF) === null || numeroPositivo(targetGlicemico) === null) {
-      alert('Compila tutti e tre i parametri personali con numeri maggiori di zero, concordati con il medico.');
+      mostraAvviso('Compila tutti e tre i parametri personali con numeri maggiori di zero, concordati con il medico.');
       return;
     }
     try {
@@ -91,21 +93,21 @@ export default function CalcolatoreBoloScreen() {
       setModificaAttiva(false);
       invalidaRisultato();
     } catch (error) {
-      alert('Impossibile salvare i parametri sul dispositivo.');
+      mostraAvviso('Impossibile salvare i parametri sul dispositivo.');
     }
   };
 
   const calcolaBoloInsulinico = () => {
     invalidaRisultato();
     if (!parametriCaricati || !parametriConfermati || modificaAttiva) {
-      alert('Prima configura e salva i tuoi tre parametri terapeutici personali.');
+      mostraAvviso('Prima configura e salva i tuoi tre parametri terapeutici personali.');
       return;
     }
     const r_cho = numeroPositivo(rapportoCHO);
     const isf = numeroPositivo(sensibilitaISF);
     const target = numeroPositivo(targetGlicemico);
     if (r_cho === null || isf === null || target === null) {
-      alert('Parametri personali non validi. Verifica e salva nuovamente la configurazione.');
+      mostraAvviso('Parametri personali non validi. Verifica e salva nuovamente la configurazione.');
       return;
     }
     const leggiInput = (testo: string): number | null => {
@@ -116,22 +118,22 @@ export default function CalcolatoreBoloScreen() {
     const cho = carboidratiPasto.trim() === '' ? 0 : leggiInput(carboidratiPasto);
     const glic = glicemiaAttuale.trim() === '' ? 0 : leggiInput(glicemiaAttuale);
     if (cho === null || glic === null || (glicemiaAttuale.trim() !== '' && glic === 0)) {
-      alert('Inserisci valori validi per glicemia e carboidrati.');
+      mostraAvviso('Inserisci valori validi per glicemia e carboidrati.');
       return;
     }
     if (cho === 0 && glic === 0) {
-      alert('Inserisci almeno il valore della glicemia o i carboidrati del pasto.');
+      mostraAvviso('Inserisci almeno il valore della glicemia o i carboidrati del pasto.');
       return;
     }
     if (glic > 0 && glic < 70) {
-      alert('Glicemia inferiore a 70 mg/dL: il calcolo è sospeso. Segui il piano di gestione dell’ipoglicemia concordato con il medico.');
+      mostraAvviso('Glicemia inferiore a 70 mg/dL: il calcolo è sospeso. Segui il piano di gestione dell’ipoglicemia concordato con il medico.');
       return;
     }
     const insulinaPasto = cho > 0 ? cho / r_cho : 0;
     const insulinaCorrezione = glic > target ? (glic - target) / isf : 0;
     const totaleTeorico = insulinaPasto + insulinaCorrezione;
     if (!Number.isFinite(totaleTeorico)) {
-      alert('Impossibile calcolare il bolo con i valori inseriti.');
+      mostraAvviso('Impossibile calcolare il bolo con i valori inseriti.');
       return;
     }
     setQuotaPasto(Math.round(insulinaPasto * 10) / 10);
