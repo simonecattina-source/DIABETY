@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, SectionList, Platform, Modal, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useDiabetyAlert } from '@/src/components/diabety-alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -76,6 +77,7 @@ const scegliMisurePdf = (righe: any[], tuttiIRecord: any[], dataRiga: string): M
 };
 
 export default function StoricoScreen() {
+  const mostraAvviso = useDiabetyAlert();
   const [filtroAttivo, setFiltroAttivo] = useState<'7' | '14' | '30' | '90' | 'all'>('all');
   const [datiReali, setDatiReali] = useState<any[]>([]);
 
@@ -121,7 +123,7 @@ export default function StoricoScreen() {
       setMostraNotificaSvuotato(true);
       setTimeout(() => { setMostraNotificaSvuotato(false); }, 3000);
     } catch (e) {
-      alert("Impossibile cancellare i dati.");
+      mostraAvviso("Impossibile cancellare i dati.");
     }
   };
 
@@ -170,7 +172,7 @@ export default function StoricoScreen() {
         setMostraNotificaModifica(false); setMostraModalModifica(false); setItemSelezionato(null);
       }, 1300);
     } catch (e) {
-      alert("Errore durante l'eliminazione.");
+      mostraAvviso("Errore durante l'eliminazione.");
     }
   };
 
@@ -196,10 +198,10 @@ export default function StoricoScreen() {
   const salvaModificaItem = async () => {
     const valoreGlicemia = parseInt(modGlicemia);
     if (!valoreGlicemia || isNaN(valoreGlicemia)) {
-      alert("Inserisci un valore di glicemia valido."); return;
+      mostraAvviso("Inserisci un valore di glicemia valido."); return;
     }
     if (modCho.trim() !== '' && (!/^\d+(?:[.,]\d+)?$/.test(modCho.trim()) || !Number.isFinite(Number(modCho.replace(',', '.'))))) {
-      alert('Inserisci una quantità di CHO valida oppure lascia il campo vuoto.'); return;
+      mostraAvviso('Inserisci una quantità di CHO valida oppure lascia il campo vuoto.'); return;
     }
     const [aaaa, mm, gg] = modDataISO.split('-');
     const dataRiconvertita = `${gg}/${mm}/${aaaa.slice(-2)}`;
@@ -230,7 +232,7 @@ export default function StoricoScreen() {
       await AsyncStorage.setItem('glicotrack_data', JSON.stringify(datiAggiornati));
       setDatiReali(datiAggiornati); setTestoNotifica('✓ Modifica salvata nel registro'); setMostraNotificaModifica(true);
       setTimeout(() => { setMostraNotificaModifica(false); setMostraModalModifica(false); setItemSelezionato(null); }, 1500);
-    } catch (e) { alert("Errore durante il salvataggio."); }
+    } catch (e) { mostraAvviso("Errore durante il salvataggio."); }
   };
 
   const ottieniDatiSezionati = () => {
@@ -251,7 +253,7 @@ export default function StoricoScreen() {
     try {
       const storicoEsistente = await AsyncStorage.getItem('glicotrack_data');
       let dati = storicoEsistente ? JSON.parse(storicoEsistente) : [];
-      if (dati.length === 0) { alert("Non ci sono dati disponibili nel diario per generare il report."); return; }
+      if (dati.length === 0) { mostraAvviso("Non ci sono dati disponibili nel diario per generare il report."); return; }
       const tuttiIRecordPdf: any[] = dati; // Le due colonne Notte usano solo i record della data della riga.
 
       if (filtroAttivo !== 'all') {
@@ -263,7 +265,7 @@ export default function StoricoScreen() {
         });
       }
 
-      if (dati.length === 0) { alert(`Nessun dato registrato nell'intervallo selezionato.`); return; }
+      if (dati.length === 0) { mostraAvviso(`Nessun dato registrato nell'intervallo selezionato.`); return; }
 
       // Il PDF seleziona per ciascuna data e momento la misurazione con orario più antico.
       // A parità di orario vince la prima registrazione inserita.
@@ -361,7 +363,7 @@ export default function StoricoScreen() {
           const finestra = window.open(url, '_blank');
           if (!finestra) {
             URL.revokeObjectURL(url);
-            alert('Il browser ha bloccato la nuova finestra. Consenti i popup per visualizzare il documento.');
+            mostraAvviso('Il browser ha bloccato la nuova finestra. Consenti i popup per visualizzare il documento.');
             return;
           }
           setTimeout(() => URL.revokeObjectURL(url), 60000);
@@ -453,7 +455,7 @@ export default function StoricoScreen() {
         }
       } else {
         if (modalita === 'html') {
-          alert('La visualizzazione HTML è disponibile nella versione web.');
+          mostraAvviso('La visualizzazione HTML è disponibile nella versione web.');
         } else {
           const { uri } = await Print.printToFileAsync({ html: htmlTemplateHTML });
           await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Esporta Report Medico PDF' });
@@ -461,7 +463,7 @@ export default function StoricoScreen() {
       }
     } catch (e) {
       console.error('DIABETY: errore durante esportazione PDF', e);
-      alert('Impossibile generare il PDF: ' + (e instanceof Error ? e.message : 'errore sconosciuto'));
+      mostraAvviso('Impossibile generare il PDF: ' + (e instanceof Error ? e.message : 'errore sconosciuto'));
     }
   };
   return (
