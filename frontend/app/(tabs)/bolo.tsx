@@ -1,21 +1,11 @@
+import { DIABETY_COLORS } from '@/src/theme/diabety';
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDiabetyAlert } from '@/src/components/diabety-alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const COLORS = {
-  background: "#0A0A0C",        
-  surfaceSecondary: "#13131A",  
-  brandPrimary: "#00E5FF",      // Cyan neon
-  brandSecondary: "#7D52FF",    // Viola tech per la sezione parametri
-  onSurface: "#FFFFFF",         
-  muted: "#7E7E86",             
-  success: "#00E676",           // Verde smeraldo Oled
-  warning: "#FF9100",           // Arancione vivo
-  error: "#FF5252",             // Rosso corallo neon
-  borderGlass: "rgba(255, 255, 255, 0.08)"
-};
+const COLORS = DIABETY_COLORS;
 
 export default function CalcolatoreBoloScreen() {
   const mostraAvviso = useDiabetyAlert();
