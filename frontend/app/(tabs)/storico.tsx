@@ -1,3 +1,4 @@
+import { DIABETY_COLORS } from '@/src/theme/diabety';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, SectionList, Platform, Modal, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,20 +9,7 @@ import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
 // 🎨 PALETTE AD ALTO CONTRASTO CON AZZURRO CYAN NEON PER IL PULSANTE PDF COORDINATO
-const COLORS = {
-  background: "#0A0A0C",        
-  surfaceSecondary: "#13131A",  // Nero profondo tech per i contenitori
-  brandPrimary: "#00E5FF",
-  brandSecondary: "#7D52FF",
-  bgUtility: "#1A1A24",      // Azzurro Cyan elettrico neon coordinato
-  onSurface: "#FFFFFF",         // Bianco purissimo ultra-nitido
-  muted: "#7E7E86",             
-  success: "#00E676",           // Verde smeraldo Oled
-  warning: "#FF9100",           // Arancione vivo
-  error: "#FF5252",             // Rosso corallo neon
-  borderGlass: "rgba(255, 255, 255, 0.08)",
-  borderGlassBright: "rgba(255, 255, 255, 0.15)"
-};
+const COLORS = DIABETY_COLORS;
 
 const MOMENTI_COLONNE = [
   "Prima Colazione", "Dopo Colazione", "Spuntino", 
