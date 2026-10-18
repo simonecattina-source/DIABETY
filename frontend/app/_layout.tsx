@@ -9,6 +9,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { queryClient } from "@/src/query-client";
+import { DiabetyAlertProvider } from "@/src/components/diabety-alert";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -61,7 +62,9 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <QueryClientProvider client={queryClient}>
             <KeyboardProvider>
-              <Stack screenOptions={{ headerShown: false }} />
+              <DiabetyAlertProvider>
+                <Stack screenOptions={{ headerShown: false }} />
+              </DiabetyAlertProvider>
             </KeyboardProvider>
           </QueryClientProvider>
         </SafeAreaProvider>
