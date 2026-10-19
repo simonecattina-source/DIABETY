@@ -141,20 +141,48 @@ export default function StoricoScreen() {
   };
 
   const salvaModificaItem = async () => {
-    const valoreGlicemia = parseInt(modGlicemia);
-    if (!valoreGlicemia || isNaN(valoreGlicemia)) {
-      mostraAvviso("Inserisci un valore di glicemia valido."); return;
+    if (!itemSelezionato) return;
+    // Gli stessi controlli rigorosi di Inserisci e del backup: parseInt da solo
+    // accetterebbe erroneamente valori come "15e", "1.5" e "-12".
+    const glicemiaPulita = modGlicemia.trim();
+    if (!/^\d{1,3}$/.test(glicemiaPulita) || Number(glicemiaPulita) <= 0) {
+      mostraAvviso("Inserisci una glicemia valida, da 1 a 999 mg/dL."); return;
     }
-    if (modCho.trim() !== '' && leggiValoreCho(modCho) === null) {
-      mostraAvviso('Inserisci una quantità di CHO valida oppure lascia il campo vuoto.'); return;
+    const valoreGlicemia = Number(glicemiaPulita);
+    const insulinaPulita = modInsulina.trim();
+    if (insulinaPulita !== '' && !/^\d{1,2}$/.test(insulinaPulita)) {
+      mostraAvviso("Inserisci l'insulina come numero intero di UI oppure lascia il campo vuoto."); return;
+    }
+    const choValido = modCho.trim() === '' ? null : leggiValoreCho(modCho);
+    if (modCho.trim() !== '' && choValido === null) {
+      mostraAvviso('Inserisci una quantità di CHO valida da 0 a 9999, con punto o virgola.'); return;
+    }
+    // Verifica che la data sia reale e non successiva a oggi, senza
+    // cambiare in alcun modo la politica di conservazione 90/91 giorni.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(modDataISO)) {
+      mostraAvviso('Inserisci una data valida nel formato AAAA-MM-GG.'); return;
     }
     const [aaaa, mm, gg] = modDataISO.split('-');
+    const dataModificata = new Date(Number(aaaa), Number(mm) - 1, Number(gg));
+    const oggi = new Date();
+    oggi.setHours(0, 0, 0, 0);
+    if (dataModificata.getFullYear() !== Number(aaaa) ||
+        dataModificata.getMonth() !== Number(mm) - 1 ||
+        dataModificata.getDate() !== Number(gg) || dataModificata.getTime() > oggi.getTime()) {
+      mostraAvviso('Inserisci una data reale, non successiva a oggi.'); return;
+    }
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(modOraText)) {
+      mostraAvviso('Inserisci un orario valido nel formato HH:MM.'); return;
+    }
+    if (!MOMENTI_COLONNE.includes(modMomento)) {
+      mostraAvviso('Seleziona un momento della giornata valido.'); return;
+    }
     const dataRiconvertita = `${gg}/${mm}/${aaaa.slice(-2)}`;
     const noteConOrarioFuso = modNote.trim() ? `[${modOraText}] ${modNote.trim()}` : `[${modOraText}]`;
     try {
       let datiAggiornati = datiReali.map(item => {
         if (item.id === itemSelezionato.id) {
-          return { ...item, glicemia: valoreGlicemia, insulina: modInsulina ? `${modInsulina} UI` : '-', cho: modCho.trim() === '' ? null : leggiValoreCho(modCho), tipo: modMomento, note: noteConOrarioFuso, ora: modOraText, dataTesto: dataRiconvertita };
+          return { ...item, glicemia: valoreGlicemia, insulina: insulinaPulita ? `${insulinaPulita} UI` : '-', cho: choValido, tipo: modMomento, note: noteConOrarioFuso, ora: modOraText, dataTesto: dataRiconvertita };
         }
         return item;
       });
