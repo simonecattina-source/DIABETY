@@ -1,5 +1,6 @@
 import { MOMENTI_COLONNE, raggruppaMisurePerDataPdf } from '@/src/utils/pdf-measurement-selection';
 import { generaHtmlRegistroPdf } from '@/src/utils/pdf-report-html';
+import { leggiValoreCho, formattaCho, formattaInsulinaChoPdf } from '@/src/utils/cho';
 import { DiabetyStatusNotice } from '@/src/components/diabety-status-notice';
 import { DiabetyDialogHeading } from '@/src/components/diabety-dialog-heading';
 import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
@@ -145,7 +146,7 @@ export default function StoricoScreen() {
     if (!valoreGlicemia || isNaN(valoreGlicemia)) {
       mostraAvviso("Inserisci un valore di glicemia valido."); return;
     }
-    if (modCho.trim() !== '' && (!/^\d+(?:[.,]\d+)?$/.test(modCho.trim()) || !Number.isFinite(Number(modCho.replace(',', '.'))))) {
+    if (modCho.trim() !== '' && leggiValoreCho(modCho) === null) {
       mostraAvviso('Inserisci una quantità di CHO valida oppure lascia il campo vuoto.'); return;
     }
     const [aaaa, mm, gg] = modDataISO.split('-');
@@ -154,7 +155,7 @@ export default function StoricoScreen() {
     try {
       let datiAggiornati = datiReali.map(item => {
         if (item.id === itemSelezionato.id) {
-          return { ...item, glicemia: valoreGlicemia, insulina: modInsulina ? `${modInsulina} UI` : '-', cho: modCho.trim() === '' ? null : Number(modCho.replace(',', '.')), tipo: modMomento, note: noteConOrarioFuso, ora: modOraText, dataTesto: dataRiconvertita };
+          return { ...item, glicemia: valoreGlicemia, insulina: modInsulina ? `${modInsulina} UI` : '-', cho: modCho.trim() === '' ? null : leggiValoreCho(modCho), tipo: modMomento, note: noteConOrarioFuso, ora: modOraText, dataTesto: dataRiconvertita };
         }
         return item;
       });
@@ -219,11 +220,7 @@ export default function StoricoScreen() {
       const htmlTemplateHTML = generaHtmlRegistroPdf(
         sezioniOrdinate,
         tuttiIRecordPdf,
-        (item: any) => {
-        const insulinaPdf = item.insulina && item.insulina !== '-' ? `<span style="font-weight: 600;">${item.insulina}</span>` : '';
-        const choPdf = item.cho !== null && item.cho !== undefined && item.cho !== '' && Number.isFinite(Number(item.cho)) ? `<span style="font-weight: normal;">${Number(item.cho)} CHO</span>` : '';
-        return [insulinaPdf, choPdf].filter(Boolean).join(' - ') || '-';
-        },
+        formattaInsulinaChoPdf,
       );
 
       if (Platform.OS === 'web') {
@@ -409,8 +406,8 @@ export default function StoricoScreen() {
                   <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
                     <Ionicons name="medkit-outline" size={14} color={COLORS.brandSecondary}/>
                     <Text style={styles.newInsulin}>{item.insulina && item.insulina!=='-' ? item.insulina : '—'}</Text>
-                    {item.cho !== null && item.cho !== undefined && item.cho !== '' && Number.isFinite(Number(item.cho)) && (
-                      <Text style={styles.newCho}>· {Number(item.cho)} CHO</Text>
+                    {formattaCho(item.cho) !== null && (
+                      <Text style={styles.newCho}>· {formattaCho(item.cho)} CHO</Text>
                     )}
                   </View>
                 </View>
