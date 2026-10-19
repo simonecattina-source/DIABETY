@@ -1,0 +1,21 @@
+DIABETY - Menu fasce orarie a tendina + correzione zoom iPhone Safari (20 ottobre 2026)
+
+BASE: PROVA PER IBOin.zip caricato dall’utente + correzione Stima matematica consegnata in questa conversazione.
+
+COSA INSTALLARE SU GITHUB
+1) Sostituire frontend/app/(tabs)/bolo.tsx con il file incluso nello stesso percorso.
+2) Solo se non lo hai già aggiunto con la precedente correzione, creare frontend/src/utils/calcolo-bolo.ts usando il file incluso. Se esiste già ed è quello della correzione del 20/10, è identico.
+3) Nessuna modifica a package.json, app/+html.tsx, configurazione Vercel o altre schede.
+
+FUNZIONI
+- Fasce orarie chiuse di default a ogni ingresso nella scheda Bolo.
+- Tocco sul titolo Fasce orarie apre elenco; ogni fascia si apre/chiude singolarmente, una per volta.
+- Nome e orari restano quelli memorizzati. Modifica parametri mediante la finestra precedente. Il nome si può modificare quando la fascia è espansa e il lucchetto è aperto.
+- Pulsanti aiuto ? accessibili toccando l’intera intestazione del parametro.
+- Tutti i campi TextInput di Bolo hanno font >=16 px per ridurre l’autozoom di Safari iOS.
+- Glicemia iniziale 00 non viene validata finché l’utente non inserisce un valore o richiede Rivedi dati; 00 esplicitamente inserito resta invalido.
+- Stima matematica separata dall’IOB e non terapeutica. Nessun bolo consigliato e nessuna sottrazione automatica dell’IOB.
+
+PRIMA DELL’INSTALLAZIONE
+Salvare una copia del repository e dei dati applicativi. Pubblicare su branch di test, verificare la build Vercel e provare su iPhone Safari, Android e browser desktop.
+Le modifiche sono state controllate sintatticamente, non è stata eseguita una build reale Expo/Vercel, né test dispositivo.
