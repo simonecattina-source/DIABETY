@@ -1,3 +1,4 @@
+import { DiabetyPdfExportModal } from '@/src/components/diabety-pdf-export-modal';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform, LayoutAnimation, UIManager, Modal } from 'react-native';
@@ -927,42 +928,13 @@ export default function StrumentiScreen() {
         </View>
       </Modal>
 
-      <Modal visible={modalPdfVisibile} transparent animationType="fade" onRequestClose={() => setModalPdfVisibile(false)}>
-        <View style={styles.pdfModalOverlay}>
-          <View style={styles.pdfModalCard}>
-            <View style={styles.pdfModalHeader}>
-              <Ionicons name="document-text-outline" size={24} color={COLORS.brandPrimary} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.pdfModalTitle}>Esporta registro</Text>
-                <Text style={styles.pdfModalSubtitle}>DIABETY · Diario glicemico</Text>
-              </View>
-              <TouchableOpacity onPress={() => setModalPdfVisibile(false)} accessibilityLabel="Chiudi finestra">
-                <Ionicons name="close" size={24} color={COLORS.muted} />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.pdfModalPeriodo}>Periodo selezionato: {filtroPdfSelezionato}</Text>
-            <TouchableOpacity style={styles.pdfModalOption} onPress={() => esportaDocumentoMatriceStoricoPDF('html')}>
-              <Ionicons name="eye-outline" size={22} color={COLORS.brandPrimary} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.pdfModalOptionTitle}>Visualizza HTML</Text>
-                <Text style={styles.pdfModalOptionDesc}>Apri il documento formattato nel browser</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.pdfModalOption} onPress={() => esportaDocumentoMatriceStoricoPDF('pdf')}>
-              <Ionicons name="download-outline" size={22} color={COLORS.brandSecondary} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.pdfModalOptionTitle}>Scarica PDF</Text>
-                <Text style={styles.pdfModalOptionDesc}>Salva un vero documento .pdf</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.pdfModalCancel} onPress={() => setModalPdfVisibile(false)}>
-              <Text style={styles.pdfModalCancelText}>Annulla</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <DiabetyPdfExportModal
+        visible={modalPdfVisibile}
+        periodo={filtroPdfSelezionato}
+        onClose={() => setModalPdfVisibile(false)}
+        onViewHtml={() => esportaDocumentoMatriceStoricoPDF('html')}
+        onDownloadPdf={() => esportaDocumentoMatriceStoricoPDF('pdf')}
+      />
 
       <Text style={styles.sectionLabel}>Manuale & Linee Guida</Text>
 
@@ -1043,12 +1015,6 @@ const styles = StyleSheet.create({
   pdfModalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
   pdfModalTitle: { color: COLORS.onSurface, fontSize: 18, fontWeight: '700' },
   pdfModalSubtitle: { color: COLORS.muted, fontSize: 12, marginTop: 3 },
-  pdfModalPeriodo: { color: COLORS.brandPrimary, fontSize: 13, marginBottom: 16, fontWeight: '600' },
-  pdfModalOption: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.bgUtility, padding: 15, borderRadius: 14, borderWidth: 1, borderColor: COLORS.borderGlassBright, marginBottom: 10 },
-  pdfModalOptionTitle: { color: COLORS.onSurface, fontWeight: '700', fontSize: 14 },
-  pdfModalOptionDesc: { color: COLORS.muted, fontSize: 11, marginTop: 4 },
-  pdfModalCancel: { padding: 12, alignItems: 'center' },
-  pdfModalCancelText: { color: COLORS.muted, fontWeight: '700' },
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 16, paddingTop: 20, paddingBottom: 40 },
   headerForm: { marginBottom: 20, width: '100%', borderLeftWidth: 0, paddingLeft: 16, justifyContent: 'center', minHeight: 48 },
