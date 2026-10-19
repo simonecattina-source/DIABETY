@@ -1,3 +1,4 @@
+import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
 import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
 import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DiabetyInfoCard } from '@/src/components/diabety-info-card';
@@ -309,9 +310,7 @@ export default function CalcolatoreBoloScreen() {
                 <Text style={styles.modalTitleHelp}>Parametri Personali</Text>
                 <Text style={styles.modalSubtitle}>Guida al calcolo del bolo</Text>
               </View>
-              <TouchableOpacity onPress={() => setMostraHelpParametri(false)} accessibilityLabel="Chiudi guida" hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                <Ionicons name="close" size={22} color="#93A7B9" />
-              </TouchableOpacity>
+                            <DiabetyModalCloseButton onPress={() => setMostraHelpParametri(false)} accessibilityLabel="Chiudi guida" iconSize={22} iconColor="#93A7B9" hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} />
             </View>
             <View style={styles.modalDivider} />
             <ScrollView style={styles.modalScrollInfo} showsVerticalScrollIndicator={false}>
