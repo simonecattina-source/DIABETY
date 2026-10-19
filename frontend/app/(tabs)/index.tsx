@@ -1,3 +1,4 @@
+import { DiabetyStatusNotice } from '@/src/components/diabety-status-notice';
 import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
 import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DiabetyInfoCard } from '@/src/components/diabety-info-card';
@@ -282,9 +283,7 @@ export default function InserimentoScreen() {
       </View>
 
       {mostraNotifica && (
-        <View style={styles.notificaTendina}>
-          <Text style={styles.notificaTesto}>✓ Misurazione salvata nel registro</Text>
-        </View>
+        <DiabetyStatusNotice variant="inserisci" message="✓ Misurazione salvata nel registro" />
       )}
 
       <TouchableOpacity
@@ -379,8 +378,6 @@ const styles = StyleSheet.create({
   noteInput: { fontFamily: 'Plus Jakarta Sans', fontSize: 16, color: '#FFFFFF', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, padding: 10, minHeight: 50, width: '100%' },
   saveButton: { backgroundColor: COLORS.brandPrimary, paddingVertical: 14, borderRadius: 14, alignItems: 'center', width: '100%' },
   saveButtonText: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: '#001820' },
-  notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12, alignItems: 'center', width: '100%' },
-  notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 14 },
   modalOverlayCentrato: { flex: 1, backgroundColor: 'rgba(0,0,0,0.86)', justifyContent: 'center', alignItems: 'center', padding: 14 },
   modalContentHelp: { backgroundColor: '#111722', borderRadius: 24, padding: 16, width: '100%', maxWidth: 390, maxHeight: '88%', borderWidth: 1, borderColor: '#314B65', overflow: 'hidden' },
   helpHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
