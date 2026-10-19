@@ -1,3 +1,4 @@
+import { DiabetyInfoCard } from '@/src/components/diabety-info-card';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
 import { DiabetyHelpButton } from '@/src/components/diabety-help-button';
 import React, { useState, useEffect } from 'react';
@@ -314,35 +315,29 @@ export default function InserimentoScreen() {
             <View style={styles.helpDivider} />
             <Text style={styles.helpIntro}>Tutto quello che serve per registrare correttamente una misurazione.</Text>
             <ScrollView style={styles.modalScrollInfo} contentContainerStyle={styles.helpScrollContent} showsVerticalScrollIndicator={false} nestedScrollEnabled>
-              <View style={styles.infoBlockPremium}>
-                <View style={styles.helpBlockHeading}><Ionicons name="calendar-outline" size={19} color="#00D8F7" /><Text style={styles.infoBlockTitle}>Data e ora del test</Text></View>
+              <DiabetyInfoCard variant="inserisci" icon="calendar-outline" title="Data e ora del test" iconColor="#00D8F7">
                 <Text style={styles.infoBlockText}>La data e l'ora vengono impostate automaticamente. Puoi modificarle per registrare un controllo precedente.</Text>
-              </View>
-              <View style={styles.infoBlockPremium}>
-                <View style={styles.helpBlockHeading}><Ionicons name="water-outline" size={19} color="#FF6C86" /><Text style={styles.infoBlockTitle}>Inserimento glicemia</Text></View>
+              </DiabetyInfoCard>
+              <DiabetyInfoCard variant="inserisci" icon="water-outline" title="Inserimento glicemia" iconColor="#FF6C86">
                 <Text style={styles.infoBlockText}>Inserisci il valore rilevato in mg/dL. Il numero cambia colore in base all'intervallo glicemico.</Text>
                 <View style={styles.helpLegend}>
                   <View style={[styles.helpLegendPill, { backgroundColor: '#35251C' }]}><Text style={[styles.helpLegendText, { color: '#FFB05D' }]}>Sotto 70</Text></View>
                   <View style={[styles.helpLegendPill, { backgroundColor: '#193528' }]}><Text style={[styles.helpLegendText, { color: '#59DF99' }]}>70–180</Text></View>
                   <View style={[styles.helpLegendPill, { backgroundColor: '#3A2227' }]}><Text style={[styles.helpLegendText, { color: '#FF8992' }]}>Oltre 180</Text></View>
                 </View>
-              </View>
-              <View style={styles.infoBlockPremium}>
-                <View style={styles.helpBlockHeading}><Ionicons name="medkit-outline" size={19} color="#B39AFF" /><Text style={styles.infoBlockTitle}>Inserimento insulina</Text></View>
+              </DiabetyInfoCard>
+              <DiabetyInfoCard variant="inserisci" icon="medkit-outline" title="Inserimento insulina" iconColor="#B39AFF">
                 <Text style={styles.infoBlockText}>Indica le unità (UI) somministrate. Se non hai assunto insulina, lascia il campo vuoto.</Text>
-              </View>
-              <View style={styles.infoBlockPremium}>
-                <View style={styles.helpBlockHeading}><Ionicons name="nutrition-outline" size={19} color="#00E5FF" /><Text style={styles.infoBlockTitle}>Inserimento carboidrati (CHO)</Text></View>
+              </DiabetyInfoCard>
+              <DiabetyInfoCard variant="inserisci" icon="nutrition-outline" title="Inserimento carboidrati (CHO)" iconColor="#00E5FF">
                 <Text style={styles.infoBlockText}>Indica i grammi di carboidrati del pasto. Il campo è facoltativo e viene salvato con la misurazione.</Text>
-              </View>
-              <View style={styles.infoBlockPremium}>
-                <View style={styles.helpBlockHeading}><Ionicons name="time-outline" size={19} color="#FFCA75" /><Text style={styles.infoBlockTitle}>Momenti della giornata</Text></View>
+              </DiabetyInfoCard>
+              <DiabetyInfoCard variant="inserisci" icon="time-outline" title="Momenti della giornata" iconColor="#FFCA75">
                 <Text style={styles.infoBlockText}>Seleziona il momento del controllo per organizzare correttamente lo storico e i report.</Text>
-              </View>
-              <View style={styles.infoBlockPremium}>
-                <View style={styles.helpBlockHeading}><Ionicons name="document-text-outline" size={19} color="#69C5FF" /><Text style={styles.infoBlockTitle}>Note alimentari e sintomi</Text></View>
+              </DiabetyInfoCard>
+              <DiabetyInfoCard variant="inserisci" icon="document-text-outline" title="Note alimentari e sintomi" iconColor="#69C5FF">
                 <Text style={styles.infoBlockText}>Annota alimenti, sintomi o altre informazioni. L'orario viene aggiunto automaticamente alle note salvate.</Text>
-              </View>
+              </DiabetyInfoCard>
             </ScrollView>
             <TouchableOpacity style={styles.btnChiudiHelp} onPress={() => setMostraModalInfo(false)} accessibilityRole="button" accessibilityLabel="Ho capito, chiudi guida">
               <Ionicons name="checkmark" size={19} color="#FFFFFF" />
@@ -401,9 +396,6 @@ const styles = StyleSheet.create({
   helpIntro: { fontFamily: 'Plus Jakarta Sans', fontSize: 12.5, color: '#A9BBCB', lineHeight: 19, marginBottom: 12 },
   modalScrollInfo: { width: '100%', flexShrink: 1 },
   helpScrollContent: { paddingBottom: 3 },
-  infoBlockPremium: { marginBottom: 10, backgroundColor: '#151F2B', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#30485E', width: '100%' },
-  helpBlockHeading: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 7 },
-  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 },
   infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 12.5, color: '#B6C6D5', lineHeight: 19 },
   helpLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   helpLegendPill: { borderRadius: 7, paddingHorizontal: 8, paddingVertical: 5 },
