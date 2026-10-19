@@ -1,4 +1,5 @@
 import { DIABETY_COLORS } from '@/src/theme/diabety';
+import { DiabetyHelpButton } from '@/src/components/diabety-help-button';
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -205,9 +206,7 @@ export default function InserimentoScreen() {
         <View style={styles.headerContent}>
           <View style={styles.headerForm}>
             <Text style={styles.title}>Inserisci Nuovi Dati</Text>
-            <TouchableOpacity style={styles.infoButtonMinimal} onPress={() => setMostraModalInfo(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel="Informazioni sull'inserimento">
-              <View style={styles.helpCircle}><Text style={styles.helpQuestion}>?</Text></View>
-            </TouchableOpacity>
+            <DiabetyHelpButton variant="inserisci" onPress={() => setMostraModalInfo(true)} accessibilityLabel="Informazioni sull'inserimento" />
           </View>
           <Text style={styles.subtitle}>Registra una nuova misurazione</Text>
         </View>
@@ -365,9 +364,6 @@ const styles = StyleSheet.create({
   headerForm: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 8 },
   title: { fontFamily: 'Space Grotesk', fontSize: 21, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 },
   subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: '#93A7B9' },
-  infoButtonMinimal: { justifyContent: 'center', alignItems: 'center', width: 25, height: 25 },
-  helpCircle: { width: 25, height: 25, borderWidth: 1.5, borderColor: COLORS.brandPrimary, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
-  helpQuestion: { fontSize: 18, fontWeight: '600', color: COLORS.brandPrimary, lineHeight: 23 },
   containerRigaTemporale: { flexDirection: 'row', gap: 8, width: '100%' },
   dateTimeFieldClip: { width: '100%', minWidth: 0, height: 54, marginTop: 8, position: 'relative', overflow: 'hidden', borderRadius: 9 },
   dataCardSinistra: { flex: 1, minWidth: 0, backgroundColor: '#111B27', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 10, gap: 8 },
