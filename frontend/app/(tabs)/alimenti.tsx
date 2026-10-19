@@ -1,3 +1,4 @@
+import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, ScrollView, Keyboard } from 'react-native';
@@ -222,12 +223,11 @@ export default function AlimentiScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.areaSuperiore}>
-        <View style={styles.headerPremium}>
-          <View style={styles.accentoHeader} />
+        <DiabetyPageHeader variant="alimenti">
           <View style={styles.testoHeader}>
             <Text style={styles.titoloHeader} numberOfLines={2}>Alimenti e Carboidrati</Text>
           </View>
-        </View>
+        </DiabetyPageHeader>
         <View style={styles.ricercaBox}>
           <Ionicons name="search-outline" size={22} color={COLORS.brandPrimary} />
           <TextInput
@@ -352,8 +352,6 @@ export default function AlimentiScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   areaSuperiore: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 7, backgroundColor: COLORS.background },
-  headerPremium: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#101B28', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 12, marginBottom: 13 },
-  accentoHeader: { width: 3, height: 43, borderRadius: 3, backgroundColor: COLORS.brandPrimary },
   testoHeader: { flex: 1 },
   titoloHeader: { fontFamily: 'Space Grotesk', fontSize: 21, fontWeight: '700', color: '#FFFFFF' },
   ricercaBox: { height: 53, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 15, borderWidth: 1, borderColor: '#34566E', borderRadius: 15, backgroundColor: '#111B27', marginBottom: 11 },
