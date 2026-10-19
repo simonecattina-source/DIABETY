@@ -1,3 +1,4 @@
+import { DiabetyStatusNotice } from '@/src/components/diabety-status-notice';
 import { DiabetyDialogHeading } from '@/src/components/diabety-dialog-heading';
 import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
 import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
@@ -473,9 +474,7 @@ export default function StoricoScreen() {
       </DiabetyPageHeader>
 
       {mostraNotificaSvuotato && (
-        <View style={[styles.notificaTendinaGenerale,{backgroundColor:'#092414',borderColor:COLORS.success}]}>
-          <Text style={[styles.notificaTesto,{color:COLORS.success}]}>✓ Intero diario glicemico svuotato</Text>
-        </View>
+        <DiabetyStatusNotice variant="storicoGenerale" message="✓ Intero diario glicemico svuotato" />
       )}
 
       <View style={styles.newActions}>
@@ -634,7 +633,7 @@ export default function StoricoScreen() {
               <Text style={styles.newEditSectionTitle}>▤  Note Alimentari / Sintomi <Text style={{color:'#93A7B9',fontSize:11,fontWeight:'400'}}>(facoltative)</Text></Text>
               <TextInput style={[styles.newEditInput,{minHeight:50,textAlignVertical:'top'}]} multiline value={modNote} onChangeText={setModNote} placeholder="Aggiungi una nota..." placeholderTextColor="#758A9A"/>
             </ScrollView>
-            {mostraNotificaModifica && <View style={[styles.notificaTendina,testoNotifica.includes('eliminata') && {backgroundColor:'#1C1314',borderColor:COLORS.error}]}><Text style={[styles.notificaTesto,testoNotifica.includes('eliminata') && {color:COLORS.error}]}>{testoNotifica}</Text></View>}
+            {mostraNotificaModifica && <DiabetyStatusNotice variant="storico" message={testoNotifica} tone={testoNotifica.includes('eliminata') ? 'error' : 'success'} />}
             <View style={styles.newEditActions}>
               <TouchableOpacity style={styles.newCancelSmall} onPress={()=>setMostraModalModifica(false)}><Text style={{color:'#FFFFFF',fontSize:12,fontWeight:'700'}}>Annulla</Text></TouchableOpacity>
               <TouchableOpacity style={styles.newDeleteSmall} onPress={eliminaSingoloItem}><Ionicons name="trash-outline" size={14} color={COLORS.error}/><Text style={{color:COLORS.error,fontSize:12,fontWeight:'700'}}>Elimina</Text></TouchableOpacity>
@@ -781,8 +780,6 @@ const styles = StyleSheet.create({
   btnEliminaText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '600', color: '#FFF' },
   btnSalva: { flex: 1.2, backgroundColor: COLORS.brandPrimary, padding: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   btnSalvaText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '600', color: '#0A0A0C' },
-  notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 15, alignItems: 'center' },
-  notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 14 },
   modalOverlayCentrato: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalContentSvuota: { backgroundColor: '#111116', borderRadius: 24, padding: 24, width: '100%', maxWidth: 340, alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
   iconaAvvisoContainer: { marginBottom: 12, backgroundColor: '#240F10', padding: 10, borderRadius: 999 },
@@ -793,7 +790,6 @@ const styles = StyleSheet.create({
   btnAnnullaTextSvuota: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '600', color: COLORS.onSurface },
   btnConfermaSvuota: { flex: 1, backgroundColor: '#FF5252', paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
   btnConfermaTextSvuota: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '600', color: '#FFF' },
-  notificaTendinaGenerale: { padding: 12, borderRadius: 12, borderWidth: 1, marginHorizontal: 16, marginBottom: 12, alignItems: 'center' },
 
   modalContentHelp: { backgroundColor: '#111116', borderRadius: 24, padding: 24, width: '100%', maxWidth: 360, alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderGlass },
   modalTitleHelp: { fontFamily: 'Space Grotesk', fontSize: 20, fontWeight: '800', color: COLORS.onSurface, marginBottom: 24, alignSelf: 'flex-start', letterSpacing: -0.3 },
