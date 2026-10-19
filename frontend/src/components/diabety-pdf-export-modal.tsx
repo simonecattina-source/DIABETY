@@ -1,3 +1,4 @@
+import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,9 +33,7 @@ export function DiabetyPdfExportModal({
               <Text style={styles.pdfModalTitle}>Esporta registro</Text>
               <Text style={styles.pdfModalSubtitle}>DIABETY · Diario glicemico</Text>
             </View>
-            <TouchableOpacity onPress={onClose} accessibilityLabel="Chiudi finestra">
-              <Ionicons name="close" size={24} color={COLORS.muted} />
-            </TouchableOpacity>
+                        <DiabetyModalCloseButton onPress={onClose} accessibilityLabel="Chiudi finestra" iconSize={24} iconColor={COLORS.muted} />
           </View>
           <Text style={styles.pdfModalPeriodo}>Periodo selezionato: {periodo}</Text>
           <TouchableOpacity style={styles.pdfModalOption} onPress={onViewHtml}>

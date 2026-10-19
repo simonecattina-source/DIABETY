@@ -1,3 +1,4 @@
+import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
 /**
  * Intestazione condivisa delle finestre di dialogo DIABETY.
  * Questa estrazione preserva il layout delle tre finestre dello Storico:
@@ -35,9 +36,7 @@ export function DiabetyDialogHeading({
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
-        <TouchableOpacity onPress={onClose} accessibilityLabel={closeLabel}>
-          <Ionicons name="close" size={24} color="#93A7B9" />
-        </TouchableOpacity>
+                <DiabetyModalCloseButton onPress={onClose} accessibilityLabel={closeLabel} iconSize={24} iconColor="#93A7B9" />
       </View>
       <View style={styles.divider} />
     </>
