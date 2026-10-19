@@ -14,6 +14,7 @@ import { StyleSheet, Text, View, TouchableOpacity, SectionList, Platform, Modal,
 import { Ionicons } from '@expo/vector-icons';
 import { useDiabetyAlert } from '@/src/components/diabety-alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { istanteLocale } from '@/src/utils/terapia-iob';
 import { useFocusEffect } from 'expo-router';
 
 // 🎨 PALETTE AD ALTO CONTRASTO CON AZZURRO CYAN NEON PER IL PULSANTE PDF COORDINATO
@@ -29,6 +30,7 @@ export default function StoricoScreen() {
   const [itemSelezionato, setItemSelezionato] = useState<any | null>(null);
   const [modGlicemia, setModGlicemia] = useState('');
   const [modInsulina, setModInsulina] = useState('');
+  const [modTipoInsulina,setModTipoInsulina]=useState<'rapida'|'basale'|'non_specificata'>('non_specificata');
   const [modCho, setModCho] = useState('');
   const [modNote, setModNote] = useState('');
   const [modMomento, setModMomento] = useState('');
@@ -125,6 +127,7 @@ export default function StoricoScreen() {
     setItemSelezionato(item);
     setModGlicemia(item.glicemia.toString());
     setModInsulina(item.insulina ? item.insulina.replace(' UI', '').replace('-', '') : '');
+    setModTipoInsulina(item.tipoInsulina==='rapida'||item.tipoInsulina==='basale'?item.tipoInsulina:'non_specificata');
     setModCho(item.cho === null || item.cho === undefined || item.cho === '' ? '' : String(item.cho));
     setModMomento(item.tipo || 'Prima Colazione');
     setModOraText(item.ora || '12:00');
@@ -182,7 +185,7 @@ export default function StoricoScreen() {
     try {
       let datiAggiornati = datiReali.map(item => {
         if (item.id === itemSelezionato.id) {
-          return { ...item, glicemia: valoreGlicemia, insulina: insulinaPulita ? `${insulinaPulita} UI` : '-', cho: choValido, tipo: modMomento, note: noteConOrarioFuso, ora: modOraText, dataTesto: dataRiconvertita };
+          return { ...item, glicemia: valoreGlicemia, insulina: insulinaPulita ? `${insulinaPulita} UI` : '-', tipoInsulina: Number(insulinaPulita)>0?modTipoInsulina:null, istanteDose: Number(insulinaPulita)>0?istanteLocale(modDataISO,modOraText):null, cho: choValido, tipo: modMomento, note: noteConOrarioFuso, ora: modOraText, dataTesto: dataRiconvertita };
         }
         return item;
       });
@@ -415,6 +418,11 @@ export default function StoricoScreen() {
                   <Text style={styles.newEditLabel}>✚  Insulina</Text>
                   <TextInput style={styles.newEditInput} keyboardType="numeric" value={modInsulina} onChangeText={setModInsulina} maxLength={2} placeholder="Nessuna" placeholderTextColor="#758A9A"/>
                   <Text style={styles.newUnit}>UI</Text>
+                  {Number(modInsulina)>0 && <View style={{flexDirection:'row',flexWrap:'wrap',gap:6,marginTop:6}}>
+                    {((itemSelezionato?.tipoInsulina==='rapida'||itemSelezionato?.tipoInsulina==='basale') ? ['rapida','basale'] as const : ['rapida','basale','non_specificata'] as const).map(t=><TouchableOpacity key={t} onPress={()=>setModTipoInsulina(t)} style={{borderWidth:1,borderColor:modTipoInsulina===t?COLORS.brandPrimary:'#344C63',borderRadius:6,padding:6}}>
+                      <Text style={{color:modTipoInsulina===t?COLORS.brandPrimary:'#FFFFFF',fontSize:11}}>{t==='rapida'?'Rapida':t==='basale'?'Basale':'Non specificata'}</Text>
+                    </TouchableOpacity>)}
+                  </View>}
                 </View>
                 <View style={styles.newEditCard}>
                     <Text style={styles.newEditLabel}>CHO</Text>
