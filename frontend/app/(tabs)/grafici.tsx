@@ -1,4 +1,5 @@
 import { DIABETY_COLORS } from '@/src/theme/diabety';
+import { DiabetyHelpButton } from '@/src/components/diabety-help-button';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -515,9 +516,7 @@ export default function GraficiScreen() {
         <View style={[styles.cardSuperioreDueTerzi, styles.cardNeonTrimestre]}>
           <View style={styles.rigaTitoloGrafico}>
             <Text style={styles.sectionLabel} >Trimestre (90 GG)</Text>
-            <TouchableOpacity onPress={() => apriSpiegazione('trimestrale')} style={styles.pulsanteInfoTocco}>
-              <Ionicons name="help-circle-outline" size={17} color="#AA7AFF" />
-            </TouchableOpacity>
+            <DiabetyHelpButton variant="grafici" onPress={() => apriSpiegazione('trimestrale')} accessibilityLabel="Informazioni: Trimestre (90 GG)" iconSize={17} iconColor="#AA7AFF" />
           </View>
           <View style={styles.rigaQuadranteTrimestre}>
             <View style={styles.quadranteColonna}>
@@ -542,9 +541,7 @@ export default function GraficiScreen() {
         <View style={[styles.cardSuperioreUnTerzo, styles.cardNeonOggi]}>
           <View style={styles.rigaTitoloGrafico}>
             <Text style={styles.sectionLabel} >Media di oggi</Text>
-            <TouchableOpacity onPress={() => apriSpiegazione('oggi')} style={styles.pulsanteInfoTocco}>
-              <Ionicons name="help-circle-outline" size={17} color={COLORS.brandPrimary} />
-            </TouchableOpacity>
+            <DiabetyHelpButton variant="grafici" onPress={() => apriSpiegazione('oggi')} accessibilityLabel="Informazioni: Media di oggi" iconSize={17} iconColor={COLORS.brandPrimary} />
           </View>
           <View style={styles.contenutoOggiNeon}>
             <QuadranteNeon dimensione={62}
@@ -561,9 +558,7 @@ export default function GraficiScreen() {
       <View style={[styles.cardGraficoContenitore, { marginTop: 16 }]}>
         <View style={styles.rigaTitoloGrafico}>
           <Text style={styles.sectionLabel}>Andamento sulle ultime 24 ore</Text>
-          <TouchableOpacity onPress={() => apriSpiegazione('24h')} style={styles.pulsanteInfoTocco}>
-            <Ionicons name="help-circle-outline" size={20} color={COLORS.brandPrimary} />
-          </TouchableOpacity>
+          <DiabetyHelpButton variant="grafici" onPress={() => apriSpiegazione('24h')} accessibilityLabel="Informazioni: Andamento sulle ultime 24 ore" iconSize={20} iconColor={COLORS.brandPrimary} />
         </View>
         <Text style={styles.subLabelSpiegazione}>Misurazioni delle ultime 24 ore, aggiornate dinamicamente senza azzeramento a mezzanotte.</Text>
         {puntiGrafico24Ore.length > 0 ? renderizzaGraficoLinea24Ore() : (
@@ -576,9 +571,7 @@ export default function GraficiScreen() {
       <View style={[styles.cardGraficoContenitore, { marginTop: 16 }]}>
         <View style={styles.rigaTitoloGrafico}>
           <Text style={styles.sectionLabel}>Andamento Medie Giornaliere</Text>
-          <TouchableOpacity onPress={() => apriSpiegazione('giornaliere')} style={styles.pulsanteInfoTocco}>
-            <Ionicons name="help-circle-outline" size={20} color={COLORS.brandSecondary} />
-          </TouchableOpacity>
+          <DiabetyHelpButton variant="grafici" onPress={() => apriSpiegazione('giornaliere')} accessibilityLabel="Informazioni: Andamento Medie Giornaliere" iconSize={20} iconColor={COLORS.brandSecondary} />
         </View>
         <Text style={styles.subLabelSpiegazione}>La fascia evidenziata indica il range ideale (70-180 mg/dL).</Text>
         {puntiGraficoLinea.length > 0 ? renderizzaGraficoLineaGiorni() : (
@@ -598,9 +591,7 @@ export default function GraficiScreen() {
               <Text style={styles.sottotitoloMomentiPremium}>Media glicemica · mg/dL</Text>
             </View>
           </View>
-          <TouchableOpacity onPress={() => apriSpiegazione('momenti')} style={styles.pulsanteInfoTocco}>
-            <Ionicons name="help-circle-outline" size={23} color="#9855FF" />
-          </TouchableOpacity>
+          <DiabetyHelpButton variant="grafici" onPress={() => apriSpiegazione('momenti')} accessibilityLabel="Informazioni: Medie per Momento della Giornata" iconSize={23} iconColor="#9855FF" />
         </View>
         {totaleMisurazioni > 0 ? renderizzaGraficoColonneMomenti() : (
           <View style={{ paddingVertical: 30, alignItems: 'center', width: '100%' }}>
@@ -620,9 +611,7 @@ export default function GraficiScreen() {
             <Ionicons name="water" size={25} color="#9855FF" />
             <Text style={[styles.sectionLabel, styles.titoloHbTesto]}>Stima Emoglobina Glicata (HbA1c)</Text>
           </View>
-          <TouchableOpacity onPress={() => apriSpiegazione('glicata')} style={styles.pulsanteInfoTocco}>
-            <Ionicons name="help-circle-outline" size={23} color="#9855FF" />
-          </TouchableOpacity>
+          <DiabetyHelpButton variant="grafici" onPress={() => apriSpiegazione('glicata')} accessibilityLabel="Informazioni: Stima Emoglobina Glicata" iconSize={23} iconColor="#9855FF" />
         </View>
 
         {totaleMisurazioni > 0 && glicataStimata > 0 ? (
@@ -728,7 +717,6 @@ const styles = StyleSheet.create({
   // 📐 CONTENITORE CARD: Forza la card ad allinearsi perfettamente senza far sbordare l'SVG interno
   cardGraficoContenitore: { backgroundColor: COLORS.surfaceSecondary, borderRadius: 14, padding: 16, width: '100%', alignItems: 'stretch', borderWidth: 1, borderColor: COLORS.borderGlass, overflow: 'hidden' },
   rigaTitoloGrafico: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' },
-  pulsanteInfoTocco: { padding: 4, justifyContent: 'center', alignItems: 'center', opacity: 0.85 },
   
   // 📐 AREA SVG COMPACT UX: Forzata al 100% per accogliere l'asse orario ed azzerare gli sfasamenti su PC
   containerGraficoSvg: { width: '100%', marginTop: 6, position: 'relative' },
