@@ -4,9 +4,9 @@
 
 import { reloadAppAsync } from "expo";
 import { Component, type ErrorInfo, type PropsWithChildren, useState } from "react";
-import { Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { makeStyles } from "@/src/theme";
+import { DIABETY_COLORS as COLORS } from "@/src/theme/diabety";
 
 type ErrorBoundaryState = { error: Error | null };
 
@@ -34,7 +34,6 @@ export class ErrorBoundary extends Component<PropsWithChildren, ErrorBoundarySta
 }
 
 function ErrorFallback({ error, resetError }: { error: Error; resetError: () => void }) {
-  const styles = useStyles();
   const [showDetails, setShowDetails] = useState(false);
 
   const handleReload = async () => {
@@ -49,8 +48,8 @@ function ErrorFallback({ error, resetError }: { error: Error; resetError: () => 
   return (
     <View style={styles.container} testID="error-fallback">
       <View style={styles.content}>
-        <Text style={styles.title}>Something went wrong</Text>
-        <Text style={styles.message}>Please reload the app to continue.</Text>
+        <Text style={styles.title}>Si è verificato un errore</Text>
+        <Text style={styles.message}>Riavvia DIABETY per continuare.</Text>
         {__DEV__ ? <Text style={styles.devMessage}>{error.message}</Text> : null}
         <Pressable
           onPress={handleReload}
@@ -58,11 +57,11 @@ function ErrorFallback({ error, resetError }: { error: Error; resetError: () => 
           accessibilityRole="button"
           style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
         >
-          <Text style={styles.buttonText}>Reload app</Text>
+          <Text style={styles.buttonText}>Riavvia DIABETY</Text>
         </Pressable>
         {__DEV__ ? (
           <Pressable onPress={() => setShowDetails((v) => !v)} accessibilityRole="button" hitSlop={8}>
-            <Text style={styles.detailsToggle}>{showDetails ? "Hide details" : "Show details"}</Text>
+            <Text style={styles.detailsToggle}>{showDetails ? "Nascondi dettagli" : "Mostra dettagli"}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -77,52 +76,57 @@ function ErrorFallback({ error, resetError }: { error: Error; resetError: () => 
   );
 }
 
-const useStyles = makeStyles((colors) => ({
+// Stessa palette premium delle altre schede; nessuna dipendenza dal tema GlicoTrack.
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: COLORS.background,
     justifyContent: "center",
     padding: 24,
   },
   content: {
     alignItems: "center",
     gap: 12,
+    backgroundColor: COLORS.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: "#32606B",
+    borderRadius: 20,
+    paddingVertical: 26,
+    paddingHorizontal: 18,
   },
   title: {
-    color: colors.onSurface,
+    color: COLORS.onSurface,
     fontSize: 22,
     fontWeight: "700",
     textAlign: "center",
   },
   message: {
-    color: colors.muted,
+    color: "#B5C8D3",
     fontSize: 15,
     textAlign: "center",
   },
   devMessage: {
-    color: colors.error,
+    color: COLORS.error,
     fontSize: 13,
     textAlign: "center",
   },
   button: {
     marginTop: 8,
-    backgroundColor: colors.brandPrimary,
+    backgroundColor: COLORS.brandPrimary,
     borderRadius: 12,
     paddingHorizontal: 24,
     paddingVertical: 14,
     minWidth: 180,
   },
-  buttonPressed: {
-    opacity: 0.85,
-  },
+  buttonPressed: { opacity: 0.85 },
   buttonText: {
-    color: colors.onBrandPrimary,
+    color: "#06171D",
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
     textAlign: "center",
   },
   detailsToggle: {
-    color: colors.muted,
+    color: COLORS.brandPrimary,
     fontSize: 13,
     textDecorationLine: "underline",
     paddingVertical: 8,
@@ -132,16 +136,14 @@ const useStyles = makeStyles((colors) => ({
     maxHeight: 260,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceSecondary,
+    borderColor: "#32606B",
+    backgroundColor: "#0C2029",
   },
-  detailsContent: {
-    padding: 12,
-  },
+  detailsContent: { padding: 12 },
   detailsText: {
-    color: colors.onSurfaceSecondary,
+    color: "#DEE8EE",
     fontSize: 12,
     lineHeight: 18,
     fontFamily: Platform.select({ ios: "Menlo", default: "monospace" }),
   },
-}));
+});
