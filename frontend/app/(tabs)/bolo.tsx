@@ -1,4 +1,5 @@
 import { DIABETY_COLORS } from '@/src/theme/diabety';
+import { DiabetyHelpButton } from '@/src/components/diabety-help-button';
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -235,9 +236,7 @@ export default function CalcolatoreBoloScreen() {
           {/* Gruppo di Sinistra: Titolo + Icona "i" */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={styles.sectionLabelBolo}>I tuoi Rapporti Personali</Text>
-            <TouchableOpacity onPress={() => setMostraHelpParametri(true)} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }} style={{ justifyContent: 'center', alignItems: 'center', marginTop: 1 }}>
-              <View style={styles.helpCircle}><Text style={styles.helpQuestion}>?</Text></View>
-            </TouchableOpacity>
+            <DiabetyHelpButton variant="bolo" onPress={() => setMostraHelpParametri(true)} accessibilityLabel="Informazioni sui rapporti personali" />
           </View>
 
           {/* 🔐 Pulsante di Destra: Attiva/Disattiva Modifica Parametri Permanenti */}
@@ -373,8 +372,6 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
   cardUnit: { fontFamily: 'Plus Jakarta Sans', fontSize: 10, color: '#93A7B9' },
   glicemiaInput: { fontFamily: 'Space Grotesk', fontSize: 28, fontWeight: '700', color: '#FFFFFF', width: '100%', backgroundColor: '#080F18', borderWidth: 1, borderColor: '#344C63', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 7 },
-  helpCircle: { width: 18, height: 18, borderRadius: 9, borderWidth: 1, borderColor: COLORS.brandPrimary, justifyContent: 'center', alignItems: 'center' },
-  helpQuestion: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, lineHeight: 15, fontWeight: '800', color: COLORS.brandPrimary, textAlign: 'center' },
 
   saveButton: { flex: 1, backgroundColor: COLORS.brandPrimary, paddingVertical: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   saveButtonText: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '700', color: '#0A0A0C' },
