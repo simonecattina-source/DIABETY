@@ -1,3 +1,4 @@
+import { DiabetyInfoCard } from '@/src/components/diabety-info-card';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
 import { DiabetyHelpButton } from '@/src/components/diabety-help-button';
 import React, { useState, useEffect } from 'react';
@@ -313,30 +314,18 @@ export default function CalcolatoreBoloScreen() {
             </View>
             <View style={styles.modalDivider} />
             <ScrollView style={styles.modalScrollInfo} showsVerticalScrollIndicator={false}>
-              <View style={styles.infoBlockPremium}>
-                <View style={styles.infoBlockHeader}>
-                  <Ionicons name="pizza-outline" size={20} color={COLORS.brandPrimary} />
-                  <Text style={styles.infoBlockTitle}>Rapporto I:CHO</Text>
-                </View>
+              <DiabetyInfoCard variant="bolo" icon="pizza-outline" title="Rapporto I:CHO">
                 <Text style={styles.infoBlockText}>Indica quanti grammi di carboidrati vengono coperti da una sola unità di insulina.</Text>
                 <View style={styles.exampleBox}><Text style={styles.exampleText}>Esempio: un rapporto di 10 significa che 1 UI copre 10 g di carboidrati.</Text></View>
-              </View>
-              <View style={styles.infoBlockPremium}>
-                <View style={styles.infoBlockHeader}>
-                  <Ionicons name="pulse-outline" size={20} color={COLORS.brandPrimary} />
-                  <Text style={styles.infoBlockTitle}>Sensibilità ISF</Text>
-                </View>
+              </DiabetyInfoCard>
+              <DiabetyInfoCard variant="bolo" icon="pulse-outline" title="Sensibilità ISF">
                 <Text style={styles.infoBlockText}>Indica di quanti mg/dL si stima che la glicemia scenda grazie a una singola unità di insulina.</Text>
                 <View style={styles.exampleBox}><Text style={styles.exampleText}>Esempio: un ISF di 40 corrisponde a una riduzione stimata di 40 mg/dL per 1 UI.</Text></View>
-              </View>
-              <View style={styles.infoBlockPremium}>
-                <View style={styles.infoBlockHeader}>
-                  <Ionicons name="locate-outline" size={20} color={COLORS.brandPrimary} />
-                  <Text style={styles.infoBlockTitle}>Target Glicemico</Text>
-                </View>
+              </DiabetyInfoCard>
+              <DiabetyInfoCard variant="bolo" icon="locate-outline" title="Target Glicemico">
                 <Text style={styles.infoBlockText}>È il valore glicemico di riferimento utilizzato dal calcolatore per stimare la correzione.</Text>
                 <View style={styles.exampleBox}><Text style={styles.exampleText}>Il target deve essere quello concordato con il diabetologo.</Text></View>
-              </View>
+              </DiabetyInfoCard>
               <View style={styles.warningRow}>
                 <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.warning} />
                 <Text style={styles.warningText}>I risultati sono stime matematiche. Il calcolatore non considera automaticamente insulina attiva, attività fisica e altri fattori clinici. Segui sempre il piano terapeutico concordato.</Text>
@@ -409,9 +398,6 @@ const styles = StyleSheet.create({
   modalSubtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: '#93A7B9', marginTop: 2 },
   modalDivider: { height: 1, backgroundColor: '#26536A', marginVertical: 14 },
   modalScrollInfo: { width: '100%', flexShrink: 1 },
-  infoBlockPremium: { marginBottom: 12, backgroundColor: '#080F18', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#344C63', width: '100%' },
-  infoBlockHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  infoBlockTitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 },
   infoBlockText: { fontFamily: 'Plus Jakarta Sans', fontSize: 13, color: '#C3CFDB', lineHeight: 20 },
   exampleBox: { backgroundColor: '#111B27', borderRadius: 9, padding: 9, marginTop: 10 },
   exampleText: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: '#93A7B9', lineHeight: 17 },
