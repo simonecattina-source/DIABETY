@@ -1,4 +1,5 @@
 import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
+import { leggiValoreCho } from '@/src/utils/cho';
 import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
 import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DiabetyInfoCard } from '@/src/components/diabety-info-card';
@@ -110,7 +111,7 @@ export default function CalcolatoreBoloScreen() {
       const valore = Number(testo.trim());
       return Number.isSafeInteger(valore) && valore >= 0 ? valore : null;
     };
-    const cho = carboidratiPasto.trim() === '' ? 0 : leggiInput(carboidratiPasto);
+    const cho = carboidratiPasto.trim() === '' ? 0 : leggiValoreCho(carboidratiPasto);
     const glic = glicemiaAttuale.trim() === '' ? 0 : leggiInput(glicemiaAttuale);
     if (cho === null || glic === null || (glicemiaAttuale.trim() !== '' && glic === 0)) {
       mostraAvviso('Inserisci valori validi per glicemia e carboidrati.');
@@ -213,10 +214,10 @@ export default function CalcolatoreBoloScreen() {
             style={styles.glicemiaInput}
             placeholder="0"
             placeholderTextColor="#93A7B9"
-            keyboardType="numeric"
+            keyboardType="decimal-pad"
             value={carboidratiPasto}
             onChangeText={(v) => { setCarboidratiPasto(v); invalidaRisultato(); }}
-            maxLength={3}
+            maxLength={9}
           />
         </View>
       </View>
