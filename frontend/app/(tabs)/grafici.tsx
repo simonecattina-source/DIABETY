@@ -1,3 +1,4 @@
+import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
 import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
 import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
@@ -494,14 +495,13 @@ export default function GraficiScreen() {
             <View style={styles.intestazioneModal}>
               <Ionicons name="help-circle-outline" size={29} color={COLORS.brandPrimary} />
               <Text style={styles.titoloModal}>{modalTitolo}</Text>
-              <TouchableOpacity
-                onPress={() => setModalVisibile(false)}
-                style={styles.iconaChiudiModal}
-                accessibilityRole="button"
-                accessibilityLabel="Chiudi spiegazione"
-              >
-                <Ionicons name="close" size={25} color="#A9C2D5" />
-              </TouchableOpacity>
+                            <DiabetyModalCloseButton
+                              onPress={() => setModalVisibile(false)}
+                              style={styles.iconaChiudiModal}
+                              accessibilityLabel="Chiudi spiegazione"
+                              iconSize={25}
+                              iconColor="#A9C2D5"
+                            />
             </View>
             <ScrollView style={styles.contenutoModalScroll} contentContainerStyle={styles.contenutoModalInterno} showsVerticalScrollIndicator={false}>
               <Text style={styles.testoDescrizioneModal}>{modalTesto}</Text>
