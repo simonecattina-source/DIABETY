@@ -1,5 +1,6 @@
 import { DiabetyPdfExportModal } from '@/src/components/diabety-pdf-export-modal';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
+import { DiabetyHelpButton } from '@/src/components/diabety-help-button';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, SectionList, Platform, Modal, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -463,9 +464,7 @@ export default function StoricoScreen() {
         <View style={{flex: 1}}>
           <View style={{flexDirection:'row', alignItems:'center', gap:8}}>
             <Text style={styles.newHeaderTitle}>Storico</Text>
-            <TouchableOpacity style={styles.newHelpCircle} onPress={() => setMostraHelpPDF(true)} accessibilityLabel="Guida allo Storico">
-              <Text style={{color:COLORS.brandPrimary,fontSize:12,fontWeight:'800'}}>?</Text>
-            </TouchableOpacity>
+            <DiabetyHelpButton variant="storico" onPress={() => setMostraHelpPDF(true)} accessibilityLabel="Guida allo Storico" />
           </View>
           <Text style={styles.newSubtitle}>Il tuo diario glicemico</Text>
         </View>
@@ -668,7 +667,6 @@ const styles = StyleSheet.create({
   newHeader:{flexDirection:'row',alignItems:'center',gap:12,backgroundColor:'#101B28',borderWidth:1,borderColor:'#26536A',borderRadius:16,padding:12,marginHorizontal:12,marginBottom:10},
   newHeaderAccent:{width:3,height:43,borderRadius:3,backgroundColor:COLORS.brandPrimary},
   newHeaderTitle:{fontFamily:'Space Grotesk',fontSize:21,fontWeight:'700',color:'#FFFFFF'},
-  newHelpCircle:{width:20,height:20,borderRadius:10,borderWidth:1,borderColor:COLORS.brandPrimary,alignItems:'center',justifyContent:'center'},
   newSubtitle:{fontFamily:'Plus Jakarta Sans',fontSize:11,color:'#93A7B9',marginTop:3},
   newActions:{flexDirection:'row',gap:8,marginHorizontal:12,marginBottom:14},
   newDangerAction:{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,backgroundColor:'#211820',borderWidth:1,borderColor:'#69333C',borderRadius:12,paddingVertical:12},
