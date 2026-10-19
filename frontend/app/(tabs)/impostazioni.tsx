@@ -32,7 +32,7 @@ const ETICHETTE_MOMENTI: Record<string, string> = {
   'Dopo Pranzo': 'Dopo pranzo',
   'Prima Cena': 'Prima di cena',
   'Dopo Cena': 'Dopo cena',
-  'Notte': 'Prima di Dormire',
+  'Notte': 'Notte',
 };
 const MOMENTI_RIEPILOGO = Object.keys(ETICHETTE_MOMENTI);
 const PERIODI_EXPORT = ['7 GG', '14 GG', '30 GG', '90 GG', 'Tutti'];
@@ -336,15 +336,10 @@ export default function StrumentiScreen() {
     return data.getTime() <= oggi.getTime();
   };
 
-  const gestisciImportazioneWeb = async (evento: any) => {
-    const inputFile = evento.target;
-    const file = inputFile.files?.[0];
-    if (!file) return;
-    // Permette di riselezionare lo stesso file anche dopo annullamento o errore.
-    inputFile.value = '';
-
+  // Web e smartphone condividono tutti i controlli e lo stesso popup DIABETY.
+  // Nessuna scrittura su AsyncStorage avviene prima della conferma.
+  const preparaImportazioneBackup = async (contenutoTesto: string) => {
     try {
-      const contenutoTesto = await file.text();
       const contenuto: any = JSON.parse(contenutoTesto);
       const vecchioFormato = Array.isArray(contenuto);
       if (!vecchioFormato && (!contenuto || contenuto.formato !== 'DIABETY_BACKUP' || contenuto.versione !== 2)) {
@@ -395,6 +390,40 @@ export default function StrumentiScreen() {
       });
     } catch (errore) {
       mostraAvviso('Impossibile leggere o importare il backup. Nessun dato è stato modificato.');
+    }
+  };
+
+  const gestisciImportazioneWeb = async (evento: any) => {
+    const inputFile = evento.target;
+    const file = inputFile.files?.[0];
+    if (!file) return;
+    // Consente la riselezione dello stesso file dopo annullamento o errore.
+    inputFile.value = '';
+    try {
+      await preparaImportazioneBackup(await file.text());
+    } catch (errore) {
+      mostraAvviso('Impossibile leggere o importare il backup. Nessun dato è stato modificato.');
+    }
+  };
+
+  const gestisciImportazioneNativa = async () => {
+    if (importazioneInCorso || backupDaRipristinare) return;
+    try {
+      // Selettore nativo già disponibile tramite expo-file-system (SDK 57).
+      // Non richiede nuove dipendenze o modifiche alla configurazione Vercel.
+      const selezione = await File.pickFileAsync({
+        multipleFiles: false,
+        mimeTypes: ['application/json', 'text/plain', 'application/octet-stream'],
+      });
+      if (selezione.canceled || !selezione.result) return;
+      const file = selezione.result;
+      if (file.name && !file.name.toLowerCase().endsWith('.json')) {
+        mostraAvviso('Seleziona un file di backup JSON. Nessun dato è stato modificato.');
+        return;
+      }
+      await preparaImportazioneBackup(await file.text());
+    } catch (errore) {
+      mostraAvviso('Impossibile selezionare o leggere il backup. Nessun dato è stato modificato.');
     }
   };
 
@@ -522,7 +551,7 @@ export default function StrumentiScreen() {
             <input type="file" accept=".json" onChange={gestisciImportazioneWeb} style={{ display: 'none' }} />
           </label>
         ) : (
-          <TouchableOpacity style={[styles.rowAzione, { borderBottomWidth: 0 }]}>
+          <TouchableOpacity style={[styles.rowAzione, { borderBottomWidth: 0 }]} onPress={gestisciImportazioneNativa} disabled={importazioneInCorso} accessibilityRole="button" accessibilityLabel="Seleziona un backup JSON da importare">
             <View style={styles.leftAzione}>
               <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
                 <Ionicons name="cloud-upload-outline" size={20} color="#A855F7" />
