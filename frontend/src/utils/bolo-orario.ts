@@ -7,6 +7,8 @@ export const CHIAVE_BOLO_ORARIO = 'diabety_bolo_fasce_v1';
 export type FasciaBolo = {
   id: string;
   inizio: string;
+  /** Etichetta facoltativa; assente nelle configurazioni salvate prima di questa versione. */
+  nome?: string;
   rapportoCHO: string;
   sensibilitaISF: string;
   targetGlicemico: string;
@@ -20,7 +22,7 @@ export type ConfigurazioneBoloOrario = {
 };
 
 export const PRIMA_FASCIA: FasciaBolo = {
-  id: 'fascia-0000', inizio: '00:00', rapportoCHO: '', sensibilitaISF: '',
+  id: 'fascia-0000', inizio: '00:00', nome: '', rapportoCHO: '', sensibilitaISF: '',
   targetGlicemico: '', sogliaCorrezione: '',
 };
 
@@ -88,6 +90,10 @@ export const erroreConfigurazioneBolo = (dati: unknown): string | null => {
     if (!fascia || typeof fascia !== 'object' || Array.isArray(fascia)) return 'Una fascia oraria non è valida.';
     if (typeof fascia.id !== 'string' || !fascia.id.trim() || ids.has(fascia.id)) return 'Le fasce devono avere identificativi univoci.';
     ids.add(fascia.id);
+    // Il nome è facoltativo e retrocompatibile: non è presente nelle vecchie configurazioni.
+    if (fascia.nome !== undefined && (typeof fascia.nome !== 'string' || fascia.nome.length > 22 || /[\r\n\x00-\x1f]/.test(fascia.nome))) {
+      return `Il nome della fascia ${fascia.inizio} deve contenere al massimo 22 caratteri, senza andare a capo.`;
+    }
     const minuti = minutiDaOrario(fascia.inizio);
     if (minuti === null) return 'Inserisci gli orari nel formato HH:MM (00:00–23:59).';
     if (orari.has(minuti)) return 'Sono presenti due fasce con lo stesso orario di inizio.';
