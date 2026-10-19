@@ -3,7 +3,7 @@
  * I valori coincidono con quelli delle schermate attuali: questo refactoring
  * non introduce nuove scelte grafiche o modifiche funzionali.
  *
- * Non sostituisce src/theme.ts, ancora utilizzato dalla schermata di errore.
+ * Palette condivisa anche dalla schermata di errore.
  */
 export const DIABETY_COLORS = {
   background: '#0A0A0C',
