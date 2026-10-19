@@ -5,6 +5,8 @@ import {
   Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CHIAVE_TERAPIA_IOB, ConfigurazioneTerapia, creaTerapiaVuota, terapiaValida } from '@/src/utils/terapia-iob';
+import { calcolaIobDaStorico } from '@/src/utils/iob-storico';
 import { Ionicons } from '@expo/vector-icons';
 import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
@@ -85,17 +87,43 @@ export default function CalcolatoreBoloScreen() {
   const [aiuto, setAiuto] = useState<Aiuto | null>(null);
   const [aiutoFasciaId, setAiutoFasciaId] = useState<string | null>(null);
   const [adesso, setAdesso] = useState(() => new Date());
+  const [terapiaSalvata, setTerapiaSalvata] = useState<ConfigurazioneTerapia|null>(null);
+  const [terapiaBozza, setTerapiaBozza] = useState<ConfigurazioneTerapia>(creaTerapiaVuota);
+  const [storicoIob, setStoricoIob] = useState<unknown>([]);
+  const [erroreStoricoIob, setErroreStoricoIob] = useState(false);
+  const [insulineAperte, setInsulineAperte] = useState(false);
+  const [somministrazioniAperte, setSomministrazioniAperte] = useState(false);
+  const [tabSomministrazioni, setTabSomministrazioni] = useState<'rapida'|'basale'>('rapida');
   const revisioneBackup = useRef(revisioneRipristinoBackup());
 
   const chiudiRiepilogo = () => setRiepilogoAperto(false);
+  const aggiornaStoricoIob = useCallback(async () => {
+    try {
+      const raw=await AsyncStorage.getItem('glicotrack_data');
+      const dati=raw?JSON.parse(raw):[];
+      setStoricoIob(dati);
+      setErroreStoricoIob(!Array.isArray(dati));
+    } catch {setStoricoIob(null);setErroreStoricoIob(true);}
+  }, []);
   const caricaParametri = useCallback(async () => {
     setCaricamento(true);
     try {
-      const [attualiRaw, vecchiRaw] = await Promise.all([
+      const [attualiRaw, vecchiRaw, terapiaRaw] = await Promise.all([
         AsyncStorage.getItem(CHIAVE_BOLO_ORARIO),
         AsyncStorage.getItem(CHIAVE_BOLO_PRECEDENTE),
+        AsyncStorage.getItem(CHIAVE_TERAPIA_IOB),
       ]);
       const dati: unknown = attualiRaw ? JSON.parse(attualiRaw) : null;
+      const configurazione:unknown=terapiaRaw?JSON.parse(terapiaRaw):null;
+      if(configurazione!==null && !terapiaValida(configurazione)) {
+        setErroreCaricamento('Configurazione terapia memorizzata non leggibile: non è stata modificata.');
+        setTerapiaSalvata(null);
+        setTerapiaBozza(creaTerapiaVuota());
+      } else {
+        const terapia= (configurazione as ConfigurazioneTerapia|null);
+        setTerapiaSalvata(terapia);
+        setTerapiaBozza(terapia?JSON.parse(JSON.stringify(terapia)):creaTerapiaVuota());
+      }
       const problema = dati === null ? null : erroreConfigurazioneBolo(dati);
       if (problema) {
         setErroreCaricamento('Configurazione oraria memorizzata non valida. Non è stata sovrascritta.');
@@ -103,7 +131,7 @@ export default function CalcolatoreBoloScreen() {
         setBozza(creaConfigurazioneVuota());
       } else {
         const valida = dati as ConfigurazioneBoloOrario | null;
-        setErroreCaricamento(null);
+        if (configurazione===null || terapiaValida(configurazione)) setErroreCaricamento(null);
         setConfigSalvata(valida);
         setBozza(valida ? copiaConfig(valida) : creaConfigurazioneVuota());
       }
@@ -129,16 +157,17 @@ export default function CalcolatoreBoloScreen() {
       void caricaParametri();
     }
     setAdesso(new Date());
-  }, [caricaParametri]));
+    void aggiornaStoricoIob();
+  }, [caricaParametri, aggiornaStoricoIob]));
 
   // Aggiorna automaticamente la fascia al cambio di minuto e al ritorno in primo piano.
   useEffect(() => {
-    const timer = setInterval(() => setAdesso(new Date()), 30_000);
+    const timer = setInterval(() => {setAdesso(new Date());void aggiornaStoricoIob();}, 60_000);
     const subscription = AppState.addEventListener('change', stato => {
-      if (stato === 'active') setAdesso(new Date());
+      if (stato === 'active') {setAdesso(new Date());void aggiornaStoricoIob();}
     });
     return () => { clearInterval(timer); subscription.remove(); };
-  }, []);
+  }, [aggiornaStoricoIob]);
 
   const fasciaCorrente = configSalvata ? fasciaAllOra(configSalvata.fasce, adesso) : null;
   const fasciaId = fasciaCorrente?.id ?? null;
@@ -151,6 +180,8 @@ export default function CalcolatoreBoloScreen() {
     fasciaPrecedente.current = fasciaId;
   }, [fasciaId]);
 
+  const iob=calcolaIobDaStorico(erroreStoricoIob?null:storicoIob,terapiaSalvata,adesso.getTime());
+  const dataSomministrazioni=tabSomministrazioni==='rapida'?iob.rapida:iob.basale;
   const glicemiaValida = /^\d+$/.test(glicemia.trim()) && Number(glicemia.trim()) > 0 && Number(glicemia.trim()) <= 999;
   const choValido = /^(?:\d+)(?:[.,]\d+)?$/.test(cho.trim()) &&
     Number.isFinite(Number(cho.trim().replace(',', '.'))) && Number(cho.trim().replace(',', '.')) >= 0;
@@ -178,12 +209,14 @@ export default function CalcolatoreBoloScreen() {
   const iniziaModifica = () => {
     if (caricamento || salvataggio) return;
     setBozza(configSalvata ? copiaConfig(configSalvata) : creaConfigurazioneVuota());
+    setTerapiaBozza(terapiaSalvata?JSON.parse(JSON.stringify(terapiaSalvata)):creaTerapiaVuota());
     setModificaAttiva(true);
     setAiuto(null);
     chiudiRiepilogo();
   };
   const annullaModifiche = () => {
     setBozza(configSalvata ? copiaConfig(configSalvata) : creaConfigurazioneVuota());
+    setTerapiaBozza(terapiaSalvata?JSON.parse(JSON.stringify(terapiaSalvata)):creaTerapiaVuota());
     setModificaAttiva(false);
     setDialogoFascia(null);
     setAiuto(null);
@@ -194,10 +227,18 @@ export default function CalcolatoreBoloScreen() {
     const normale = { ...bozza, fasce: ordinaFasce(bozza.fasce) };
     const errore = erroreConfigurazioneBolo(normale);
     if (errore) { mostraAvviso(errore); return; }
+    if (!terapiaValida(terapiaBozza)) {mostraAvviso('Configurazione insuline non valida.');return;}
     setSalvataggio(true);
     try {
       // Chiave nuova: non altera i tre parametri salvati nelle versioni precedenti.
-      await AsyncStorage.setItem(CHIAVE_BOLO_ORARIO, JSON.stringify(normale));
+      const precedenti=await AsyncStorage.multiGet([CHIAVE_BOLO_ORARIO,CHIAVE_TERAPIA_IOB]);
+      try {
+        await AsyncStorage.multiSet([[CHIAVE_BOLO_ORARIO,JSON.stringify(normale)],[CHIAVE_TERAPIA_IOB,JSON.stringify(terapiaBozza)]]);
+      } catch (erroreScrittura) {
+        for(const [chiave,valore] of precedenti) {if(valore===null) await AsyncStorage.removeItem(chiave);else await AsyncStorage.setItem(chiave,valore);}
+        throw erroreScrittura;
+      }
+      setTerapiaSalvata(JSON.parse(JSON.stringify(terapiaBozza)));
       setConfigSalvata(copiaConfig(normale));
       setBozza(copiaConfig(normale));
       setModificaAttiva(false);
@@ -320,6 +361,27 @@ export default function CalcolatoreBoloScreen() {
         </View>
         {aiuto === 'calcolo' && testoAiuto('calcolo')}
 
+        <View style={{backgroundColor:'#0B1921',borderWidth:1,borderColor:'#245263',borderRadius:12,padding:12,gap:8,marginBottom:12}}>
+          <View style={styles.rowSpace}>
+            <Text style={styles.subheading}>Insulina attiva (IOB)</Text>
+            <Text style={{fontSize:20,fontWeight:'800',color:CYAN}}>{iob.stato==='zero'?'0 UI':iob.ui===null?'— UI':`${iob.ui.toFixed(2)} UI`}</Text>
+          </View>
+          <Text style={styles.secondaryText}>Ultima dose rapida: {iob.ultima?`${iob.ultima.ui} UI · ${new Date(iob.ultima.istante).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}`:'—'}</Text>
+          <Text style={styles.microNote}>{iob.motivo}</Text>
+          <Text style={styles.microNote}>IOB informativa non validata: non utilizzarla per decidere dosi e non viene sottratta dal bolo.</Text>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={somministrazioniAperte?'Nascondi somministrazioni':'Mostra somministrazioni'} onPress={()=>setSomministrazioniAperte(x=>!x)}>
+            <Text style={{color:CYAN,fontWeight:'700',fontSize:12}}>{somministrazioniAperte?'Nascondi somministrazioni ▲':'Mostra somministrazioni ▼'}</Text>
+          </TouchableOpacity>
+          {somministrazioniAperte && <View style={{gap:7}}>
+            <View style={{flexDirection:'row',gap:7}}>
+              {(['rapida','basale'] as const).map(t=><TouchableOpacity key={t} accessibilityRole="button" onPress={()=>setTabSomministrazioni(t)} style={{borderWidth:1,borderColor:tabSomministrazioni===t?CYAN:'#42606B',paddingHorizontal:9,paddingVertical:6,borderRadius:7}}>
+                <Text style={{color:tabSomministrazioni===t?CYAN:TEXT,fontSize:12}}>{t==='rapida'?'Rapida':'Basale'}</Text>
+              </TouchableOpacity>)}
+            </View>
+            {dataSomministrazioni.length===0?<Text style={styles.secondaryText}>Nessuna somministrazione registrata.</Text>:
+             dataSomministrazioni.map(d=><Text key={d.id} style={styles.secondaryText}>{d.ui} UI · {new Date(d.istante).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</Text>)}
+          </View>}
+        </View>
         <View style={styles.fasciaAttivaBox}>
           <View style={styles.rowSpace}>
             <View style={styles.rowSmall}>
@@ -412,7 +474,11 @@ export default function CalcolatoreBoloScreen() {
               <Text style={styles.secondaryText}>Fascia selezionata</Text>
               <Text style={styles.paramSmallValue}>{fasciaCorrente ? `${fasciaCorrente.inizio}${fasciaCorrente.nome?.trim() ? ` · ${fasciaCorrente.nome.trim()}` : ''}` : 'Non disponibile'}</Text>
             </View>
-            <Text style={styles.microNote}>Riepilogo informativo: non viene eseguito alcun calcolo insulinico.</Text>
+            <View style={styles.rowSpace}>
+              <Text style={styles.secondaryText}>IOB informativa</Text>
+              <Text style={styles.paramSmallValue}>{iob.stato==='zero'?'0 UI':iob.ui===null?'Non disponibile':`${iob.ui.toFixed(2)} UI`}</Text>
+            </View>
+            <Text style={styles.microNote}>Riepilogo non terapeutico. L'IOB non modifica le quote del bolo e non determina una dose da somministrare.</Text>
           </View>
         )}
 
@@ -462,6 +528,46 @@ export default function CalcolatoreBoloScreen() {
           </View>
         )}
 
+        <View style={{borderWidth:1,borderColor:'#245263',borderRadius:10,padding:10,gap:9,marginBottom:12}}>
+          <Text style={styles.subheading}>Seleziona la Modalità di Terapia</Text>
+          <View style={{flexDirection:'row',gap:8}}>
+            {(['penne','microinfusore'] as const).map(m=><TouchableOpacity key={m} disabled={!modificaAttiva} onPress={()=>setTerapiaBozza(prev=>({...prev,modalita:m}))} style={{borderWidth:1,borderColor:(modificaAttiva?terapiaBozza:terapiaSalvata)?.modalita===m?CYAN:'#42606B',borderRadius:8,padding:8}}>
+              <Text style={{color:(modificaAttiva?terapiaBozza:terapiaSalvata)?.modalita===m?CYAN:TEXT,fontSize:12,fontWeight:'600'}}>{m==='penne'?'Penne':'Microinfusore'}</Text>
+            </TouchableOpacity>)}
+          </View>
+          <TouchableOpacity accessibilityRole="button" onPress={()=>setInsulineAperte(v=>!v)} style={styles.rowSpace}>
+            <Text style={styles.subheading}>Insuline utilizzate</Text>
+            <Ionicons name={insulineAperte?'chevron-up':'chevron-down'} color={CYAN} size={16}/>
+          </TouchableOpacity>
+          {insulineAperte && <View style={{gap:9}}>
+            <Text style={styles.microNote}>Parametri non precompilati. Nome, durata in ore e picco in minuti del modello esponenziale; nessun valore è validato per dosi terapeutiche.</Text>
+            {((modificaAttiva?terapiaBozza:terapiaSalvata)?.modalita??'penne')==='penne' ? <>
+              <Text style={styles.secondaryText}>Insulina rapida · Penne</Text>
+              {(['nome','durataOre','piccoMin'] as const).map(c=><View key={'rapida'+c} style={{gap:3}}>
+                <Text style={styles.microNote}>{c==='nome'?'Nome insulina':c==='durataOre'?'Durata (ore)':'Picco del modello (minuti)'}</Text>
+                <TextInput style={{borderWidth:1,borderColor:'#42606B',borderRadius:7,padding:8,color:TEXT}} editable={modificaAttiva} value={(modificaAttiva?terapiaBozza:terapiaSalvata)?.penne.rapida[c]??''} onChangeText={v=>setTerapiaBozza(prev=>({...prev,penne:{...prev.penne,rapida:{...prev.penne.rapida,[c]:v}}}))} placeholder="Da configurare" placeholderTextColor={SUB} keyboardType={c==='nome'?'default':'decimal-pad'} />
+              </View>)}
+              <Text style={styles.secondaryText}>Insulina basale · Penne</Text>
+              {(['nome','durataOre'] as const).map(c=><View key={'basale'+c} style={{gap:3}}>
+                <Text style={styles.microNote}>{c==='nome'?'Nome insulina':'Durata (ore)'}</Text>
+                <TextInput style={{borderWidth:1,borderColor:'#42606B',borderRadius:7,padding:8,color:TEXT}} editable={modificaAttiva} value={(modificaAttiva?terapiaBozza:terapiaSalvata)?.penne.basale[c]??''} onChangeText={v=>setTerapiaBozza(prev=>({...prev,penne:{...prev.penne,basale:{...prev.penne.basale,[c]:v}}}))} placeholder="Da configurare" placeholderTextColor={SUB} keyboardType={c==='nome'?'default':'decimal-pad'} />
+              </View>)}
+            </> : <>
+              <Text style={styles.secondaryText}>Insulina dei boli · Microinfusore</Text>
+              {(['nome','durataOre','piccoMin'] as const).map(c=><View key={'pompa'+c} style={{gap:3}}>
+                <Text style={styles.microNote}>{c==='nome'?'Nome insulina':c==='durataOre'?'Durata (ore)':'Picco del modello (minuti)'}</Text>
+                <TextInput style={{borderWidth:1,borderColor:'#42606B',borderRadius:7,padding:8,color:TEXT}} editable={modificaAttiva} value={(modificaAttiva?terapiaBozza:terapiaSalvata)?.microinfusore.bolo[c]??''} onChangeText={v=>setTerapiaBozza(prev=>({...prev,microinfusore:{...prev.microinfusore,bolo:{...prev.microinfusore.bolo,[c]:v}}}))} placeholder="Da configurare" placeholderTextColor={SUB} keyboardType={c==='nome'?'default':'decimal-pad'} />
+              </View>)}
+              <TouchableOpacity disabled={!modificaAttiva} onPress={()=>setTerapiaBozza(prev=>({...prev,microinfusore:{...prev.microinfusore,basaleAggiuntiva:{...prev.microinfusore.basaleAggiuntiva,abilitata:!prev.microinfusore.basaleAggiuntiva.abilitata}}}))}>
+                <Text style={{color:CYAN}}>Basale aggiuntiva con penna: {(modificaAttiva?terapiaBozza:terapiaSalvata)?.microinfusore.basaleAggiuntiva.abilitata?'Sì':'No'}</Text>
+              </TouchableOpacity>
+              {(modificaAttiva?terapiaBozza:terapiaSalvata)?.microinfusore.basaleAggiuntiva.abilitata && (['nome','durataOre'] as const).map(c=><View key={'extra'+c} style={{gap:3}}>
+                <Text style={styles.microNote}>{c==='nome'?'Nome basale aggiuntiva':'Durata (ore)'}</Text>
+                <TextInput style={{borderWidth:1,borderColor:'#42606B',borderRadius:7,padding:8,color:TEXT}} editable={modificaAttiva} value={(modificaAttiva?terapiaBozza:terapiaSalvata)?.microinfusore.basaleAggiuntiva[c]??''} onChangeText={v=>setTerapiaBozza(prev=>({...prev,microinfusore:{...prev.microinfusore,basaleAggiuntiva:{...prev.microinfusore.basaleAggiuntiva,[c]:v}}}))} placeholder="Da configurare" placeholderTextColor={SUB} keyboardType={c==='nome'?'default':'decimal-pad'} />
+              </View>)}
+            </>}
+          </View>}
+        </View>
         <View style={styles.rowSpace}>
           <Text style={styles.subheading}>Fasce orarie</Text>
           {pulsanteAiuto('fasce')}
