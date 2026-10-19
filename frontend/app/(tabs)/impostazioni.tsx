@@ -1,5 +1,6 @@
 import { MOMENTI_COLONNE, raggruppaMisurePerDataPdf } from '@/src/utils/pdf-measurement-selection';
 import { generaHtmlRegistroPdf } from '@/src/utils/pdf-report-html';
+import { leggiValoreCho, formattaInsulinaChoPdf } from '@/src/utils/cho';
 import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
 import { DiabetyStatusNotice } from '@/src/components/diabety-status-notice';
 import { DiabetyPdfExportModal } from '@/src/components/diabety-pdf-export-modal';
@@ -69,11 +70,7 @@ const valoreInsulina = (valore: unknown): number | null => {
   return Number.isFinite(numero) ? numero : null;
 };
 
-const valoreCHO = (valore: unknown): number | null => {
-  if (valore === null || valore === undefined || valore === '') return null;
-  const numero = typeof valore === 'string' ? Number(valore.replace(',', '.')) : Number(valore);
-  return Number.isFinite(numero) && numero >= 0 ? numero : null;
-};
+const valoreCHO = leggiValoreCho;
 
 const scaricaBlobWeb = (blob: Blob, nome: string) => {
   const url = URL.createObjectURL(blob);
@@ -440,12 +437,7 @@ export default function StrumentiScreen() {
       const htmlTemplateHTML = generaHtmlRegistroPdf(
         sezioniOrdinate,
         tuttiIRecordPdf,
-        (item: any) => {
-        const insulinaPdf = item.insulina && item.insulina !== '-' ? `<span style="font-weight: 600;">${String(item.insulina).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>` : '';
-        const cho = valoreCHO(item.cho);
-        const choPdf = cho !== null ? `<span style="font-weight: normal;">${cho} CHO</span>` : '';
-        return [insulinaPdf, choPdf].filter(Boolean).join(' - ') || '-';
-        },
+        formattaInsulinaChoPdf,
       );
 
       if (Platform.OS === 'web') {
