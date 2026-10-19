@@ -123,6 +123,13 @@ export default function AlimentiScreen() {
   const modificaGrammiNelPiatto = (idUnico: string, testo: string) => {
     const cifre = testo.replace(/[^0-9]/g, '');
     const grammi = Math.min(500, parseInt(cifre, 10) || 0);
+    // Zero grammi equivale a rimuovere subito la voce dal piatto: lo stato
+    // visibile e quello persistito non devono divergere dopo il riavvio.
+    if (grammi === 0) {
+      const voce = piattoSelezionato.find(item => item.idUnico === idUnico);
+      if (voce) rimuoviDalPiatto(idUnico, voce.alimentoId);
+      return;
+    }
     setPiattoSelezionato(prev => prev.map(item => {
       if (item.idUnico !== idUnico) return item;
       const alimento = DATABASE_ALIMENTI.find(a => a.id === item.alimentoId);
