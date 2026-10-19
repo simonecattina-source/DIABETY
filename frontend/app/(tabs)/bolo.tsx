@@ -1,3 +1,5 @@
+import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
+import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DiabetyInfoCard } from '@/src/components/diabety-info-card';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
 import { DiabetyHelpButton } from '@/src/components/diabety-help-button';
@@ -153,13 +155,12 @@ export default function CalcolatoreBoloScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
       {/* Intestazione */}
-      <View style={styles.headerCard}>
-        <View style={styles.headerAccent} />
+      <DiabetyPageHeader variant="bolo">
         <View style={styles.headerContent}>
           <Text style={styles.title}>Calcolo Bolo</Text>
           <Text style={styles.subtitle}>Calcolatore insulinico basato sui tuoi parametri terapeutici</Text>
         </View>
-      </View>
+      </DiabetyPageHeader>
 
       {/* RISULTATO CENTRALIZZATO PREMIUM IN CASO DI CALCOLO ATTIVO */}
       {risultatoBolo !== null && (
@@ -331,9 +332,7 @@ export default function CalcolatoreBoloScreen() {
                 <Text style={styles.warningText}>I risultati sono stime matematiche. Il calcolatore non considera automaticamente insulina attiva, attività fisica e altri fattori clinici. Segui sempre il piano terapeutico concordato.</Text>
               </View>
             </ScrollView>
-            <TouchableOpacity style={styles.btnChiudiHelp} onPress={() => setMostraHelpParametri(false)}>
-              <Text style={styles.btnChiudiHelpText}>Ho capito</Text>
-            </TouchableOpacity>
+            <DiabetyHelpCloseButton onPress={() => setMostraHelpParametri(false)} />
           </View>
         </View>
       </Modal>
@@ -344,8 +343,6 @@ export default function CalcolatoreBoloScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 16, paddingTop: 20, paddingBottom: 40 },
-  headerCard: { backgroundColor: '#101B28', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  headerAccent: { width: 3, height: 43, backgroundColor: COLORS.brandPrimary, borderRadius: 4 },
   headerContent: { flex: 1, gap: 4 },
   title: { fontFamily: 'Space Grotesk', fontSize: 21, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 },
   subtitle: { fontFamily: 'Plus Jakarta Sans', fontSize: 12, color: '#93A7B9' },
@@ -403,6 +400,4 @@ const styles = StyleSheet.create({
   exampleText: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: '#93A7B9', lineHeight: 17 },
   warningRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, paddingVertical: 7, marginBottom: 8 },
   warningText: { fontFamily: 'Plus Jakarta Sans', fontSize: 11, color: '#C3CFDB', lineHeight: 17, flex: 1 },
-  btnChiudiHelp: { marginTop: 12, backgroundColor: COLORS.brandPrimary, paddingVertical: 13, borderRadius: 12, width: '100%', alignItems: 'center' },
-  btnChiudiHelpText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#0A0A0C' }
 });
