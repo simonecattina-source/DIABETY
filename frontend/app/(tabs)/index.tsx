@@ -1,4 +1,5 @@
 import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
+import { leggiValoreCho } from '@/src/utils/cho';
 import { DiabetyStatusNotice } from '@/src/components/diabety-status-notice';
 import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
 import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
@@ -138,8 +139,8 @@ export default function InserimentoScreen() {
       return;
     }
 
-    if (cho !== '' && (!/^\d{1,4}$/.test(cho) || Number(cho) > 9999)) {
-      mostraAvviso("Inserisci i CHO come numero intero di grammi oppure lascia il campo vuoto.");
+    if (cho.trim() !== '' && leggiValoreCho(cho) === null) {
+      mostraAvviso("Inserisci CHO da 0 a 9999 g, usando il punto o la virgola per i decimali, oppure lascia il campo vuoto.");
       return;
     }
 
@@ -171,7 +172,7 @@ export default function InserimentoScreen() {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         glicemia: Number(glicemia),
         insulina: insulina ? `${insulina} UI` : '-',
-        cho: cho === '' ? null : Number(cho),
+        cho: cho.trim() === '' ? null : leggiValoreCho(cho),
         tipo: momentoSelezionato,
         note: noteConOrarioFuso,
         ora: oraInserita,
@@ -257,7 +258,7 @@ export default function InserimentoScreen() {
             <Ionicons name="nutrition-outline" size={16} color={COLORS.brandPrimary} />
             <Text style={styles.cardTitle}>CHO</Text><Text style={styles.cardUnit}>(g)</Text>
           </View>
-          <TextInput style={styles.insulinaInput} placeholder="00" placeholderTextColor="#93A7B9" keyboardType="numeric" value={cho} onChangeText={setCho} maxLength={4} accessibilityLabel="Carboidrati in grammi" />
+          <TextInput style={styles.insulinaInput} placeholder="00" placeholderTextColor="#93A7B9" keyboardType="decimal-pad" value={cho} onChangeText={setCho} maxLength={9} accessibilityLabel="Carboidrati in grammi" />
         </View>
       </View>
 
