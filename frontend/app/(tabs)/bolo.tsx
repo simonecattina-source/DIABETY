@@ -7,6 +7,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CHIAVE_TERAPIA_IOB, ConfigurazioneTerapia, creaTerapiaVuota, terapiaValida } from '@/src/utils/terapia-iob';
 import { calcolaIobDaStorico } from '@/src/utils/iob-storico';
+import { simulaBoloMatematico } from '@/src/utils/calcolo-bolo';
 import { Ionicons } from '@expo/vector-icons';
 import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
@@ -49,11 +50,11 @@ const informazioni: Record<Aiuto, { titolo: string; testo: string; unita?: strin
   },
   boloMassimo: {
     titolo: 'Bolo massimo personale', unita: 'UI',
-    testo: "È il limite per un singolo bolo definito dal diabetologo. In una futura versione clinicamente validata, il superamento bloccherà la stima senza proporre dosi sostitutive. Salvare questo valore non abilita il calcolo.",
+    testo: "È il limite per un singolo bolo definito dal diabetologo. Se la simulazione matematica supera questo limite, DIABETY non mostra il totale e non propone un valore sostitutivo. Non equivale a un limite verificato dal software per uso clinico.",
   },
   calcolo: {
     titolo: 'Calcolo del bolo',
-    testo: "La fascia oraria viene identificata automaticamente. Questa versione permette di consultare e verificare i dati, ma non produce dosi terapeutiche: mancano la validazione clinica della logica e la gestione sicura dell'insulina attiva.",
+    testo: "La fascia oraria viene identificata automaticamente. Il risultato visualizzato è esclusivamente un esercizio aritmetico: mostra separatamente le quote teoriche dei carboidrati e della correzione. Non incorpora l'IOB, non rappresenta una dose da somministrare e non abilita il bolo consigliato.",
   },
   fasce: {
     titolo: 'Fasce orarie',
@@ -81,6 +82,7 @@ export default function CalcolatoreBoloScreen() {
   const [salvataggio, setSalvataggio] = useState(false);
   const [parametriPrecedenti, setParametriPrecedenti] = useState(false);
   const [erroreCaricamento, setErroreCaricamento] = useState<string | null>(null);
+  const [erroreTerapiaIob, setErroreTerapiaIob] = useState<string | null>(null);
   const [dialogoFascia, setDialogoFascia] = useState<FasciaBolo | null>(null);
   const [dialogoNuova, setDialogoNuova] = useState(false);
   const [erroreFascia, setErroreFascia] = useState<string | null>(null);
@@ -116,10 +118,12 @@ export default function CalcolatoreBoloScreen() {
       const dati: unknown = attualiRaw ? JSON.parse(attualiRaw) : null;
       const configurazione:unknown=terapiaRaw?JSON.parse(terapiaRaw):null;
       if(configurazione!==null && !terapiaValida(configurazione)) {
-        setErroreCaricamento('Configurazione terapia memorizzata non leggibile: non è stata modificata.');
+        // L'errore della terapia IOB non deve bloccare una simulazione aritmetica indipendente.
+        setErroreTerapiaIob('Configurazione terapia IOB non leggibile: i dati originali non sono stati modificati.');
         setTerapiaSalvata(null);
         setTerapiaBozza(creaTerapiaVuota());
       } else {
+        setErroreTerapiaIob(null);
         const terapia= (configurazione as ConfigurazioneTerapia|null);
         setTerapiaSalvata(terapia);
         setTerapiaBozza(terapia?JSON.parse(JSON.stringify(terapia)):creaTerapiaVuota());
@@ -131,7 +135,7 @@ export default function CalcolatoreBoloScreen() {
         setBozza(creaConfigurazioneVuota());
       } else {
         const valida = dati as ConfigurazioneBoloOrario | null;
-        if (configurazione===null || terapiaValida(configurazione)) setErroreCaricamento(null);
+        setErroreCaricamento(null);
         setConfigSalvata(valida);
         setBozza(valida ? copiaConfig(valida) : creaConfigurazioneVuota());
       }
@@ -183,27 +187,34 @@ export default function CalcolatoreBoloScreen() {
   const iob=calcolaIobDaStorico(erroreStoricoIob?null:storicoIob,terapiaSalvata,adesso.getTime());
   const dataSomministrazioni=tabSomministrazioni==='rapida'?iob.rapida:iob.basale;
   const glicemiaValida = /^\d+$/.test(glicemia.trim()) && Number(glicemia.trim()) > 0 && Number(glicemia.trim()) <= 999;
-  const choValido = /^(?:\d+)(?:[.,]\d+)?$/.test(cho.trim()) &&
-    Number.isFinite(Number(cho.trim().replace(',', '.'))) && Number(cho.trim().replace(',', '.')) >= 0;
-  const ipoglicemia = glicemiaValida && Number(glicemia) < 70;
 
-  let titoloAvviso = 'Stima terapeutica non abilitata';
-  let testoAvviso = "La configurazione non equivale a validazione clinica. DIABETY non calcola dosi finché la logica e i controlli sull'insulina attiva non sono stati validati.";
+  // Il calcolo puramente aritmetico non usa la stima IOB e NON determina una dose terapeutica.
+  // Validare qui prima di mostrare un totale: mai trasformare un errore in 0 UI.
+  const simulazione = (!caricamento && !modificaAttiva && !erroreCaricamento)
+    ? simulaBoloMatematico(configSalvata, fasciaCorrente, glicemia, cho)
+    : null;
+  const simulazioneDisponibile = simulazione?.ok === true;
+  let titoloAvviso = 'Stima matematica non terapeutica';
+  let testoAvviso = 'Il risultato è solo aritmetico e non considera IOB o altre variabili cliniche. Non indica una dose da somministrare: il Bolo consigliato resta disabilitato.';
   let avvisoRosso = false;
   if (modificaAttiva) {
     titoloAvviso = 'Modifica dei parametri in corso';
-    testoAvviso = 'Salva e blocca i parametri oppure annulla le modifiche prima di procedere.';
-  } else if (!configSalvata) {
-    titoloAvviso = 'Parametri mancanti';
-    testoAvviso = 'Configura i parametri delle fasce orarie e il bolo massimo secondo le indicazioni aggiornate del diabetologo.';
-  } else if (!glicemiaValida || !choValido) {
-    titoloAvviso = 'Verifica i dati inseriti';
-    testoAvviso = 'Inserisci una glicemia valida e carboidrati non negativi. Il valore iniziale 00 non è una glicemia utilizzabile.';
+    testoAvviso = 'Salva e blocca i parametri oppure annulla le modifiche prima di visualizzare la simulazione.';
+  } else if (erroreCaricamento) {
+    titoloAvviso = 'Parametri non leggibili';
+    testoAvviso = erroreCaricamento;
     avvisoRosso = true;
-  } else if (ipoglicemia) {
-    titoloAvviso = 'Glicemia bassa';
-    testoAvviso = "Nessuna stima disponibile. Segui il piano di gestione dell'ipoglicemia concordato con il diabetologo.";
-    avvisoRosso = true;
+  } else if (caricamento) {
+    titoloAvviso = 'Caricamento parametri';
+    testoAvviso = 'Verifica dei dati in corso.';
+  } else if (simulazione && !simulazione.ok) {
+    titoloAvviso = simulazione.titolo;
+    testoAvviso = simulazione.messaggio;
+    avvisoRosso = simulazione.codice !== 'configurazione';
+  }
+  // Evitare che una IOB incompleta venga interpretata come pari a zero.
+  if (simulazioneDisponibile && iob.stato === 'non_disponibile') {
+    testoAvviso += ' IOB non disponibile: non presumere che l’insulina attiva sia assente.';
   }
 
   const iniziaModifica = () => {
@@ -367,7 +378,7 @@ export default function CalcolatoreBoloScreen() {
             <Text style={{fontSize:20,fontWeight:'800',color:CYAN}}>{iob.stato==='zero'?'0 UI':iob.ui===null?'— UI':`${iob.ui.toFixed(2)} UI`}</Text>
           </View>
           <Text style={styles.secondaryText}>Ultima dose rapida: {iob.ultima?`${iob.ultima.ui} UI · ${new Date(iob.ultima.istante).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}`:'—'}</Text>
-          <Text style={styles.microNote}>{iob.motivo}</Text>
+          <Text style={styles.microNote}>{erroreTerapiaIob ?? iob.motivo}</Text>
           <Text style={styles.microNote}>IOB informativa non validata: non utilizzarla per decidere dosi e non viene sottratta dal bolo.</Text>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={somministrazioniAperte?'Nascondi somministrazioni':'Mostra somministrazioni'} onPress={()=>setSomministrazioniAperte(x=>!x)}>
             <Text style={{color:CYAN,fontWeight:'700',fontSize:12}}>{somministrazioniAperte?'Nascondi somministrazioni ▲':'Mostra somministrazioni ▼'}</Text>
@@ -478,7 +489,23 @@ export default function CalcolatoreBoloScreen() {
               <Text style={styles.secondaryText}>IOB informativa</Text>
               <Text style={styles.paramSmallValue}>{iob.stato==='zero'?'0 UI':iob.ui===null?'Non disponibile':`${iob.ui.toFixed(2)} UI`}</Text>
             </View>
-            <Text style={styles.microNote}>Riepilogo non terapeutico. L'IOB non modifica le quote del bolo e non determina una dose da somministrare.</Text>
+            {simulazione?.ok === true && (
+              <>
+                <View style={styles.rowSpace}>
+                  <Text style={styles.secondaryText}>Quota CHO · solo aritmetica</Text>
+                  <Text style={styles.paramSmallValue}>{simulazione.risultato.quotaPasto.toFixed(2)} UI</Text>
+                </View>
+                <View style={styles.rowSpace}>
+                  <Text style={styles.secondaryText}>Quota correzione · solo aritmetica</Text>
+                  <Text style={styles.paramSmallValue}>{simulazione.risultato.quotaCorrezione.toFixed(2)} UI</Text>
+                </View>
+                <View style={styles.rowSpace}>
+                  <Text style={styles.secondaryText}>Somma teorica, senza IOB</Text>
+                  <Text style={styles.paramSmallValue}>{simulazione.risultato.totale.toFixed(2)} UI</Text>
+                </View>
+              </>
+            )}
+            <Text style={styles.microNote}>Esercizio matematico, NON dose consigliata. La stima IOB non modifica le quote: servono valutazioni tecniche e cliniche prima di qualsiasi utilizzo terapeutico.</Text>
           </View>
         )}
 
@@ -490,9 +517,16 @@ export default function CalcolatoreBoloScreen() {
           </View>
         </View>
         <View style={styles.resultBox}>
-          <Text style={styles.eyebrow}>BOLO STIMATO</Text>
-          <Text style={styles.resultValue}>— <Text style={styles.resultUnit}>UI</Text></Text>
-          <Text style={styles.secondaryText}>Calcolo bloccato · Nessuna dose disponibile</Text>
+          <Text style={styles.eyebrow}>STIMA MATEMATICA · NON TERAPEUTICA</Text>
+          <Text style={styles.resultValue}>
+            {simulazione?.ok === true ? simulazione.risultato.totale.toFixed(2) : '—'} <Text style={styles.resultUnit}>UI</Text>
+          </Text>
+          <Text style={[styles.secondaryText, { textAlign: 'center' }]}>
+            {simulazione?.ok === true
+              ? 'Somma puramente teorica delle quote CHO e correzione · IOB non sottratta'
+              : 'Simulazione non disponibile: controlla l’avviso sopra'}
+          </Text>
+          <Text style={[styles.microNote, { textAlign: 'center' }]}>Non usare questo valore per decidere una somministrazione di insulina. Bolo consigliato: non abilitato.</Text>
         </View>
       </View>
 
