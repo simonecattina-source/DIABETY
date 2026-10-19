@@ -215,7 +215,7 @@ export default function CalcolatoreBoloScreen() {
     setDialogoNuova(true);
     setErroreFascia(null);
     setDialogoFascia({ id: `fascia-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      inizio: '', rapportoCHO: '', sensibilitaISF: '', targetGlicemico: '', sogliaCorrezione: '' });
+      inizio: '', nome: '', rapportoCHO: '', sensibilitaISF: '', targetGlicemico: '', sogliaCorrezione: '' });
     setAiuto(null);
   };
   const apriFascia = (fascia: FasciaBolo) => {
@@ -232,7 +232,10 @@ export default function CalcolatoreBoloScreen() {
 
   const confermaFascia = () => {
     if (!dialogoFascia) return;
-    const fascia = { ...dialogoFascia, inizio: dialogoFascia.inizio.trim() };
+    const fascia = { ...dialogoFascia, inizio: dialogoFascia.inizio.trim(), nome: (dialogoFascia.nome ?? '').trim() };
+    if (fascia.nome.length > 22 || /[\r\n\x00-\x1f]/.test(fascia.nome)) {
+      setErroreFascia('Il nome può contenere al massimo 22 caratteri, su una sola riga.'); return;
+    }
     const minuti = minutiDaOrario(fascia.inizio);
     if (minuti === null) { setErroreFascia('Inserisci un orario valido nel formato HH:MM.'); return; }
     if (fascia.id === 'fascia-0000' && fascia.inizio !== '00:00') {
@@ -266,6 +269,18 @@ export default function CalcolatoreBoloScreen() {
   };
 
   const fasceDaMostrare = ordinaFasce(modificaAttiva ? bozza.fasce : (configSalvata?.fasce ?? creaConfigurazioneVuota().fasce));
+  const fineFasciaDialogo = dialogoFascia && minutiDaOrario(dialogoFascia.inizio) !== null
+    ? fineFascia(
+        [...bozza.fasce.filter(f => f.id !== dialogoFascia.id), dialogoFascia],
+        dialogoFascia.id,
+      ) : '—';
+  // Il nome inserito direttamente nella mini-card modifica soltanto la bozza.
+  const cambiaNomeMiniCard = (id: string, nome: string) => {
+    if (!modificaAttiva) return;
+    setBozza(precedente => ({ ...precedente,
+      fasce: precedente.fasce.map(fascia => fascia.id === id ? { ...fascia, nome } : fascia),
+    }));
+  };
   const testoAiuto = (chiave: Aiuto) => (
     <View style={styles.helpInline}>
       <Text style={styles.helpTitle}>{informazioni[chiave].titolo}</Text>
@@ -314,7 +329,7 @@ export default function CalcolatoreBoloScreen() {
             <Text style={styles.oraLabel}>{oraAttuale}</Text>
           </View>
           <Text style={styles.fasciaAttivaTitolo}>
-            {fasciaCorrente ? `${fasciaCorrente.inizio} – ${fineFascia(configSalvata!.fasce, fasciaCorrente.id)}` : 'Da configurare'}
+            {fasciaCorrente ? `${fasciaCorrente.inizio} – ${fineFascia(configSalvata!.fasce, fasciaCorrente.id)}${fasciaCorrente.nome?.trim() ? ` · ${fasciaCorrente.nome.trim()}` : ''}` : 'Da configurare'}
           </Text>
           <Text style={styles.secondaryText}>Selezione automatica dall'orario locale del dispositivo</Text>
         </View>
@@ -395,7 +410,7 @@ export default function CalcolatoreBoloScreen() {
             </View>
             <View style={styles.rowSpace}>
               <Text style={styles.secondaryText}>Fascia selezionata</Text>
-              <Text style={styles.paramSmallValue}>{fasciaCorrente?.inizio ?? 'Non disponibile'}</Text>
+              <Text style={styles.paramSmallValue}>{fasciaCorrente ? `${fasciaCorrente.inizio}${fasciaCorrente.nome?.trim() ? ` · ${fasciaCorrente.nome.trim()}` : ''}` : 'Non disponibile'}</Text>
             </View>
             <Text style={styles.microNote}>Riepilogo informativo: non viene eseguito alcun calcolo insulinico.</Text>
           </View>
@@ -455,14 +470,24 @@ export default function CalcolatoreBoloScreen() {
         <Text style={styles.secondaryText}>Ogni fascia termina automaticamente prima dell'inizio della successiva.</Text>
         {fasceDaMostrare.map(fascia => (
           <View style={styles.fasciaMiniCard} key={fascia.id}>
-            <TouchableOpacity style={styles.rowSpace} onPress={() => apriFascia(fascia)} disabled={!modificaAttiva}
-              accessibilityRole="button" accessibilityLabel={`Fascia ${fascia.inizio}, modifica parametri`}>
-              <View style={{ gap: 4, flex: 1 }}>
+            <View style={styles.fasciaHeaderRow}>
+              <TouchableOpacity style={styles.fasciaTimeTap} onPress={() => apriFascia(fascia)} disabled={!modificaAttiva}
+                accessibilityRole="button" accessibilityLabel={`Modifica orario e parametri della fascia ${fascia.inizio}`}>
                 <Text style={styles.fasciaName}>{fascia.inizio} – {fineFascia(fasceDaMostrare, fascia.id)}</Text>
-                <Text style={styles.secondaryText}>Fascia dalle {fascia.inizio}</Text>
+                <Ionicons name={modificaAttiva ? 'pencil-outline' : 'lock-closed-outline'} size={15} color={modificaAttiva ? CYAN : SUB}/>
+              </TouchableOpacity>
+              <View style={styles.fasciaNameField}>
+                <Text style={styles.fasciaNameFieldLabel}>Nome</Text>
+                {modificaAttiva ? (
+                  <TextInput style={styles.fasciaNameInput} value={fascia.nome ?? ''}
+                    onChangeText={valore => cambiaNomeMiniCard(fascia.id, valore)}
+                    placeholder="Es. Notte" placeholderTextColor={SUB} maxLength={22}
+                    accessibilityLabel={`Nome della fascia ${fascia.inizio}`} />
+                ) : (
+                  <Text style={styles.fasciaNameBadge} numberOfLines={1}>{fascia.nome?.trim() || '—'}</Text>
+                )}
               </View>
-              <Ionicons name={modificaAttiva ? 'pencil-outline' : 'lock-closed-outline'} size={17} color={modificaAttiva ? CYAN : SUB}/>
-            </TouchableOpacity>
+            </View>
             <View style={styles.divider}/>
             <View style={styles.metricGrid}>
               {([
@@ -533,15 +558,28 @@ export default function CalcolatoreBoloScreen() {
             <ScrollView keyboardShouldPersistTaps="handled" style={styles.modalScroll} showsVerticalScrollIndicator={false}>
               {dialogoFascia && (
                 <View style={{ gap: 13, paddingBottom: 8 }}>
-                  <View style={styles.modalInputBlock}>
-                    <Text style={styles.modalFieldLabel}>Ora di inizio · HH:MM</Text>
-                    <TextInput style={[styles.modalInput, dialogoFascia.id === 'fascia-0000' && { opacity: 0.7 }]}
-                      value={dialogoFascia.inizio} onChangeText={valore => cambiaCampoFascia('inizio', valore)}
-                      editable={dialogoFascia.id !== 'fascia-0000'} placeholder="HH:MM" placeholderTextColor={SUB}
-                      keyboardType="numbers-and-punctuation" maxLength={5}
-                      accessibilityLabel="Ora inizio fascia in formato HH:MM"/>
-                    <Text style={styles.microNote}>La fine è determinata dalla fascia successiva.</Text>
+                  <View style={styles.modalTimeNameRow}>
+                    <View style={[styles.modalInputBlock, styles.modalTimeBlock]}>
+                      <Text style={styles.modalFieldLabel}>Intervallo orario</Text>
+                      <View style={styles.modalTimeInputs}>
+                        <TextInput style={[styles.modalInput, styles.modalStartInput, dialogoFascia.id === 'fascia-0000' && { opacity: 0.7 }]}
+                          value={dialogoFascia.inizio} onChangeText={valore => cambiaCampoFascia('inizio', valore)}
+                          editable={dialogoFascia.id !== 'fascia-0000'} placeholder="HH:MM" placeholderTextColor={SUB}
+                          keyboardType="numbers-and-punctuation" maxLength={5}
+                          accessibilityLabel="Ora inizio fascia in formato HH:MM"/>
+                        <Text style={styles.modalTimeDash}>–</Text>
+                        <Text style={styles.modalEndTime}>{fineFasciaDialogo}</Text>
+                      </View>
+                    </View>
+                    <View style={[styles.modalInputBlock, styles.modalNameBlock]}>
+                      <Text style={styles.modalFieldLabel}>Nome</Text>
+                      <TextInput style={[styles.modalInput, styles.modalNameInput]}
+                        value={dialogoFascia.nome ?? ''} onChangeText={valore => cambiaCampoFascia('nome', valore)}
+                        placeholder="Es. Notte" placeholderTextColor={SUB} maxLength={22}
+                        accessibilityLabel="Nome personalizzato della fascia oraria" />
+                    </View>
                   </View>
+                  <Text style={styles.microNote}>Nome facoltativo. La fine viene calcolata dalla fascia successiva.</Text>
                   {([
                     ['rapportoCHO', 'Rapporto I:CHO'],
                     ['sensibilitaISF', 'Sensibilità ISF'],
@@ -640,7 +678,13 @@ const styles = StyleSheet.create({
   oldParamsNote: { flexDirection: 'row', gap: 8, backgroundColor: '#29231D', borderRadius: 9, padding: 10 },
   oldParamsText: { flex: 1, color: '#E1C9AD', fontSize: 11, lineHeight: 17 },
   fasciaMiniCard: { backgroundColor: '#152633', borderRadius: 11, borderColor: '#2B485B', borderWidth: 1, padding: 11, gap: 10 },
-  fasciaName: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
+  fasciaName: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  fasciaHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  fasciaTimeTap: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 3, paddingVertical: 4 },
+  fasciaNameField: { width: 116, flexShrink: 1, backgroundColor: '#0C202B', borderRadius: 9, borderWidth: 1, borderColor: '#376078', paddingHorizontal: 7, paddingVertical: 4, gap: 3 },
+  fasciaNameFieldLabel: { fontSize: 9, color: '#9AB8C8', fontWeight: '700' },
+  fasciaNameInput: { color: '#FFFFFF', padding: 0, fontSize: 12, minHeight: 23 },
+  fasciaNameBadge: { color: '#FFFFFF', fontSize: 12, fontWeight: '600', minHeight: 23, paddingTop: 3 },
   metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   metricCell: { width: '48%', gap: 5, padding: 5 },
   metricLabel: { fontSize: 10, color: SUB, fontWeight: '600' },
@@ -657,6 +701,14 @@ const styles = StyleSheet.create({
   modalTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
   modalScroll: { flexShrink: 1 },
   modalInputBlock: { backgroundColor: '#172938', borderColor: '#34566E', borderWidth: 1, borderRadius: 11, padding: 11, gap: 8 },
+  modalTimeNameRow: { flexDirection: 'row', gap: 8, alignItems: 'stretch' },
+  modalTimeBlock: { flex: 1.35, minWidth: 0, padding: 9 },
+  modalNameBlock: { flex: 0.9, minWidth: 0, padding: 9 },
+  modalTimeInputs: { flexDirection: 'row', gap: 3, alignItems: 'center' },
+  modalStartInput: { flex: 1, minWidth: 0, paddingHorizontal: 5, textAlign: 'center', fontSize: 13 },
+  modalTimeDash: { color: SUB, fontSize: 13 },
+  modalEndTime: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  modalNameInput: { paddingHorizontal: 6, fontSize: 12 },
   modalFieldLabel: { color: TEXT, fontWeight: '700', fontSize: 12 },
   modalInput: { color: '#FFFFFF', borderColor: '#35576B', borderWidth: 1, borderRadius: 9, backgroundColor: '#0C1C28', paddingVertical: 8, paddingHorizontal: 11, fontSize: 16, minHeight: 42 },
   modalActions: { flexDirection: 'row', gap: 9 },
