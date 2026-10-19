@@ -5,7 +5,9 @@ import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DiabetyInfoCard } from '@/src/components/diabety-info-card';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
 import { DiabetyHelpButton } from '@/src/components/diabety-help-button';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { revisioneRipristinoBackup } from '@/src/services/backup-events';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDiabetyAlert } from '@/src/components/diabety-alert';
@@ -32,6 +34,11 @@ export default function CalcolatoreBoloScreen() {
   const [modificaAttiva, setModificaAttiva] = useState(false);
   const [parametriCaricati, setParametriCaricati] = useState(false);
   const [parametriConfermati, setParametriConfermati] = useState(false);
+  const ultimaRevisioneBackup = useRef(revisioneRipristinoBackup());
+  const [boloDaVerificare, setBoloDaVerificare] = useState<{
+    totale: number; pasto: number; correzione: number;
+    glicemia: number; cho: number; rapporto: number; isf: number; target: number;
+  } | null>(null);
 
   const numeroPositivo = (testo: string): number | null => {
     const pulito = testo.trim();
@@ -43,6 +50,7 @@ export default function CalcolatoreBoloScreen() {
     setRisultatoBolo(null);
     setQuotaPasto(0);
     setQuotaCorrezione(0);
+    setBoloDaVerificare(null);
   };
 
   // Carica solo parametri realmente salvati e validi: nessun valore terapeutico di ripiego.
@@ -71,6 +79,39 @@ export default function CalcolatoreBoloScreen() {
     carica();
     return () => { montato = false; };
   }, []);
+
+  // Dopo un ripristino in Impostazioni, Expo Router può conservare questa
+  // schermata montata: aggiorna i parametri soltanto se il backup è cambiato.
+  useFocusEffect(React.useCallback(() => {
+    const revisione = revisioneRipristinoBackup();
+    if (ultimaRevisioneBackup.current === revisione) return;
+    let attivo = true;
+    const aggiorna = async () => {
+      try {
+        const raw = await AsyncStorage.getItem('glicotrack_parametri_bolo');
+        if (!attivo) return;
+        const dati = raw ? JSON.parse(raw) : null;
+        const r = String(dati?.rapportoCHO ?? '');
+        const i = String(dati?.sensibilitaISF ?? '');
+        const t = String(dati?.targetGlicemico ?? '');
+        const valido = numeroPositivo(r) !== null && numeroPositivo(i) !== null && numeroPositivo(t) !== null;
+        setRapportoCHO(valido ? r : '');
+        setSensibilitaISF(valido ? i : '');
+        setTargetGlicemico(valido ? t : '');
+        setParametriConfermati(valido);
+        setModificaAttiva(false);
+        setRisultatoBolo(null);
+        setQuotaPasto(0);
+        setQuotaCorrezione(0);
+        setBoloDaVerificare(null);
+        ultimaRevisioneBackup.current = revisione;
+      } catch (errore) {
+        console.warn('DIABETY: impossibile aggiornare i parametri dopo il backup', errore);
+      }
+    };
+    aggiorna();
+    return () => { attivo = false; };
+  }, []));
 
   const gestisciCambioStatoSicurezza = async () => {
     if (!parametriCaricati) return;
@@ -132,9 +173,27 @@ export default function CalcolatoreBoloScreen() {
       mostraAvviso('Impossibile calcolare il bolo con i valori inseriti.');
       return;
     }
-    setQuotaPasto(Math.round(insulinaPasto * 10) / 10);
-    setQuotaCorrezione(Math.round(insulinaCorrezione * 10) / 10);
-    setRisultatoBolo(Math.round(totaleTeorico * 2) / 2);
+    const doseArrotondata = Math.round(totaleTeorico * 2) / 2;
+    if (!Number.isFinite(doseArrotondata) || !Number.isFinite(insulinaPasto) || !Number.isFinite(insulinaCorrezione)) {
+      mostraAvviso('Risultato non calcolabile: controlla i parametri inseriti.');
+      return;
+    }
+    // Nessuna soglia clinica inventata: chiediamo sempre di verificare i
+    // parametri e l'eventuale insulina attiva PRIMA di mostrare la dose.
+    setBoloDaVerificare({
+      totale: doseArrotondata,
+      pasto: Math.round(insulinaPasto * 10) / 10,
+      correzione: Math.round(insulinaCorrezione * 10) / 10,
+      glicemia: glic, cho, rapporto: r_cho, isf, target,
+    });
+  };
+
+  const confermaRevisioneBolo = () => {
+    if (!boloDaVerificare) return;
+    setQuotaPasto(boloDaVerificare.pasto);
+    setQuotaCorrezione(boloDaVerificare.correzione);
+    setRisultatoBolo(boloDaVerificare.totale);
+    setBoloDaVerificare(null);
   };
 
   const resettaCampi = () => {
@@ -143,6 +202,7 @@ export default function CalcolatoreBoloScreen() {
     setRisultatoBolo(null);
     setQuotaPasto(0);
     setQuotaCorrezione(0);
+    setBoloDaVerificare(null);
   };
 
   // 🎨 ALGORITMO CROMATICO OLED: Cambia colore in tempo reale in base alla soglia glicemica
@@ -300,6 +360,40 @@ export default function CalcolatoreBoloScreen() {
           <TextInput style={[styles.inputParametroFisso, { color: modificaAttiva ? COLORS.success : COLORS.brandPrimary }]} keyboardType="numeric" value={targetGlicemico} onChangeText={(v) => { setTargetGlicemico(v); setParametriConfermati(false); invalidaRisultato(); }} maxLength={3} editable={modificaAttiva} />
         </View>
       </View>
+
+      {/* Conferma preventiva non clinica: nessuna modifica alla formula del bolo. */}
+      <Modal visible={boloDaVerificare !== null} transparent animationType="fade"
+        onRequestClose={() => setBoloDaVerificare(null)}>
+        <View style={styles.modalOverlayCentrato}>
+          <View style={styles.modalContentHelp}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="shield-checkmark-outline" size={24} color={COLORS.warning} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitleHelp}>Verifica prima del calcolo</Text>
+                <Text style={styles.modalSubtitle}>Controlla i dati prima di visualizzare la stima</Text>
+              </View>
+            </View>
+            <View style={styles.modalDivider} />
+            {boloDaVerificare && (
+              <View style={{ gap: 8, marginBottom: 16 }}>
+                <Text style={styles.infoBlockText}>Glicemia: {boloDaVerificare.glicemia || 'non inserita'} mg/dL · CHO: {boloDaVerificare.cho} g</Text>
+                <Text style={styles.infoBlockText}>Rapporto I:CHO: {boloDaVerificare.rapporto} · ISF: {boloDaVerificare.isf} · Target: {boloDaVerificare.target} mg/dL</Text>
+                <Text style={styles.warningText}>Il risultato è una stima matematica: non considera automaticamente insulina ancora attiva, attività fisica o altri fattori clinici. Verifica sempre i parametri e segui il piano concordato con il medico.</Text>
+              </View>
+            )}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity style={[styles.resetButton, { flex: 1, paddingVertical: 13, alignItems: 'center' }]}
+                onPress={() => setBoloDaVerificare(null)} accessibilityRole="button">
+                <Text style={{ color: COLORS.onSurface, fontWeight: '700' }}>Annulla</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.saveButton, { flex: 1 }]}
+                onPress={confermaRevisioneBolo} accessibilityRole="button">
+                <Text style={styles.saveButtonText}>Mostra stima</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Guida premium ai parametri terapeutici */}
       <Modal visible={mostraHelpParametri} animationType="fade" transparent={true} onRequestClose={() => setMostraHelpParametri(false)}>
