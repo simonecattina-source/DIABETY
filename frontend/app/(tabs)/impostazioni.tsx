@@ -2,6 +2,8 @@ import { esportaRegistroPdfDaHtml } from '@/src/services/pdf-export';
 import { MOMENTI_COLONNE, raggruppaMisurePerDataPdf } from '@/src/utils/pdf-measurement-selection';
 import { generaHtmlRegistroPdf } from '@/src/utils/pdf-report-html';
 import { leggiValoreCho, formattaInsulinaChoPdf } from '@/src/utils/cho';
+import { segnalaRipristinoBackup } from '@/src/services/backup-events';
+import { File, Paths } from 'expo-file-system';
 import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
 import { DiabetyStatusNotice } from '@/src/components/diabety-status-notice';
 import { DiabetyPdfExportModal } from '@/src/components/diabety-pdf-export-modal';
@@ -265,12 +267,15 @@ export default function StrumentiScreen() {
       const bolo = boloRaw ? JSON.parse(boloRaw) : null;
       const preferiti = preferitiRaw ? JSON.parse(preferitiRaw) : [];
       if (!Array.isArray(storico) || !storico.every(validaMisurazioneBackup)) throw new Error('Storico non valido');
+      // I CHO testuali di vecchie versioni (12,5 oppure 12.5) vengono
+      // normalizzati SOLO nella copia del backup: lo storico locale non cambia.
+      const storicoPerBackup = storico.map(normalizzaMisurazioneBackup);
       if (bolo !== null && !parametriBoloValidi(bolo)) throw new Error('Parametri bolo non validi');
       if (!preferitiValidi(preferiti)) throw new Error('Preferiti non validi');
       const backup = JSON.stringify({
         formato: 'DIABETY_BACKUP', versione: 2,
         esportatoIl: new Date().toISOString(),
-        storico, parametriBolo: bolo, alimentiPreferiti: preferiti,
+        storico: storicoPerBackup, parametriBolo: bolo, alimentiPreferiti: preferiti,
       }, null, 2);
       if (Platform.OS === 'web') {
         const blob = new Blob([backup], { type: 'application/json' });
@@ -278,12 +283,19 @@ export default function StrumentiScreen() {
         const a = document.createElement('a');
         a.href = url; a.download = 'backup_diabety_completo.json';
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
         mostraMessaggioNotifica('✓ Backup completo scaricato');
       } else {
-        const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(backup)}`;
         if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(dataUri, { dialogTitle: 'Salva il tuo Backup Diabety' });
+          // Expo Sharing nativo richiede un vero file locale, non una data URI.
+          const fileBackup = new File(Paths.cache, 'backup_diabety_completo.json');
+          fileBackup.create({ overwrite: true });
+          await fileBackup.write(backup);
+          await Sharing.shareAsync(fileBackup.uri, {
+            dialogTitle: 'Salva il tuo Backup Diabety',
+            mimeType: 'application/json',
+            UTI: 'public.json',
+          });
         } else {
           mostraAvviso('La condivisione non è supportata su questo dispositivo.');
         }
@@ -293,15 +305,23 @@ export default function StrumentiScreen() {
       mostraAvviso('Impossibile creare il backup: alcuni dati salvati non sono validi. Nessun dato è stato modificato.');
     }
   };
+  // Converte i vecchi CHO testuali in numeri senza cambiare gli altri campi.
+  const normalizzaMisurazioneBackup = (item: any): any => ({
+    ...item,
+    cho: item.cho === undefined || item.cho === null || item.cho === ''
+      ? null : leggiValoreCho(item.cho),
+  });
+
   // I vecchi backup in formato array restano importabili.
   const validaMisurazioneBackup = (item: any): boolean => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
     if (typeof item.id !== 'string' || item.id.trim() === '') return false;
     if (typeof item.glicemia !== 'number' || !Number.isInteger(item.glicemia) || item.glicemia < 1 || item.glicemia > 999) return false;
     if (typeof item.insulina !== 'string' || !/^(?:-|\d{1,2} UI)$/.test(item.insulina)) return false;
-    // CHO facoltativo: i backup precedenti senza questo campo restano validi.
-    if (item.cho !== undefined && item.cho !== null &&
-        (typeof item.cho !== 'number' || !Number.isFinite(item.cho) || item.cho < 0 || item.cho > 9999)) return false;
+    // CHO facoltativo: accetta numeri e vecchi testi con virgola o punto.
+    // Non accettare mai valori negativi o testi numericamente ambigui.
+    if (item.cho !== undefined && item.cho !== null && item.cho !== '' &&
+        leggiValoreCho(item.cho) === null) return false;
     if (typeof item.tipo !== 'string' || !MOMENTI_COLONNE.includes(item.tipo)) return false;
     if (typeof item.note !== 'string') return false;
     if (typeof item.ora !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(item.ora)) return false;
@@ -331,8 +351,8 @@ export default function StrumentiScreen() {
         mostraAvviso('Formato backup non riconosciuto. Nessun dato modificato.');
         return;
       }
-      const datiImportati: any[] = vecchioFormato ? contenuto : contenuto.storico;
-      if (!Array.isArray(datiImportati) || !datiImportati.every(validaMisurazioneBackup)) {
+      const datiOriginali: any[] = vecchioFormato ? contenuto : contenuto.storico;
+      if (!Array.isArray(datiOriginali) || !datiOriginali.every(validaMisurazioneBackup)) {
         mostraAvviso('Backup non valido: storico malformato. Nessun dato modificato.');
         return;
       }
@@ -343,6 +363,7 @@ export default function StrumentiScreen() {
         mostraAvviso('Backup non valido: parametri del bolo o preferiti non corretti. Nessun dato modificato.');
         return;
       }
+      const datiImportati = datiOriginali.map(normalizzaMisurazioneBackup);
       const ids = datiImportati.map((item: any) => item.id);
       if (new Set(ids).size !== ids.length) {
         mostraAvviso('Backup non valido: sono presenti identificativi duplicati. Lo storico attuale non è stato modificato.');
@@ -404,6 +425,9 @@ export default function StrumentiScreen() {
         }
         throw erroreScrittura;
       }
+      // Solo a scrittura COMPLETATA: le schede già montate rileggeranno i dati
+      // al prossimo focus, evitando di sovrascrivere i preferiti ripristinati.
+      if (!vecchioFormato) segnalaRipristinoBackup();
       setBackupDaRipristinare(null);
       mostraMessaggioNotifica(`✓ Ripristinate ${datiValidi.length} misurazioni${vecchioFormato ? '' : ', parametri e preferiti'}`);
     } catch (errore) {
