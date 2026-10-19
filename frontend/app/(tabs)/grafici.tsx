@@ -1,3 +1,5 @@
+import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
+import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
 import { DiabetyHelpButton } from '@/src/components/diabety-help-button';
 import React, { useState } from 'react';
@@ -480,12 +482,11 @@ export default function GraficiScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.headerCard}>
-        <View style={styles.headerAccent} />
+      <DiabetyPageHeader variant="grafici">
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Analisi e Grafici</Text>
         </View>
-      </View>
+      </DiabetyPageHeader>
 
       <Modal animationType="fade" transparent={true} visible={modalVisibile} onRequestClose={() => setModalVisibile(false)}>
         <View style={styles.sfondoModalCentrato}>
@@ -505,9 +506,7 @@ export default function GraficiScreen() {
             <ScrollView style={styles.contenutoModalScroll} contentContainerStyle={styles.contenutoModalInterno} showsVerticalScrollIndicator={false}>
               <Text style={styles.testoDescrizioneModal}>{modalTesto}</Text>
             </ScrollView>
-            <TouchableOpacity style={styles.bottoneChiudiModal} onPress={() => setModalVisibile(false)}>
-              <Text style={styles.testoBottoneChiudi}>Chiudi</Text>
-            </TouchableOpacity>
+            <DiabetyHelpCloseButton onPress={() => setModalVisibile(false)} />
           </View>
         </View>
       </Modal>
@@ -684,8 +683,6 @@ export default function GraficiScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   // Intestazione coerente con Bolo e Storico (DIABETY V7.0.5).
-  headerCard: { backgroundColor: '#101B28', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  headerAccent: { width: 3, height: 43, backgroundColor: COLORS.brandPrimary, borderRadius: 4 },
   headerContent: { flex: 1, gap: 4 },
   headerTitle: { fontFamily: 'Space Grotesk', fontSize: 21, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 },
   content: { padding: 16, paddingTop: 15, paddingBottom: 40 },
@@ -735,8 +732,6 @@ const styles = StyleSheet.create({
   contenutoModalScroll: { flexShrink: 1 },
   contenutoModalInterno: { paddingBottom: 4 },
   testoDescrizioneModal: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, color: '#E2EBF4', lineHeight: 24, textAlign: 'left' },
-  bottoneChiudiModal: { marginTop: 22, backgroundColor: '#00E5FF', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 13, alignSelf: 'stretch', alignItems: 'center' },
-  testoBottoneChiudi: { fontFamily: 'Plus Jakarta Sans', fontSize: 15, fontWeight: '800', color: '#06141E' },
   containerInterfacciaGlicata: { width: '100%', marginTop: 5 },
   rigaDatiGlicataPrincipale: { flexDirection: 'row', alignItems: 'baseline', gap: 10, marginBottom: 14 },
   valoreGlicataTestoCentrale: { fontFamily: 'Space Grotesk', fontSize: 32, fontWeight: '800', letterSpacing: -0.5 },
