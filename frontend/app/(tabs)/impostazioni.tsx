@@ -1,3 +1,6 @@
+import { MOMENTI_COLONNE, raggruppaMisurePerDataPdf } from '@/src/utils/pdf-measurement-selection';
+import { generaHtmlRegistroPdf } from '@/src/utils/pdf-report-html';
+import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
 import { DiabetyStatusNotice } from '@/src/components/diabety-status-notice';
 import { DiabetyPdfExportModal } from '@/src/components/diabety-pdf-export-modal';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
@@ -16,58 +19,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 const COLORS = DIABETY_COLORS;
 
-const MOMENTI_COLONNE = [
-  "Prima Colazione", "Dopo Colazione", "Spuntino", 
-  "Prima Pranzo", "Dopo Pranzo", "Merenda", 
-  "Prima Cena", "Dopo Cena", "Notte"
-];
 
-// Le colonne PDF Notte sono distinte: 00:00–06:00 e 22:30–23:59 della stessa data.
-// Le altre voci, inclusi Spuntino e Merenda, rimangono invariate.
-const COLONNE_PDF = ['Notte iniziale', ...MOMENTI_COLONNE.filter(m => m !== 'Notte'), 'Notte finale'];
-const minutiPdf = (ora: unknown): number | null => {
-  if (typeof ora !== 'string') return null;
-  const match = /^(\d{1,2}):(\d{2})$/.exec(ora.trim());
-  if (!match) return null;
-  const h = Number(match[1]), m = Number(match[2]);
-  return h < 24 && m < 60 ? h * 60 + m : null;
-};
-const giornoPdf = (testo: unknown): Date | null => {
-  if (typeof testo !== 'string') return null;
-  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(testo);
-  if (!match) return null;
-  const d = Number(match[1]), m = Number(match[2]);
-  const n = Number(match[3]);
-  const a = match[3].length === 4 ? n : n < 50 ? 2000 + n : 1900 + n;
-  const date = new Date(a, m - 1, d);
-  return date.getFullYear() === a && date.getMonth() === m - 1 && date.getDate() === d ? date : null;
-};
-const scegliMisurePdf = (righe: any[], tuttiIRecord: any[], dataRiga: string): Map<string, any> => {
-  const scelta = new Map<string, any>();
-  const considera = (chiave: string, item: any, istante: number) => {
-    const precedente = scelta.get(chiave);
-    if (!precedente || istante < precedente.istante) scelta.set(chiave, { item, istante });
-  };
-  righe.forEach((item: any) => {
-    if (item.tipo === 'Notte' || !MOMENTI_COLONNE.includes(item.tipo)) return;
-    const minuti = minutiPdf(item.ora);
-    considera(item.tipo, item, minuti === null ? Number.POSITIVE_INFINITY : minuti);
-  });
-  const giorno = giornoPdf(dataRiga);
-  if (giorno) {
-    // Ogni valore Notte appare soltanto nella riga della propria data.
-    // Prima colonna: 00:00–06:00; ultima colonna: 22:30–23:59.
-    // Per più misure nello stesso intervallo prevale l'orario più antico.
-    righe.forEach((item: any) => {
-      if (item.tipo !== 'Notte') return;
-      const minuti = minutiPdf(item.ora);
-      if (minuti === null) return;
-      if (minuti >= 0 && minuti <= 6 * 60) considera('Notte iniziale', item, minuti);
-      if (minuti >= 22 * 60 + 30 && minuti <= 23 * 60 + 59) considera('Notte finale', item, minuti);
-    });
-  }
-  return new Map(Array.from(scelta.entries()).map(([k, v]) => [k, v.item]));
-};
 
 // Etichette utilizzate nella scheda Grafici.
 const ETICHETTE_MOMENTI: Record<string, string> = {
@@ -483,93 +435,18 @@ export default function StrumentiScreen() {
       if (dati.length === 0) { mostraAvviso(`Nessun dato registrato nell'intervallo selezionato.`); return; }
 
       // Il PDF seleziona per ogni data e momento la misurazione con orario più antico.
-      const sezioni: Record<string, any[]> = {};
-      dati.forEach((item: any) => { const k = item.dataTesto || "Oggi"; if (!sezioni[k]) sezioni[k] = []; sezioni[k].push(item); });
+      const sezioniOrdinate = raggruppaMisurePerDataPdf(dati);
 
-      const sezioniOrdinate = Object.keys(sezioni).sort((a, b) => {
-        const [gA, mA, anA] = a.split('/'); const [gB, mB, anB] = b.split('/');
-        return new Date(parseInt(anB) < 50 ? 2000+parseInt(anB) : 1900+parseInt(anB), parseInt(mB)-1, parseInt(gB)).getTime() - new Date(parseInt(anA) < 50 ? 2000+parseInt(anA) : 1900+parseInt(anA), parseInt(mA)-1, parseInt(gA)).getTime();
-      }).map(ch => ({ title: ch, data: sezioni[ch] }));
-
-      // Ogni giornata rimane un gruppo indivisibile di tre righe.
-      // La paginazione viene calcolata misurando l'altezza reale della tabella nel browser.
-      const righePerGiorno: string[] = [];
-      sezioniOrdinate.forEach(sez => {
-        let righe = "";
-          const rG: Record<string, string> = {}; const rI: Record<string, string> = {}; const rN: Record<string, string> = {};
-          COLONNE_PDF.forEach(m => { rG[m] = '-'; rI[m] = '-'; rN[m] = '-'; });
-          const primaPerMomento = scegliMisurePdf(sez.data, tuttiIRecordPdf, sez.title);
-          primaPerMomento.forEach((item: any, chiave: string) => {
-            let col = '#34C759'; if (item.glicemia > 180) col = '#FF3B30'; if (item.glicemia < 70) col = '#FF9F0A';
-            rG[chiave] = `<span style="color: ${col}; font-weight: bold;">${item.glicemia} mg/dL</span>`;
-            const insulinaPdf = item.insulina && item.insulina !== '-' ? `<span style="font-weight: 600;">${String(item.insulina).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>` : '';
-            const cho = valoreCHO(item.cho);
-            const choPdf = cho !== null ? `<span style="font-weight: normal;">${cho} CHO</span>` : '';
-            rI[chiave] = [insulinaPdf, choPdf].filter(Boolean).join(' - ') || '-';
-            rN[chiave] = item.note ? `<span style="font-style: italic; color: #555;">${String(item.note).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}</span>` : '-';
-          });
-          let tG = ''; let tI = ''; let tN = '';
-          COLONNE_PDF.forEach(m => { tG += `<td>${rG[m]}</td>`; tI += `<td>${rI[m]}</td>`; tN += `<td>${rN[m]}</td>`; });
-          righe += `<tr><td class="cell-data" rowspan="3">${sez.title}</td><td class="cell-label">Glicemia</td>${tG}</tr><tr><td class="cell-label">Insulina</td>${tI}</tr><tr class="row-separator"><td class="cell-label">Note</td>${tN}</tr>`;
-        righePerGiorno.push(righe);
-      });
-
-      const intestazioneTabella = '<thead><tr><th class="head-data">Data</th><th class="head-label">Parametro</th><th>Notte</th><th>Prima Colazione</th><th>Dopo Colazione</th><th>Spuntino</th><th>Prima Pranzo</th><th>Dopo Pranzo</th><th>Merenda</th><th>Prima Cena</th><th>Dopo Cena</th><th>Notte</th></tr></thead>';
-      const titoloPrimaPagina = '<h1>Diabety - Registro Storico Giornaliero</h1>';
-      const titoloAltrePagine = '<div style="height:10px;"></div>';
-      const stileDocumento = `@page { size: A4 landscape; margin: 0; } body { font-family: sans-serif; color: #1c1c1e; padding: 0; margin: 0; background: #ffffff; } .pagina-pdf { box-sizing: border-box; width: 1122px; height: 793px; padding: 36px; background: #ffffff; overflow: hidden; } .pagina-pdf:not(:last-child) { page-break-after: always; break-after: page; } h1 { font-size: 18px; color: #0A66C2; margin: 0 0 10px 0; font-weight: bold; border-bottom: 2px solid #0A66C2; padding-bottom: 4px; } table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 5px; } th, td { border: 1px solid #c7c7cc; padding: 6px 4px; font-size: 10px; text-align: center; vertical-align: middle; word-wrap: break-word; } th { background-color: #f2f2f7; font-weight: bold; font-size: 9px; text-transform: uppercase; } .cell-data { font-weight: bold; background-color: #f0f5fa; color: #0A66C2; font-size: 10.5px; width: 42px; } .cell-label { font-weight: 600; background-color: #f2f2f7; text-align: left; padding-left: 5px; width: 60px; } .head-data { width: 42px; } .head-label { width: 60px; } .row-separator td { background-color: #ffffff; border-bottom: 1px solid #0A66C2; } .cell-data { border-bottom: 1px solid #0A66C2; }`;
-      const creaPagina = (righe: string[], indice: number) => `<div class="pagina-pdf">${indice === 0 ? titoloPrimaPagina : titoloAltrePagine}<table>${intestazioneTabella}<tbody>${righe.join('')}</tbody></table></div>`;
-
-      let pagine: string[][] = [];
-      if (Platform.OS === 'web') {
-        // Misura il layout effettivo con gli stessi CSS, larghezza e margini del PDF.
-        // Non modifica il diario e non utilizza una stima fissa del numero di giorni.
-        const misuratore = document.createElement('div');
-        misuratore.style.cssText = 'position:absolute;left:0;top:0;width:1122px;visibility:hidden;pointer-events:none;z-index:-1;';
-        const stileMisura = document.createElement('style');
-        stileMisura.textContent = stileDocumento;
-        misuratore.appendChild(stileMisura);
-        const paginaMisura = document.createElement('div');
-        paginaMisura.className = 'pagina-pdf';
-        misuratore.appendChild(paginaMisura);
-        document.body.appendChild(misuratore);
-        try {
-          let gruppoCorrente: string[] = [];
-          for (const righeGiorno of righePerGiorno) {
-            const indicePagina = pagine.length;
-            paginaMisura.innerHTML = (indicePagina === 0 ? titoloPrimaPagina : titoloAltrePagine) + `<table>${intestazioneTabella}<tbody>${[...gruppoCorrente, righeGiorno].join('')}</tbody></table>`;
-            const tabella = paginaMisura.querySelector('table');
-            const limite = paginaMisura.getBoundingClientRect().bottom - 10;
-            const entra = !!tabella && tabella.getBoundingClientRect().bottom <= limite;
-            if (!entra && gruppoCorrente.length > 0) {
-              pagine.push(gruppoCorrente);
-              gruppoCorrente = [righeGiorno];
-            } else if (!entra) {
-              throw new Error('Una giornata contiene note troppo lunghe per entrare in una pagina A4. Riduci le note prima di esportare.');
-            } else {
-              gruppoCorrente.push(righeGiorno);
-            }
-            // Controlla anche il primo giorno della pagina nuova.
-            if (!entra && pagine.length > 0) {
-              paginaMisura.innerHTML = titoloAltrePagine + `<table>${intestazioneTabella}<tbody>${righeGiorno}</tbody></table>`;
-              const tabellaNuova = paginaMisura.querySelector('table');
-              if (!tabellaNuova || tabellaNuova.getBoundingClientRect().bottom > paginaMisura.getBoundingClientRect().bottom - 10) {
-                throw new Error('Una giornata contiene note troppo lunghe per entrare in una pagina A4. Riduci le note prima di esportare.');
-              }
-            }
-          }
-          if (gruppoCorrente.length) pagine.push(gruppoCorrente);
-        } finally {
-          misuratore.remove();
-        }
-      } else {
-        // Su dispositivi nativi la stampa usa il motore di impaginazione di expo-print.
-        pagine = [righePerGiorno];
-      }
-
-      const corpoHtmlCompleto = pagine.map((righe, indice) => creaPagina(righe, indice)).join('');
-      const stileNativo = Platform.OS === 'web' ? '' : '.pagina-pdf { height:auto; overflow:visible; } tbody tr { break-inside:avoid; page-break-inside:avoid; }';
-      const htmlTemplateHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${stileDocumento}${stileNativo}</style></head><body>${corpoHtmlCompleto}</body></html>`;
+      const htmlTemplateHTML = generaHtmlRegistroPdf(
+        sezioniOrdinate,
+        tuttiIRecordPdf,
+        (item: any) => {
+        const insulinaPdf = item.insulina && item.insulina !== '-' ? `<span style="font-weight: 600;">${String(item.insulina).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>` : '';
+        const cho = valoreCHO(item.cho);
+        const choPdf = cho !== null ? `<span style="font-weight: normal;">${cho} CHO</span>` : '';
+        return [insulinaPdf, choPdf].filter(Boolean).join(' - ') || '-';
+        },
+      );
 
       if (Platform.OS === 'web') {
         if (modalita === 'html') {
@@ -825,14 +702,13 @@ export default function StrumentiScreen() {
                 <Text style={styles.backupModalTitolo}>Importa backup</Text>
                 <Text style={styles.backupModalSottotitolo}>DIABETY · Conferma ripristino</Text>
               </View>
-              <TouchableOpacity
-                onPress={annullaImportazioneBackup}
-                disabled={importazioneInCorso}
-                accessibilityLabel="Chiudi finestra importazione"
-                accessibilityRole="button"
-              >
-                <Ionicons name="close" size={23} color="#9FAFB9" />
-              </TouchableOpacity>
+                            <DiabetyModalCloseButton
+                              onPress={annullaImportazioneBackup}
+                              disabled={importazioneInCorso}
+                              accessibilityLabel="Chiudi finestra importazione"
+                              iconSize={23}
+                              iconColor="#9FAFB9"
+                            />
             </View>
 
             <View style={styles.backupModalEsito}>
@@ -907,9 +783,7 @@ export default function StrumentiScreen() {
                 <Text style={styles.pdfModalTitle}>Conferma esportazione</Text>
                 <Text style={styles.pdfModalSubtitle}>DIABETY · Diario glicemico</Text>
               </View>
-              <TouchableOpacity onPress={() => setModalTabellare(null)} accessibilityLabel="Chiudi finestra">
-                <Ionicons name="close" size={24} color={COLORS.muted} />
-              </TouchableOpacity>
+                            <DiabetyModalCloseButton onPress={() => setModalTabellare(null)} accessibilityLabel="Chiudi finestra" iconSize={24} iconColor={COLORS.muted} />
             </View>
             <View style={styles.exportModalDetails}>
               <Text style={styles.exportModalDetail}>Formato: {modalTabellare === 'excel' ? 'Excel (.xlsx)' : 'CSV (.csv)'}</Text>
