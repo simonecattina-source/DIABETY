@@ -1,4 +1,5 @@
 import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
+import { revisioneRipristinoBackup } from '@/src/services/backup-events';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, ScrollView, Keyboard } from 'react-native';
@@ -31,6 +32,10 @@ export default function AlimentiScreen() {
     return () => setGrigliaAperta(false);
   }, []));
   const [preferiti, setPreferiti] = useState<string[]>([]);
+  // Evita che la rilettura del backup faccia riesportare nello storage la
+  // vecchia lista preferiti conservata in una scheda già montata.
+  const ultimoSalvataggioPreferiti = useRef('[]');
+  const ultimaRevisioneBackup = useRef(revisioneRipristinoBackup());
   const [datiCaricati, setDatiCaricati] = useState(false);
   const prossimoId = useRef(0);
   
@@ -52,7 +57,11 @@ export default function AlimentiScreen() {
         if (!attivo) return;
         if (salvatiPreferiti) {
           const elenco = JSON.parse(salvatiPreferiti);
-          if (Array.isArray(elenco)) setPreferiti(elenco.filter((id): id is string => typeof id === 'string'));
+          if (Array.isArray(elenco)) {
+            const validi = elenco.filter((id): id is string => typeof id === 'string');
+            ultimoSalvataggioPreferiti.current = JSON.stringify(validi);
+            setPreferiti(validi);
+          }
         }
         if (salvatoPiatto) {
           const elenco = JSON.parse(salvatoPiatto);
@@ -74,10 +83,33 @@ export default function AlimentiScreen() {
     return () => { attivo = false; };
   }, []);
 
+  // Ogni lista caricata dal backup è già persistita: non riscriverla.
   useEffect(() => {
-    if (datiCaricati) AsyncStorage.setItem(STORAGE_PREFERITI, JSON.stringify(preferiti))
+    if (!datiCaricati) return;
+    const contenuto = JSON.stringify(preferiti);
+    if (contenuto === ultimoSalvataggioPreferiti.current) return;
+    ultimoSalvataggioPreferiti.current = contenuto;
+    AsyncStorage.setItem(STORAGE_PREFERITI, contenuto)
       .catch(errore => console.warn('DIABETY: errore salvataggio preferiti', errore));
   }, [preferiti, datiCaricati]);
+
+  // Dopo il ripristino aggiorna i preferiti quando si torna nella scheda,
+  // evitando di modificare il piatto (intenzionalmente escluso dal backup).
+  useFocusEffect(useCallback(() => {
+    const revisione = revisioneRipristinoBackup();
+    if (ultimaRevisioneBackup.current === revisione) return;
+    let attivo = true;
+    AsyncStorage.getItem(STORAGE_PREFERITI).then(raw => {
+      if (!attivo) return;
+      const dati = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(dati)) return;
+      const validi = dati.filter((id): id is string => typeof id === 'string');
+      ultimoSalvataggioPreferiti.current = JSON.stringify(validi);
+      setPreferiti(validi);
+      ultimaRevisioneBackup.current = revisione;
+    }).catch(errore => console.warn('DIABETY: impossibile aggiornare i preferiti dopo il backup', errore));
+    return () => { attivo = false; };
+  }, []));
 
   useEffect(() => {
     if (datiCaricati) AsyncStorage.setItem(STORAGE_PIATTO, JSON.stringify(piattoSelezionato))
