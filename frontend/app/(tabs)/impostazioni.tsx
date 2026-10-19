@@ -1,3 +1,4 @@
+import { DiabetyStatusNotice } from '@/src/components/diabety-status-notice';
 import { DiabetyPdfExportModal } from '@/src/components/diabety-pdf-export-modal';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
 import React, { useState } from 'react';
@@ -699,9 +700,7 @@ export default function StrumentiScreen() {
       </View>
 
       {statoNotifica && (
-        <View style={styles.notificaTendina}>
-          <Text style={styles.notificaTesto}>{statoNotifica}</Text>
-        </View>
+        <DiabetyStatusNotice variant="impostazioni" message={statoNotifica} />
       )}
 
       <Text style={styles.sectionLabel}>Manutenzione e Report</Text>
@@ -1077,6 +1076,4 @@ const styles = StyleSheet.create({
   },
   contentText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: COLORS.muted, lineHeight: 22, textAlign: 'left', paddingLeft: 2 },
 
-  notificaTendina: { backgroundColor: '#092414', borderColor: COLORS.success, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center', width: '100%' },
-  notificaTesto: { fontFamily: 'Plus Jakarta Sans', color: COLORS.success, fontWeight: '600', fontSize: 13 }
 });
