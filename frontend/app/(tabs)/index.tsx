@@ -1,3 +1,5 @@
+import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
+import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DiabetyInfoCard } from '@/src/components/diabety-info-card';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
 import { DiabetyHelpButton } from '@/src/components/diabety-help-button';
@@ -202,8 +204,7 @@ export default function InserimentoScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       
-      <View style={styles.headerCard}>
-        <View style={styles.headerAccent} />
+      <DiabetyPageHeader variant="inserisci">
         <View style={styles.headerContent}>
           <View style={styles.headerForm}>
             <Text style={styles.title}>Inserisci Nuovi Dati</Text>
@@ -211,7 +212,7 @@ export default function InserimentoScreen() {
           </View>
           <Text style={styles.subtitle}>Registra una nuova misurazione</Text>
         </View>
-      </View>
+      </DiabetyPageHeader>
 
       <View style={styles.containerRigaTemporale}>
         <View style={styles.dataCardSinistra}>
@@ -339,10 +340,8 @@ export default function InserimentoScreen() {
                 <Text style={styles.infoBlockText}>Annota alimenti, sintomi o altre informazioni. L'orario viene aggiunto automaticamente alle note salvate.</Text>
               </DiabetyInfoCard>
             </ScrollView>
-            <TouchableOpacity style={styles.btnChiudiHelp} onPress={() => setMostraModalInfo(false)} accessibilityRole="button" accessibilityLabel="Ho capito, chiudi guida">
-              <Ionicons name="checkmark" size={19} color="#FFFFFF" />
-              <Text style={styles.btnChiudiHelpText}>Ho capito</Text>
-            </TouchableOpacity>
+
+            <DiabetyHelpCloseButton onPress={() => setMostraModalInfo(false)} />
           </View>
         </View>
       </Modal>
@@ -353,8 +352,6 @@ export default function InserimentoScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#070A0E' },
   content: { padding: 12, paddingTop: 14, paddingBottom: 40, gap: 12 },
-  headerCard: { backgroundColor: '#101B28', borderWidth: 1, borderColor: '#26536A', borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerAccent: { width: 3, height: 43, backgroundColor: COLORS.brandPrimary, borderRadius: 4 },
   headerContent: { flex: 1, gap: 4 },
   headerForm: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 8 },
   title: { fontFamily: 'Space Grotesk', fontSize: 21, fontWeight: '700', color: '#FFFFFF', flexShrink: 1 },
@@ -400,6 +397,4 @@ const styles = StyleSheet.create({
   helpLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   helpLegendPill: { borderRadius: 7, paddingHorizontal: 8, paddingVertical: 5 },
   helpLegendText: { fontFamily: 'Plus Jakarta Sans', fontSize: 10.5, fontWeight: '700' },
-  btnChiudiHelp: { marginTop: 12, backgroundColor: '#123B68', borderWidth: 1, borderColor: '#00A8FF', paddingVertical: 13, borderRadius: 12, width: '100%', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
-  btnChiudiHelpText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, fontWeight: '700', color: '#FFFFFF' }
 });
