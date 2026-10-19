@@ -94,6 +94,10 @@ export default function CalcolatoreBoloScreen() {
   const [storicoIob, setStoricoIob] = useState<unknown>([]);
   const [erroreStoricoIob, setErroreStoricoIob] = useState(false);
   const [insulineAperte, setInsulineAperte] = useState(false);
+  const [fasceAperte, setFasceAperte] = useState(false);
+  const [fasciaApertaId, setFasciaApertaId] = useState<string | null>(null);
+  const [glicemiaInserita, setGlicemiaInserita] = useState(false);
+  const [richiestaRiepilogo, setRichiestaRiepilogo] = useState(false);
   const [somministrazioniAperte, setSomministrazioniAperte] = useState(false);
   const [tabSomministrazioni, setTabSomministrazioni] = useState<'rapida'|'basale'>('rapida');
   const revisioneBackup = useRef(revisioneRipristinoBackup());
@@ -161,6 +165,8 @@ export default function CalcolatoreBoloScreen() {
       void caricaParametri();
     }
     setAdesso(new Date());
+    setFasceAperte(false);
+    setFasciaApertaId(null);
     void aggiornaStoricoIob();
   }, [caricaParametri, aggiornaStoricoIob]));
 
@@ -190,7 +196,8 @@ export default function CalcolatoreBoloScreen() {
 
   // Il calcolo puramente aritmetico non usa la stima IOB e NON determina una dose terapeutica.
   // Validare qui prima di mostrare un totale: mai trasformare un errore in 0 UI.
-  const simulazione = (!caricamento && !modificaAttiva && !erroreCaricamento)
+  const inputGlicemiaAttivato = glicemiaInserita || richiestaRiepilogo;
+  const simulazione = (inputGlicemiaAttivato && !caricamento && !modificaAttiva && !erroreCaricamento)
     ? simulaBoloMatematico(configSalvata, fasciaCorrente, glicemia, cho)
     : null;
   const simulazioneDisponibile = simulazione?.ok === true;
@@ -216,6 +223,8 @@ export default function CalcolatoreBoloScreen() {
   if (simulazioneDisponibile && iob.stato === 'non_disponibile') {
     testoAvviso += ' IOB non disponibile: non presumere che l’insulina attiva sia assente.';
   }
+  // Il valore iniziale '00' è solo un segnaposto visivo: nessun avviso all'apertura.
+  const mostraAvvisoCalcolo = inputGlicemiaAttivato || modificaAttiva || Boolean(erroreCaricamento) || caricamento;
 
   const iniziaModifica = () => {
     if (caricamento || salvataggio) return;
@@ -416,8 +425,8 @@ export default function CalcolatoreBoloScreen() {
             <TextInput
               style={[styles.primaryInput, { color: glicemiaValida ? '#FFFFFF' : SUB }]}
               keyboardType="number-pad" inputMode="numeric" selectTextOnFocus
-              value={glicemia} onChangeText={valore => { setGlicemia(valore); chiudiRiepilogo(); }}
-              onBlur={() => { if (glicemia.trim() === '') setGlicemia('00'); }}
+              value={glicemia} onChangeText={valore => { setGlicemia(valore); setGlicemiaInserita(true); setRichiestaRiepilogo(false); chiudiRiepilogo(); }}
+              onBlur={() => { if (glicemia.trim() === '') { setGlicemia('00'); setGlicemiaInserita(false); setRichiestaRiepilogo(false); } }}
               maxLength={3} accessibilityLabel="Glicemia in mg/dL"/>
             <Text style={styles.unit}>mg/dL</Text>
           </View>
@@ -460,7 +469,7 @@ export default function CalcolatoreBoloScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.reviewButton} onPress={() => setRiepilogoAperto(v => !v)}
+        <TouchableOpacity style={styles.reviewButton} onPress={() => { if (!riepilogoAperto) setRichiestaRiepilogo(true); setRiepilogoAperto(v => !v); }}
           accessibilityRole="button" accessibilityLabel="Rivedi dati: apri o chiudi il riepilogo">
           <Ionicons name={riepilogoAperto ? 'chevron-up-outline' : 'clipboard-outline'} size={18} color="#08151B"/>
           <Text style={styles.reviewButtonText}>Rivedi dati</Text>
@@ -509,13 +518,13 @@ export default function CalcolatoreBoloScreen() {
           </View>
         )}
 
-        <View style={[styles.alertBox, avvisoRosso && styles.alertRed]}>
+        {mostraAvvisoCalcolo && <View style={[styles.alertBox, avvisoRosso && styles.alertRed]}>
           <Ionicons name="shield-outline" color={avvisoRosso ? RED : AMBER} size={20}/>
           <View style={{ flex: 1, gap: 5 }}>
             <Text style={[styles.alertTitle, { color: avvisoRosso ? RED : AMBER }]}>{titoloAvviso}</Text>
             <Text style={styles.alertText}>{testoAvviso}</Text>
           </View>
-        </View>
+        </View>}
         <View style={styles.resultBox}>
           <Text style={styles.eyebrow}>STIMA MATEMATICA · NON TERAPEUTICA</Text>
           <Text style={styles.resultValue}>
@@ -524,7 +533,7 @@ export default function CalcolatoreBoloScreen() {
           <Text style={[styles.secondaryText, { textAlign: 'center' }]}>
             {simulazione?.ok === true
               ? 'Somma puramente teorica delle quote CHO e correzione · IOB non sottratta'
-              : 'Simulazione non disponibile: controlla l’avviso sopra'}
+              : inputGlicemiaAttivato ? 'Simulazione non disponibile: controlla l’avviso sopra' : 'Inserisci la glicemia per visualizzare la stima matematica'}
           </Text>
           <Text style={[styles.microNote, { textAlign: 'center' }]}>Non usare questo valore per decidere una somministrazione di insulina. Bolo consigliato: non abilitato.</Text>
         </View>
@@ -579,81 +588,123 @@ export default function CalcolatoreBoloScreen() {
               <Text style={styles.secondaryText}>Insulina rapida · Penne</Text>
               {(['nome','durataOre','piccoMin'] as const).map(c=><View key={'rapida'+c} style={{gap:3}}>
                 <Text style={styles.microNote}>{c==='nome'?'Nome insulina':c==='durataOre'?'Durata (ore)':'Picco del modello (minuti)'}</Text>
-                <TextInput style={{borderWidth:1,borderColor:'#42606B',borderRadius:7,padding:8,color:TEXT}} editable={modificaAttiva} value={(modificaAttiva?terapiaBozza:terapiaSalvata)?.penne.rapida[c]??''} onChangeText={v=>setTerapiaBozza(prev=>({...prev,penne:{...prev.penne,rapida:{...prev.penne.rapida,[c]:v}}}))} placeholder="Da configurare" placeholderTextColor={SUB} keyboardType={c==='nome'?'default':'decimal-pad'} />
+                <TextInput style={{borderWidth:1,borderColor:'#42606B',borderRadius:7,padding:8,color:TEXT,fontSize:16}} editable={modificaAttiva} value={(modificaAttiva?terapiaBozza:terapiaSalvata)?.penne.rapida[c]??''} onChangeText={v=>setTerapiaBozza(prev=>({...prev,penne:{...prev.penne,rapida:{...prev.penne.rapida,[c]:v}}}))} placeholder="Da configurare" placeholderTextColor={SUB} keyboardType={c==='nome'?'default':'decimal-pad'} />
               </View>)}
               <Text style={styles.secondaryText}>Insulina basale · Penne</Text>
               {(['nome','durataOre'] as const).map(c=><View key={'basale'+c} style={{gap:3}}>
                 <Text style={styles.microNote}>{c==='nome'?'Nome insulina':'Durata (ore)'}</Text>
-                <TextInput style={{borderWidth:1,borderColor:'#42606B',borderRadius:7,padding:8,color:TEXT}} editable={modificaAttiva} value={(modificaAttiva?terapiaBozza:terapiaSalvata)?.penne.basale[c]??''} onChangeText={v=>setTerapiaBozza(prev=>({...prev,penne:{...prev.penne,basale:{...prev.penne.basale,[c]:v}}}))} placeholder="Da configurare" placeholderTextColor={SUB} keyboardType={c==='nome'?'default':'decimal-pad'} />
+                <TextInput style={{borderWidth:1,borderColor:'#42606B',borderRadius:7,padding:8,color:TEXT,fontSize:16}} editable={modificaAttiva} value={(modificaAttiva?terapiaBozza:terapiaSalvata)?.penne.basale[c]??''} onChangeText={v=>setTerapiaBozza(prev=>({...prev,penne:{...prev.penne,basale:{...prev.penne.basale,[c]:v}}}))} placeholder="Da configurare" placeholderTextColor={SUB} keyboardType={c==='nome'?'default':'decimal-pad'} />
               </View>)}
             </> : <>
               <Text style={styles.secondaryText}>Insulina dei boli · Microinfusore</Text>
               {(['nome','durataOre','piccoMin'] as const).map(c=><View key={'pompa'+c} style={{gap:3}}>
                 <Text style={styles.microNote}>{c==='nome'?'Nome insulina':c==='durataOre'?'Durata (ore)':'Picco del modello (minuti)'}</Text>
-                <TextInput style={{borderWidth:1,borderColor:'#42606B',borderRadius:7,padding:8,color:TEXT}} editable={modificaAttiva} value={(modificaAttiva?terapiaBozza:terapiaSalvata)?.microinfusore.bolo[c]??''} onChangeText={v=>setTerapiaBozza(prev=>({...prev,microinfusore:{...prev.microinfusore,bolo:{...prev.microinfusore.bolo,[c]:v}}}))} placeholder="Da configurare" placeholderTextColor={SUB} keyboardType={c==='nome'?'default':'decimal-pad'} />
+                <TextInput style={{borderWidth:1,borderColor:'#42606B',borderRadius:7,padding:8,color:TEXT,fontSize:16}} editable={modificaAttiva} value={(modificaAttiva?terapiaBozza:terapiaSalvata)?.microinfusore.bolo[c]??''} onChangeText={v=>setTerapiaBozza(prev=>({...prev,microinfusore:{...prev.microinfusore,bolo:{...prev.microinfusore.bolo,[c]:v}}}))} placeholder="Da configurare" placeholderTextColor={SUB} keyboardType={c==='nome'?'default':'decimal-pad'} />
               </View>)}
               <TouchableOpacity disabled={!modificaAttiva} onPress={()=>setTerapiaBozza(prev=>({...prev,microinfusore:{...prev.microinfusore,basaleAggiuntiva:{...prev.microinfusore.basaleAggiuntiva,abilitata:!prev.microinfusore.basaleAggiuntiva.abilitata}}}))}>
                 <Text style={{color:CYAN}}>Basale aggiuntiva con penna: {(modificaAttiva?terapiaBozza:terapiaSalvata)?.microinfusore.basaleAggiuntiva.abilitata?'Sì':'No'}</Text>
               </TouchableOpacity>
               {(modificaAttiva?terapiaBozza:terapiaSalvata)?.microinfusore.basaleAggiuntiva.abilitata && (['nome','durataOre'] as const).map(c=><View key={'extra'+c} style={{gap:3}}>
                 <Text style={styles.microNote}>{c==='nome'?'Nome basale aggiuntiva':'Durata (ore)'}</Text>
-                <TextInput style={{borderWidth:1,borderColor:'#42606B',borderRadius:7,padding:8,color:TEXT}} editable={modificaAttiva} value={(modificaAttiva?terapiaBozza:terapiaSalvata)?.microinfusore.basaleAggiuntiva[c]??''} onChangeText={v=>setTerapiaBozza(prev=>({...prev,microinfusore:{...prev.microinfusore,basaleAggiuntiva:{...prev.microinfusore.basaleAggiuntiva,[c]:v}}}))} placeholder="Da configurare" placeholderTextColor={SUB} keyboardType={c==='nome'?'default':'decimal-pad'} />
+                <TextInput style={{borderWidth:1,borderColor:'#42606B',borderRadius:7,padding:8,color:TEXT,fontSize:16}} editable={modificaAttiva} value={(modificaAttiva?terapiaBozza:terapiaSalvata)?.microinfusore.basaleAggiuntiva[c]??''} onChangeText={v=>setTerapiaBozza(prev=>({...prev,microinfusore:{...prev.microinfusore,basaleAggiuntiva:{...prev.microinfusore.basaleAggiuntiva,[c]:v}}}))} placeholder="Da configurare" placeholderTextColor={SUB} keyboardType={c==='nome'?'default':'decimal-pad'} />
               </View>)}
             </>}
           </View>}
         </View>
-        <View style={styles.rowSpace}>
-          <Text style={styles.subheading}>Fasce orarie</Text>
-          {pulsanteAiuto('fasce')}
-        </View>
-        {aiuto === 'fasce' && testoAiuto('fasce')}
-        <Text style={styles.secondaryText}>Ogni fascia termina automaticamente prima dell'inizio della successiva.</Text>
-        {fasceDaMostrare.map(fascia => (
-          <View style={styles.fasciaMiniCard} key={fascia.id}>
-            <View style={styles.fasciaHeaderRow}>
-              <TouchableOpacity style={styles.fasciaTimeTap} onPress={() => apriFascia(fascia)} disabled={!modificaAttiva}
-                accessibilityRole="button" accessibilityLabel={`Modifica orario e parametri della fascia ${fascia.inizio}`}>
-                <Text style={styles.fasciaName}>{fascia.inizio} – {fineFascia(fasceDaMostrare, fascia.id)}</Text>
-                <Ionicons name={modificaAttiva ? 'pencil-outline' : 'lock-closed-outline'} size={15} color={modificaAttiva ? CYAN : SUB}/>
-              </TouchableOpacity>
-              <View style={styles.fasciaNameField}>
-                <Text style={styles.fasciaNameFieldLabel}>Nome</Text>
-                {modificaAttiva ? (
-                  <TextInput style={styles.fasciaNameInput} value={fascia.nome ?? ''}
-                    onChangeText={valore => cambiaNomeMiniCard(fascia.id, valore)}
-                    placeholder="Es. Notte" placeholderTextColor={SUB} maxLength={22}
-                    accessibilityLabel={`Nome della fascia ${fascia.inizio}`} />
-                ) : (
-                  <Text style={styles.fasciaNameBadge} numberOfLines={1}>{fascia.nome?.trim() || '—'}</Text>
-                )}
-              </View>
+        {/* FASCE ORARIE — doppio menu a tendina, chiuso di default e una sola fascia visibile. */}
+        <View style={styles.fasceAccordion}>
+          <TouchableOpacity
+            style={styles.fasceAccordionHeader}
+            onPress={() => {
+              setFasceAperte(precedente => !precedente);
+              setFasciaApertaId(null);
+              setAiuto(null);
+              setAiutoFasciaId(null);
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: fasceAperte }}
+            accessibilityLabel={`Fasce orarie, ${fasceDaMostrare.length} configurate, ${fasceAperte ? 'chiudi' : 'apri'} elenco`}>
+            <View style={styles.fasceAccordionIcon}>
+              <Ionicons name="time-outline" size={19} color={CYAN}/>
             </View>
-            <View style={styles.divider}/>
-            <View style={styles.metricGrid}>
-              {([
-                ['rapportoCHO', 'I:CHO'], ['sensibilitaISF', 'ISF'],
-                ['targetGlicemico', 'Target'], ['sogliaCorrezione', 'Soglia'],
-              ] as [Parametro, string][]).map(([campo, etichetta]) => (
-                <View style={styles.metricCell} key={campo}>
-                  <View style={styles.rowSmall}>
-                    <Text style={styles.metricLabel}>{etichetta}</Text>
-                    {pulsanteAiuto(campo, fascia.id)}
-                  </View>
-                  <Text style={styles.metricValue}>{fascia[campo] || '—'}</Text>
-                </View>
-              ))}
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={styles.subheading}>Fasce orarie</Text>
+              <Text style={styles.secondaryText}>{fasceDaMostrare.length} {fasceDaMostrare.length === 1 ? 'fascia configurata' : 'fasce configurate'}</Text>
             </View>
-            {aiuto && ['rapportoCHO', 'sensibilitaISF', 'targetGlicemico', 'sogliaCorrezione'].includes(aiuto) &&
-              aiutoFasciaId === fascia.id && testoAiuto(aiuto)}
-          </View>
-        ))}
-        {modificaAttiva && (
-          <TouchableOpacity style={styles.addButton} onPress={nuovaFascia} accessibilityRole="button"
-            accessibilityLabel="Aggiungi fascia oraria">
-            <Ionicons name="add-circle-outline" color={CYAN} size={19}/>
-            <Text style={styles.addText}>Aggiungi fascia oraria</Text>
+            <Ionicons name={fasceAperte ? 'chevron-up' : 'chevron-down'} size={19} color={CYAN}/>
           </TouchableOpacity>
-        )}
+          {fasceAperte && <View style={styles.fasceAccordionBody}>
+            <View style={styles.rowSpace}>
+              <Text style={[styles.secondaryText, { flex: 1 }]}>Ogni fascia termina prima dell'inizio della successiva.</Text>
+              {pulsanteAiuto('fasce')}
+            </View>
+            {aiuto === 'fasce' && testoAiuto('fasce')}
+            {fasceDaMostrare.map(fascia => {
+              const aperta = fasciaApertaId === fascia.id;
+              return (
+                <View style={styles.fasciaMiniCard} key={fascia.id}>
+                  <TouchableOpacity
+                    style={styles.fasciaCollapsedHeader}
+                    onPress={() => { setFasciaApertaId(aperta ? null : fascia.id); setAiuto(null); setAiutoFasciaId(null); }}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: aperta }}
+                    accessibilityLabel={`${fascia.inizio} - ${fineFascia(fasceDaMostrare, fascia.id)}, ${fascia.nome?.trim() || 'senza nome'}, ${aperta ? 'chiudi' : 'apri'} parametri`}>
+                    <View style={{flex:1, minWidth:0, gap:3}}>
+                      <Text style={styles.fasciaName}>{fascia.inizio} – {fineFascia(fasceDaMostrare, fascia.id)}</Text>
+                      <Text style={styles.fasciaCollapsedName} numberOfLines={1}>{fascia.nome?.trim() || 'Senza nome'}</Text>
+                    </View>
+                    <Ionicons name={aperta ? 'chevron-up' : 'chevron-down'} size={18} color={CYAN}/>
+                  </TouchableOpacity>
+                  {aperta && <View style={styles.fasciaExpandedBody}>
+                    <View style={styles.metricGrid}>
+                      {([
+                        ['rapportoCHO', 'I:CHO'], ['sensibilitaISF', 'ISF'],
+                        ['targetGlicemico', 'Target'], ['sogliaCorrezione', 'Soglia'],
+                      ] as [Parametro, string][]).map(([campo, etichetta]) => (
+                        <View style={styles.metricCell} key={campo}>
+                          <TouchableOpacity
+                            style={styles.metricHelpTarget}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Informazioni: ${etichetta}`}
+                            onPress={() => {
+                              const stesso = aiuto === campo && aiutoFasciaId === fascia.id;
+                              setAiuto(stesso ? null : campo);
+                              setAiutoFasciaId(stesso ? null : fascia.id);
+                            }}>
+                            <Text style={styles.metricLabel}>{etichetta}</Text>
+                            <Ionicons name="help-circle-outline" size={13} color={CYAN}/>
+                          </TouchableOpacity>
+                          <Text style={styles.metricValue} numberOfLines={1}>{fascia[campo] || '—'}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    {aiuto && ['rapportoCHO', 'sensibilitaISF', 'targetGlicemico', 'sogliaCorrezione'].includes(aiuto) &&
+                      aiutoFasciaId === fascia.id && testoAiuto(aiuto)}
+                    {modificaAttiva && <View style={{gap:8}}>
+                      <Text style={styles.fasciaNameFieldLabel}>Nome fascia (facoltativo)</Text>
+                      <TextInput style={styles.fasciaNameInput} value={fascia.nome ?? ''}
+                        onChangeText={valore => cambiaNomeMiniCard(fascia.id, valore)}
+                        placeholder="Es. Notte" placeholderTextColor={SUB} maxLength={22}
+                        accessibilityLabel={`Nome della fascia ${fascia.inizio}`} />
+                      <TouchableOpacity style={styles.fasciaEditButton} onPress={() => apriFascia(fascia)} accessibilityRole="button"
+                        accessibilityLabel={`Modifica orario e parametri della fascia ${fascia.inizio}`}>
+                        <Ionicons name="create-outline" color={CYAN} size={17}/>
+                        <Text style={styles.fasciaEditText}>Modifica orario e parametri</Text>
+                      </TouchableOpacity>
+                    </View>}
+                  </View>}
+                </View>
+              );
+            })}
+            {modificaAttiva && (
+              <TouchableOpacity style={styles.addButton} onPress={nuovaFascia} accessibilityRole="button"
+                accessibilityLabel="Aggiungi fascia oraria">
+                <Ionicons name="add-circle-outline" color={CYAN} size={19}/>
+                <Text style={styles.addText}>Aggiungi fascia oraria</Text>
+              </TouchableOpacity>
+            )}
+          </View>}
+        </View>
 
         <View style={styles.globalParamBox}>
           <View style={styles.rowSpace}>
@@ -817,18 +868,28 @@ const styles = StyleSheet.create({
   errorText: { color: RED, fontSize: 11, lineHeight: 16 },
   oldParamsNote: { flexDirection: 'row', gap: 8, backgroundColor: '#29231D', borderRadius: 9, padding: 10 },
   oldParamsText: { flex: 1, color: '#E1C9AD', fontSize: 11, lineHeight: 17 },
-  fasciaMiniCard: { backgroundColor: '#152633', borderRadius: 11, borderColor: '#2B485B', borderWidth: 1, padding: 11, gap: 10 },
+  fasciaMiniCard: { backgroundColor: '#0B1821', borderRadius: 11, borderColor: '#2B485B', borderWidth: 1, overflow: 'hidden' },
+  fasceAccordion: { backgroundColor: '#11212C', borderWidth: 1, borderColor: '#294453', borderRadius: 13, overflow: 'hidden' },
+  fasceAccordionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, minHeight: 57 },
+  fasceAccordionIcon: { backgroundColor: '#17343E', borderRadius: 9, padding: 8 },
+  fasceAccordionBody: { borderTopWidth: 1, borderTopColor: '#2A4553', padding: 9, gap: 8 },
+  fasciaCollapsedHeader: { minHeight: 48, paddingHorizontal: 11, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  fasciaCollapsedName: { color: '#95B4C1', fontSize: 11 },
+  fasciaExpandedBody: { borderTopWidth: 1, borderTopColor: '#294451', padding: 9, gap: 8 },
+  metricHelpTarget: { minHeight: 44, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 3 },
+  fasciaEditButton: { backgroundColor: '#14323D', borderColor: '#37758D', borderWidth: 1, borderRadius: 9, minHeight: 43, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  fasciaEditText: { color: CYAN, fontSize: 12, fontWeight: '700' },
   fasciaName: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
   fasciaHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   fasciaTimeTap: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 3, paddingVertical: 4 },
   fasciaNameField: { width: 116, flexShrink: 1, backgroundColor: '#0C202B', borderRadius: 9, borderWidth: 1, borderColor: '#376078', paddingHorizontal: 7, paddingVertical: 4, gap: 3 },
   fasciaNameFieldLabel: { fontSize: 9, color: '#9AB8C8', fontWeight: '700' },
-  fasciaNameInput: { color: '#FFFFFF', padding: 0, fontSize: 12, minHeight: 23 },
+  fasciaNameInput: { color: '#FFFFFF', backgroundColor: '#0C202B', borderWidth: 1, borderColor: '#376078', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 10, fontSize: 16, minHeight: 42 },
   fasciaNameBadge: { color: '#FFFFFF', fontSize: 12, fontWeight: '600', minHeight: 23, paddingTop: 3 },
-  metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  metricCell: { width: '48%', gap: 5, padding: 5 },
+  metricGrid: { flexDirection: 'row', gap: 4 },
+  metricCell: { flex: 1, minWidth: 0, backgroundColor: '#142A36', borderRadius: 7, padding: 4, gap: 2, alignItems: 'center' },
   metricLabel: { fontSize: 10, color: SUB, fontWeight: '600' },
-  metricValue: { fontSize: 17, fontWeight: '700', color: '#FFFFFF' },
+  metricValue: { fontSize: 14, fontWeight: '700', color: '#FFFFFF', textAlign: 'center' },
   addButton: { borderRadius: 11, borderColor: CYAN, borderStyle: 'dashed', borderWidth: 1, padding: 13, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8 },
   addText: { color: CYAN, fontSize: 12, fontWeight: '700' },
   globalParamBox: { backgroundColor: '#0C202B', padding: 12, borderRadius: 11, borderWidth: 1, borderColor: '#2B485B', gap: 12 },
@@ -845,10 +906,10 @@ const styles = StyleSheet.create({
   modalTimeBlock: { flex: 1.35, minWidth: 0, padding: 9 },
   modalNameBlock: { flex: 0.9, minWidth: 0, padding: 9 },
   modalTimeInputs: { flexDirection: 'row', gap: 3, alignItems: 'center' },
-  modalStartInput: { flex: 1, minWidth: 0, paddingHorizontal: 5, textAlign: 'center', fontSize: 13 },
+  modalStartInput: { flex: 1, minWidth: 0, paddingHorizontal: 5, textAlign: 'center', fontSize: 16 },
   modalTimeDash: { color: SUB, fontSize: 13 },
   modalEndTime: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  modalNameInput: { paddingHorizontal: 6, fontSize: 12 },
+  modalNameInput: { paddingHorizontal: 6, fontSize: 16 },
   modalFieldLabel: { color: TEXT, fontWeight: '700', fontSize: 12 },
   modalInput: { color: '#FFFFFF', borderColor: '#35576B', borderWidth: 1, borderRadius: 9, backgroundColor: '#0C1C28', paddingVertical: 8, paddingHorizontal: 11, fontSize: 16, minHeight: 42 },
   modalActions: { flexDirection: 'row', gap: 9 },
