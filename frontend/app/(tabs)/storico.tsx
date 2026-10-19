@@ -1,3 +1,5 @@
+import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
+import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DiabetyPdfExportModal } from '@/src/components/diabety-pdf-export-modal';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
 import { DiabetyHelpButton } from '@/src/components/diabety-help-button';
@@ -459,8 +461,7 @@ export default function StoricoScreen() {
   return (
     <View style={styles.container}>
       
-      <View style={styles.newHeader}>
-        <View style={styles.newHeaderAccent} />
+      <DiabetyPageHeader variant="storico">
         <View style={{flex: 1}}>
           <View style={{flexDirection:'row', alignItems:'center', gap:8}}>
             <Text style={styles.newHeaderTitle}>Storico</Text>
@@ -468,7 +469,7 @@ export default function StoricoScreen() {
           </View>
           <Text style={styles.newSubtitle}>Il tuo diario glicemico</Text>
         </View>
-      </View>
+      </DiabetyPageHeader>
 
       {mostraNotificaSvuotato && (
         <View style={[styles.notificaTendinaGenerale,{backgroundColor:'#092414',borderColor:COLORS.success}]}>
@@ -579,7 +580,7 @@ export default function StoricoScreen() {
               <View style={styles.newHelpBox}><Text style={styles.newHelpTitle}>⇩  Esporta il registro</Text><Text style={styles.newHelpBody}>Visualizza il documento HTML o scarica il report PDF del periodo selezionato.</Text></View>
               <View style={styles.newHelpBox}><Text style={styles.newHelpTitle}>✕  Cancella i dati</Text><Text style={styles.newHelpBody}>Svuota elimina tutte le registrazioni dopo una conferma.</Text></View>
             </ScrollView>
-            <TouchableOpacity style={styles.newPrimaryButton} onPress={()=>setMostraHelpPDF(false)}><Text style={styles.newPrimaryText}>Ho capito</Text></TouchableOpacity>
+            <DiabetyHelpCloseButton onPress={() => setMostraHelpPDF(false)} />
           </View>
         </View>
       </Modal>
@@ -664,8 +665,6 @@ export default function StoricoScreen() {
 }
 const styles = StyleSheet.create({
   // Nuovo design Storico DIABETY; logica e PDF originali preservati.
-  newHeader:{flexDirection:'row',alignItems:'center',gap:12,backgroundColor:'#101B28',borderWidth:1,borderColor:'#26536A',borderRadius:16,padding:12,marginHorizontal:12,marginBottom:10},
-  newHeaderAccent:{width:3,height:43,borderRadius:3,backgroundColor:COLORS.brandPrimary},
   newHeaderTitle:{fontFamily:'Space Grotesk',fontSize:21,fontWeight:'700',color:'#FFFFFF'},
   newSubtitle:{fontFamily:'Plus Jakarta Sans',fontSize:11,color:'#93A7B9',marginTop:3},
   newActions:{flexDirection:'row',gap:8,marginHorizontal:12,marginBottom:14},
