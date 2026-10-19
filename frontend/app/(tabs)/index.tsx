@@ -11,6 +11,9 @@ import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Platfo
 import { Ionicons } from '@expo/vector-icons';
 import { useDiabetyAlert } from '@/src/components/diabety-alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ConfigurazioneTerapia, CHIAVE_TERAPIA_IOB, istanteLocale, terapiaValida } from '@/src/utils/terapia-iob';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
 // 🎨 PALETTE COLORI ELEVATA PER MASSIMO STACCO IN DARK MODE
 const COLORS = DIABETY_COLORS;
@@ -48,6 +51,20 @@ export default function InserimentoScreen() {
   const [oraInserita, setOraInserita] = useState(ottieniOraCorrente());
   const [glicemia, setGlicemia] = useState('');
   const [insulina, setInsulina] = useState('');
+  const [tipoInsulina, setTipoInsulina] = useState<'rapida'|'basale'>('rapida');
+  const [selettoreInsulinaAperto, setSelettoreInsulinaAperto] = useState(false);
+  const [terapia, setTerapia] = useState<ConfigurazioneTerapia|null>(null);
+  const [erroreTerapia, setErroreTerapia] = useState(false);
+  useFocusEffect(useCallback(() => {
+    let attivo = true;
+    AsyncStorage.getItem(CHIAVE_TERAPIA_IOB).then(raw => {
+      if (!attivo) return;
+      if (!raw) {setTerapia(null);setErroreTerapia(false);return;}
+      try { const dati:unknown=JSON.parse(raw); if(terapiaValida(dati)){setTerapia(dati);setErroreTerapia(false);} else {setTerapia(null);setErroreTerapia(true);} }
+      catch {setTerapia(null);setErroreTerapia(true);}
+    }).catch(() => {if(attivo){setTerapia(null);setErroreTerapia(true);}});
+    return () => {attivo=false;};
+  }, []));
   const [cho, setCho] = useState('');
   const [momentoSelezionato, setMomentoSelezionato] = useState('Prima Colazione');
   const [note, setNote] = useState('');
@@ -160,6 +177,9 @@ export default function InserimentoScreen() {
       return;
     }
 
+    if (Number(insulina)>0 && erroreTerapia) {
+      mostraAvviso('La configurazione della terapia non è leggibile. Verifica la scheda Bolo prima di salvare una nuova dose.');return;
+    }
     if (salvataggioInCorso) return;
     setSalvataggioInCorso(true);
 
@@ -172,6 +192,10 @@ export default function InserimentoScreen() {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         glicemia: Number(glicemia),
         insulina: insulina ? `${insulina} UI` : '-',
+        tipoInsulina: Number(insulina)>0 ? (terapia?.modalita==='microinfusore' ? 'rapida' : tipoInsulina) : null,
+        modalitaTerapia: Number(insulina)>0 ? (terapia?.modalita ?? 'penne') : null,
+        istanteDose: Number(insulina)>0 ? istanteLocale(dataISO,oraInserita) : null,
+        nomeInsulinaDose: Number(insulina)>0 ? (terapia?.modalita==='microinfusore' ? terapia.microinfusore.bolo.nome : tipoInsulina==='basale' ? terapia?.penne.basale.nome : terapia?.penne.rapida.nome) ?? '' : '',
         cho: cho.trim() === '' ? null : leggiValoreCho(cho),
         tipo: momentoSelezionato,
         note: noteConOrarioFuso,
@@ -193,6 +217,8 @@ export default function InserimentoScreen() {
 
       setGlicemia('');
       setInsulina('');
+      setTipoInsulina('rapida');
+      setSelettoreInsulinaAperto(false);
       setCho('');
       setNote('');
       setOraInserita(ottieniOraCorrente());
@@ -249,9 +275,23 @@ export default function InserimentoScreen() {
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
           <View style={styles.cardTitleRow}>
             <Ionicons name="medkit-outline" size={16} color={COLORS.brandPrimary} />
-            <Text style={styles.cardTitle}>Insulina</Text><Text style={styles.cardUnit}>(UI)</Text>
+            <Text style={styles.cardTitle}>Insulina</Text>
+            {terapia?.modalita !== 'microinfusore' && <TouchableOpacity
+              style={{ borderWidth:1,borderColor:'#398393',borderRadius:5,paddingHorizontal:5,paddingVertical:1,backgroundColor:'#14242C' }}
+              onPress={()=>setSelettoreInsulinaAperto(x=>!x)} accessibilityRole="button" accessibilityLabel="Apri selettore insulina Rapida o Basale">
+              <Ionicons name={selettoreInsulinaAperto?'chevron-up':'chevron-down'} size={14} color="#67E8F9" />
+            </TouchableOpacity>}
+            <Text style={styles.cardUnit}>(UI)</Text>
           </View>
-          <TextInput style={styles.insulinaInput} placeholder="00" placeholderTextColor="#93A7B9" keyboardType="numeric" value={insulina} onChangeText={setInsulina} maxLength={2} />
+          {selettoreInsulinaAperto && terapia?.modalita !== 'microinfusore' && <View style={{flexDirection:'row',gap:4,marginBottom:4}}>
+            {(['rapida','basale'] as const).map(t=><TouchableOpacity key={t} onPress={()=>{setTipoInsulina(t);setSelettoreInsulinaAperto(false);}} style={{paddingHorizontal:6,paddingVertical:4,borderRadius:6,borderWidth:1,borderColor:tipoInsulina===t?'#67E8F9':'#344C63'}}>
+              <Text style={{fontSize:10,color:tipoInsulina===t?'#67E8F9':'#FFFFFF'}}>{t==='rapida'?'Rapida':'Basale'}</Text>
+            </TouchableOpacity>)}
+          </View>}
+          <View style={{flexDirection:'row',alignItems:'center',gap:4}}>
+            <View style={{flex:1}}><TextInput style={styles.insulinaInput} placeholder="00" placeholderTextColor="#93A7B9" keyboardType="numeric" value={insulina} onChangeText={setInsulina} maxLength={2} /></View>
+            <Text style={{color:'#67E8F9',fontWeight:'800',fontSize:13}}>{terapia?.modalita==='microinfusore'?'Bolo':tipoInsulina==='rapida'?'R':'B'}</Text>
+          </View>
         </View>
         <View style={[styles.cardInputHighlight, styles.metaLarghezza]}>
           <View style={styles.cardTitleRow}>
