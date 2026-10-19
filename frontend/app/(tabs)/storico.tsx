@@ -1,3 +1,4 @@
+import { DiabetyDialogHeading } from '@/src/components/diabety-dialog-heading';
 import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
 import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
 import { DiabetyPdfExportModal } from '@/src/components/diabety-pdf-export-modal';
@@ -563,12 +564,13 @@ export default function StoricoScreen() {
       <Modal visible={mostraHelpPDF} animationType="fade" transparent onRequestClose={()=>setMostraHelpPDF(false)}>
         <View style={styles.newOverlay}>
           <View style={styles.newModal}>
-            <View style={styles.newModalHeading}>
-              <View style={styles.newModalIcon}><Ionicons name="book-outline" size={23} color={COLORS.brandPrimary}/></View>
-              <View style={{flex:1}}><Text style={styles.newModalTitle}>Guida allo Storico</Text><Text style={styles.newModalSub}>Consulta e gestisci le tue misurazioni</Text></View>
-              <TouchableOpacity onPress={()=>setMostraHelpPDF(false)} accessibilityLabel="Chiudi guida"><Ionicons name="close" size={24} color="#93A7B9"/></TouchableOpacity>
-            </View>
-            <View style={styles.newModalDivider}/>
+            <DiabetyDialogHeading
+              title="Guida allo Storico"
+              subtitle="Consulta e gestisci le tue misurazioni"
+              icon="book-outline"
+              onClose={() => setMostraHelpPDF(false)}
+              closeLabel="Chiudi guida"
+            />
             <ScrollView style={{flexShrink:1}} contentContainerStyle={{gap:10,paddingBottom:4}} showsVerticalScrollIndicator={false}>
               <View style={styles.newHelpBox}><Text style={styles.newHelpTitle}>⌕  Filtra le misurazioni</Text><Text style={styles.newHelpBody}>Seleziona 7, 14, 30, 90 giorni oppure Tutti per consultare il periodo desiderato.</Text></View>
               <View style={styles.newHelpBox}>
@@ -588,12 +590,13 @@ export default function StoricoScreen() {
       <Modal visible={mostraModalModifica} animationType="slide" transparent onRequestClose={()=>setMostraModalModifica(false)}>
         <View style={styles.newOverlay}>
           <View style={styles.newModal}>
-            <View style={styles.newModalHeading}>
-              <View style={styles.newModalIcon}><Ionicons name="pencil-outline" size={23} color={COLORS.brandPrimary}/></View>
-              <View style={{flex:1}}><Text style={styles.newModalTitle}>Modifica Misurazione</Text><Text style={styles.newModalSub}>Aggiorna i dati registrati</Text></View>
-              <TouchableOpacity onPress={()=>setMostraModalModifica(false)} accessibilityLabel="Chiudi modifica"><Ionicons name="close" size={24} color="#93A7B9"/></TouchableOpacity>
-            </View>
-            <View style={styles.newModalDivider}/>
+            <DiabetyDialogHeading
+              title="Modifica Misurazione"
+              subtitle="Aggiorna i dati registrati"
+              icon="pencil-outline"
+              onClose={() => setMostraModalModifica(false)}
+              closeLabel="Chiudi modifica"
+            />
             <ScrollView style={{flexShrink:1}} keyboardShouldPersistTaps="handled" contentContainerStyle={{gap:12,paddingBottom:8}} showsVerticalScrollIndicator={false}>
               <View style={styles.newEditGrid}>
                 <View style={styles.newEditCard}>
@@ -644,12 +647,14 @@ export default function StoricoScreen() {
       <Modal visible={mostraConfermaSvuota} animationType="fade" transparent onRequestClose={()=>setMostraConfermaSvuota(false)}>
         <View style={styles.newOverlay}>
           <View style={styles.newModal}>
-            <View style={styles.newModalHeading}>
-              <View style={[styles.newModalIcon,{backgroundColor:'#351B23',borderColor:'#69333C',borderWidth:1}]}><Ionicons name="trash-outline" size={24} color={COLORS.error}/></View>
-              <View style={{flex:1}}><Text style={styles.newModalTitle}>Svuota lo Storico</Text><Text style={styles.newModalSub}>Conferma eliminazione</Text></View>
-              <TouchableOpacity onPress={()=>setMostraConfermaSvuota(false)} accessibilityLabel="Chiudi conferma"><Ionicons name="close" size={24} color="#93A7B9"/></TouchableOpacity>
-            </View>
-            <View style={styles.newModalDivider}/>
+            <DiabetyDialogHeading
+              title="Svuota lo Storico"
+              subtitle="Conferma eliminazione"
+              icon="trash-outline"
+              danger
+              onClose={() => setMostraConfermaSvuota(false)}
+              closeLabel="Chiudi conferma"
+            />
             <Text style={{color:'#FFFFFF',fontSize:15,fontWeight:'700'}}>Vuoi eliminare tutte le misurazioni salvate?</Text>
             <View style={styles.newWarningBox}>
               <Ionicons name="warning-outline" size={22} color={COLORS.warning}/>
@@ -698,11 +703,6 @@ const styles = StyleSheet.create({
   newNotes:{flex:1,fontSize:12,color:'#93A7B9'},
   newOverlay:{flex:1,backgroundColor:'rgba(0,0,0,0.86)',justifyContent:'center',padding:14},
   newModal:{backgroundColor:'#111B27',borderWidth:1,borderColor:'#26536A',borderRadius:22,padding:15,maxWidth:440,width:'100%',maxHeight:'90%',alignSelf:'center',gap:12},
-  newModalHeading:{flexDirection:'row',alignItems:'center',gap:10},
-  newModalIcon:{width:45,height:45,backgroundColor:'#0B2B39',borderRadius:12,alignItems:'center',justifyContent:'center'},
-  newModalTitle:{fontFamily:'Space Grotesk',fontSize:18,fontWeight:'700',color:'#FFFFFF'},
-  newModalSub:{fontSize:11,color:'#93A7B9',marginTop:3},
-  newModalDivider:{height:1,backgroundColor:'#26536A'},
   newHelpBox:{backgroundColor:'#080F18',borderWidth:1,borderColor:'#344C63',borderRadius:13,padding:12,gap:7},
   newHelpTitle:{fontSize:14,color:'#FFFFFF',fontWeight:'700'},
   newHelpBody:{fontSize:13,color:'#C3CFDB',lineHeight:19},
