@@ -1,3 +1,4 @@
+import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
 import { DiabetyStatusNotice } from '@/src/components/diabety-status-notice';
 import { DiabetyHelpCloseButton } from '@/src/components/diabety-help-close-button';
 import { DiabetyPageHeader } from '@/src/components/diabety-page-header';
@@ -308,9 +309,7 @@ export default function InserimentoScreen() {
                 <Text style={styles.modalTitleHelp}>Guida all'uso</Text>
                 <Text style={styles.helpSubtitle}>DIABETY · Inserimento dati</Text>
               </View>
-              <TouchableOpacity onPress={() => setMostraModalInfo(false)} style={styles.helpCloseIcon} accessibilityRole="button" accessibilityLabel="Chiudi guida">
-                <Ionicons name="close" size={21} color="#CFD8E3" />
-              </TouchableOpacity>
+                            <DiabetyModalCloseButton onPress={() => setMostraModalInfo(false)} style={styles.helpCloseIcon} accessibilityLabel="Chiudi guida" iconSize={21} iconColor="#CFD8E3" />
             </View>
             <View style={styles.helpDivider} />
             <Text style={styles.helpIntro}>Tutto quello che serve per registrare correttamente una misurazione.</Text>
