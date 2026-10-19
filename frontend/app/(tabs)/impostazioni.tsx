@@ -5,6 +5,7 @@ import { leggiValoreCho, formattaInsulinaChoPdf } from '@/src/utils/cho';
 import { segnalaRipristinoBackup } from '@/src/services/backup-events';
 import { CHIAVE_BOLO_ORARIO, ConfigurazioneBoloOrario, configurazioneBoloValida } from '@/src/utils/bolo-orario';
 import { File, Paths } from 'expo-file-system';
+import { CHIAVE_TERAPIA_IOB, ConfigurazioneTerapia, terapiaValida } from '@/src/utils/terapia-iob';
 import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
 import { DiabetyStatusNotice } from '@/src/components/diabety-status-notice';
 import { DiabetyPdfExportModal } from '@/src/components/diabety-pdf-export-modal';
@@ -108,6 +109,8 @@ export default function StrumentiScreen() {
     parametriBolo: any;
     configurazioneBoloOraria: ConfigurazioneBoloOrario | null;
     alimentiPreferiti: string[];
+    terapiaIob: ConfigurazioneTerapia | null;
+    haTerapiaIob: boolean;
   } | null>(null);
   const [importazioneInCorso, setImportazioneInCorso] = useState(false);
 
@@ -260,27 +263,30 @@ export default function StrumentiScreen() {
 
   const esportaBackupJSON = async () => {
     try {
-      const [storicoRaw, boloRaw, preferitiRaw, boloOrarioRaw] = await Promise.all([
+      const [storicoRaw, boloRaw, preferitiRaw, boloOrarioRaw, terapiaRaw] = await Promise.all([
         AsyncStorage.getItem(CHIAVE_STORICO),
         AsyncStorage.getItem(CHIAVE_BOLO),
         AsyncStorage.getItem(CHIAVE_PREFERITI),
         AsyncStorage.getItem(CHIAVE_BOLO_ORARIO),
+        AsyncStorage.getItem(CHIAVE_TERAPIA_IOB),
       ]);
       const storico = storicoRaw ? JSON.parse(storicoRaw) : [];
       const bolo = boloRaw ? JSON.parse(boloRaw) : null;
       const preferiti = preferitiRaw ? JSON.parse(preferitiRaw) : [];
       const boloOrario = boloOrarioRaw ? JSON.parse(boloOrarioRaw) : null;
+      const terapiaIob = terapiaRaw ? JSON.parse(terapiaRaw) : null;
       if (!Array.isArray(storico) || !storico.every(validaMisurazioneBackup)) throw new Error('Storico non valido');
       // I CHO testuali di vecchie versioni (12,5 oppure 12.5) vengono
       // normalizzati SOLO nella copia del backup: lo storico locale non cambia.
       const storicoPerBackup = storico.map(normalizzaMisurazioneBackup);
       if (bolo !== null && !parametriBoloValidi(bolo)) throw new Error('Parametri bolo non validi');
       if (boloOrario !== null && !configurazioneBoloValida(boloOrario)) throw new Error('Configurazione fasce bolo non valida');
+      if (terapiaIob !== null && !terapiaValida(terapiaIob)) throw new Error('Terapia IOB non valida');
       if (!preferitiValidi(preferiti)) throw new Error('Preferiti non validi');
       const backup = JSON.stringify({
         formato: 'DIABETY_BACKUP', versione: 2,
         esportatoIl: new Date().toISOString(),
-        storico: storicoPerBackup, parametriBolo: bolo, configurazioneBoloOraria: boloOrario, alimentiPreferiti: preferiti,
+        storico: storicoPerBackup, parametriBolo: bolo, configurazioneBoloOraria: boloOrario, alimentiPreferiti: preferiti, terapiaIob,
       }, null, 2);
       if (Platform.OS === 'web') {
         const blob = new Blob([backup], { type: 'application/json' });
@@ -323,6 +329,10 @@ export default function StrumentiScreen() {
     if (typeof item.id !== 'string' || item.id.trim() === '') return false;
     if (typeof item.glicemia !== 'number' || !Number.isInteger(item.glicemia) || item.glicemia < 1 || item.glicemia > 999) return false;
     if (typeof item.insulina !== 'string' || !/^(?:-|\d{1,2} UI)$/.test(item.insulina)) return false;
+    if(item.tipoInsulina!==undefined && item.tipoInsulina!==null && item.tipoInsulina!=='rapida' && item.tipoInsulina!=='basale' && item.tipoInsulina!=='non_specificata') return false;
+    if(item.modalitaTerapia!==undefined && item.modalitaTerapia!==null && item.modalitaTerapia!=='penne' && item.modalitaTerapia!=='microinfusore') return false;
+    if(item.istanteDose!==undefined && item.istanteDose!==null && (typeof item.istanteDose!=='string' || !Number.isFinite(Date.parse(item.istanteDose)))) return false;
+    if(item.nomeInsulinaDose!==undefined && typeof item.nomeInsulinaDose!=='string') return false;
     // CHO facoltativo: accetta numeri e vecchi testi con virgola o punto.
     // Non accettare mai valori negativi o testi numericamente ambigui.
     if (item.cho !== undefined && item.cho !== null && item.cho !== '' &&
@@ -359,7 +369,8 @@ export default function StrumentiScreen() {
       if (!vecchioFormato && (
         !(contenuto.parametriBolo === null || parametriBoloValidi(contenuto.parametriBolo)) ||
         !(contenuto.configurazioneBoloOraria == null || configurazioneBoloValida(contenuto.configurazioneBoloOraria)) ||
-        !preferitiValidi(contenuto.alimentiPreferiti)
+        !preferitiValidi(contenuto.alimentiPreferiti) ||
+        !(contenuto.terapiaIob == null || terapiaValida(contenuto.terapiaIob))
       )) {
         mostraAvviso('Backup non valido: parametri del bolo, fasce orarie o preferiti non corretti. Nessun dato modificato.');
         return;
@@ -394,6 +405,8 @@ export default function StrumentiScreen() {
         parametriBolo: vecchioFormato ? null : contenuto.parametriBolo,
         configurazioneBoloOraria: vecchioFormato ? null : (contenuto.configurazioneBoloOraria ?? null),
         alimentiPreferiti: vecchioFormato ? [] : contenuto.alimentiPreferiti,
+        terapiaIob: vecchioFormato ? null : (contenuto.terapiaIob ?? null),
+        haTerapiaIob: !vecchioFormato && Object.prototype.hasOwnProperty.call(contenuto,'terapiaIob'),
       });
     } catch (errore) {
       mostraAvviso('Impossibile leggere o importare il backup. Nessun dato è stato modificato.');
@@ -441,10 +454,10 @@ export default function StrumentiScreen() {
   const confermaImportazioneBackup = async () => {
     if (!backupDaRipristinare || importazioneInCorso) return;
     setImportazioneInCorso(true);
-    const { datiValidi, vecchioFormato, parametriBolo, configurazioneBoloOraria, alimentiPreferiti } = backupDaRipristinare;
+    const { datiValidi, vecchioFormato, parametriBolo, configurazioneBoloOraria, alimentiPreferiti, terapiaIob, haTerapiaIob } = backupDaRipristinare;
     try {
       // Preserva il rollback della precedente importazione in caso di errore.
-      const chiavi = vecchioFormato ? [CHIAVE_STORICO] : [CHIAVE_STORICO, CHIAVE_BOLO, CHIAVE_PREFERITI, CHIAVE_BOLO_ORARIO];
+      const chiavi = vecchioFormato ? [CHIAVE_STORICO] : [CHIAVE_STORICO, CHIAVE_BOLO, CHIAVE_PREFERITI, CHIAVE_BOLO_ORARIO, CHIAVE_TERAPIA_IOB];
       const precedenti = await AsyncStorage.multiGet(chiavi);
       try {
         const nuovi: [string, string][] = [[CHIAVE_STORICO, JSON.stringify(datiValidi)]];
@@ -452,10 +465,13 @@ export default function StrumentiScreen() {
           if (parametriBolo !== null) nuovi.push([CHIAVE_BOLO, JSON.stringify(parametriBolo)]);
           if (configurazioneBoloOraria !== null) nuovi.push([CHIAVE_BOLO_ORARIO, JSON.stringify(configurazioneBoloOraria)]);
           nuovi.push([CHIAVE_PREFERITI, JSON.stringify(alimentiPreferiti)]);
+          if (haTerapiaIob && terapiaIob!==null) nuovi.push([CHIAVE_TERAPIA_IOB,JSON.stringify(terapiaIob)]);
         }
         await AsyncStorage.multiSet(nuovi);
         if (!vecchioFormato && parametriBolo === null) await AsyncStorage.removeItem(CHIAVE_BOLO);
         if (!vecchioFormato && configurazioneBoloOraria === null) await AsyncStorage.removeItem(CHIAVE_BOLO_ORARIO);
+        // I backup v2 precedenti non contengono questa proprietà: preservano la configurazione locale.
+        if (!vecchioFormato && haTerapiaIob && terapiaIob === null) await AsyncStorage.removeItem(CHIAVE_TERAPIA_IOB);
       } catch (erroreScrittura) {
         for (const [chiave, valore] of precedenti) {
           if (valore === null) await AsyncStorage.removeItem(chiave);
