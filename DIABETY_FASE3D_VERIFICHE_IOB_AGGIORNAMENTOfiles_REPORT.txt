@@ -1,0 +1,35 @@
+DIABETY — RISULTATI TEST TECNICI (non terapeutici)
+Data: 20/10/2026
+Base: salva data 18-10 creazio-app-main(20261019-221509).zip
+
+Moduli puri: compilazione TypeScript con --strict PASS
+Sei file modificati/aggiunti: parsing/transpilazione PASS
+28 casi automatici del motore IOB: PASS
+Curve demo esponenziale D=300 minuti, P=75 minuti:
+t (min)   % residua
+0         100.0
+30         92.5
+60         76.4
+90         58.1
+120        41.1
+180        15.9
+240         3.3
+300         0.0
+
+Alcuni scenari verificati: dose singola, somma 2 dosi, parità di ora,
+zero UI non annulla IOB precedente, basale esclusa, vecchia dose recente
+non classificata blocca la stima, dose non classificata remota non blocca,
+assenza di rapide => — UI, rapida esaurita => 0 UI secondo lo storico,
+timestamp futuro => — UI, ID duplicato => — UI, modifica e cancellazione,
+cambio di giorno, ora estiva inesistente, ora solare ambigua, modalità
+microinfusore => IOB complessiva indisponibile, insulina rapida diversa.
+
+Originali NON modificati:
+frontend/src/utils/pdf-report-html.ts
+frontend/src/utils/pdf-measurement-selection.ts
+frontend/src/services/pdf-export.ts
+frontend/app/(tabs)/grafici.tsx
+
+La sintassi valida e i test puri NON dimostrano il corretto funzionamento
+Expo/React Native né la validità clinica del modello: restano necessari test
+di integrazione, build Vercel ed esami su Android/iPhone.
