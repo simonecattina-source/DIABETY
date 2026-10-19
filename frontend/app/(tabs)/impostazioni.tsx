@@ -3,6 +3,7 @@ import { MOMENTI_COLONNE, raggruppaMisurePerDataPdf } from '@/src/utils/pdf-meas
 import { generaHtmlRegistroPdf } from '@/src/utils/pdf-report-html';
 import { leggiValoreCho, formattaInsulinaChoPdf } from '@/src/utils/cho';
 import { segnalaRipristinoBackup } from '@/src/services/backup-events';
+import { CHIAVE_BOLO_ORARIO, ConfigurazioneBoloOrario, configurazioneBoloValida } from '@/src/utils/bolo-orario';
 import { File, Paths } from 'expo-file-system';
 import { DiabetyModalCloseButton } from '@/src/components/diabety-modal-close-button';
 import { DiabetyStatusNotice } from '@/src/components/diabety-status-notice';
@@ -105,6 +106,7 @@ export default function StrumentiScreen() {
     esclusi: number;
     vecchioFormato: boolean;
     parametriBolo: any;
+    configurazioneBoloOraria: ConfigurazioneBoloOrario | null;
     alimentiPreferiti: string[];
   } | null>(null);
   const [importazioneInCorso, setImportazioneInCorso] = useState(false);
@@ -258,24 +260,27 @@ export default function StrumentiScreen() {
 
   const esportaBackupJSON = async () => {
     try {
-      const [storicoRaw, boloRaw, preferitiRaw] = await Promise.all([
+      const [storicoRaw, boloRaw, preferitiRaw, boloOrarioRaw] = await Promise.all([
         AsyncStorage.getItem(CHIAVE_STORICO),
         AsyncStorage.getItem(CHIAVE_BOLO),
         AsyncStorage.getItem(CHIAVE_PREFERITI),
+        AsyncStorage.getItem(CHIAVE_BOLO_ORARIO),
       ]);
       const storico = storicoRaw ? JSON.parse(storicoRaw) : [];
       const bolo = boloRaw ? JSON.parse(boloRaw) : null;
       const preferiti = preferitiRaw ? JSON.parse(preferitiRaw) : [];
+      const boloOrario = boloOrarioRaw ? JSON.parse(boloOrarioRaw) : null;
       if (!Array.isArray(storico) || !storico.every(validaMisurazioneBackup)) throw new Error('Storico non valido');
       // I CHO testuali di vecchie versioni (12,5 oppure 12.5) vengono
       // normalizzati SOLO nella copia del backup: lo storico locale non cambia.
       const storicoPerBackup = storico.map(normalizzaMisurazioneBackup);
       if (bolo !== null && !parametriBoloValidi(bolo)) throw new Error('Parametri bolo non validi');
+      if (boloOrario !== null && !configurazioneBoloValida(boloOrario)) throw new Error('Configurazione fasce bolo non valida');
       if (!preferitiValidi(preferiti)) throw new Error('Preferiti non validi');
       const backup = JSON.stringify({
         formato: 'DIABETY_BACKUP', versione: 2,
         esportatoIl: new Date().toISOString(),
-        storico: storicoPerBackup, parametriBolo: bolo, alimentiPreferiti: preferiti,
+        storico: storicoPerBackup, parametriBolo: bolo, configurazioneBoloOraria: boloOrario, alimentiPreferiti: preferiti,
       }, null, 2);
       if (Platform.OS === 'web') {
         const blob = new Blob([backup], { type: 'application/json' });
@@ -353,9 +358,10 @@ export default function StrumentiScreen() {
       }
       if (!vecchioFormato && (
         !(contenuto.parametriBolo === null || parametriBoloValidi(contenuto.parametriBolo)) ||
+        !(contenuto.configurazioneBoloOraria == null || configurazioneBoloValida(contenuto.configurazioneBoloOraria)) ||
         !preferitiValidi(contenuto.alimentiPreferiti)
       )) {
-        mostraAvviso('Backup non valido: parametri del bolo o preferiti non corretti. Nessun dato modificato.');
+        mostraAvviso('Backup non valido: parametri del bolo, fasce orarie o preferiti non corretti. Nessun dato modificato.');
         return;
       }
       const datiImportati = datiOriginali.map(normalizzaMisurazioneBackup);
@@ -386,6 +392,7 @@ export default function StrumentiScreen() {
         esclusi,
         vecchioFormato,
         parametriBolo: vecchioFormato ? null : contenuto.parametriBolo,
+        configurazioneBoloOraria: vecchioFormato ? null : (contenuto.configurazioneBoloOraria ?? null),
         alimentiPreferiti: vecchioFormato ? [] : contenuto.alimentiPreferiti,
       });
     } catch (errore) {
@@ -434,19 +441,21 @@ export default function StrumentiScreen() {
   const confermaImportazioneBackup = async () => {
     if (!backupDaRipristinare || importazioneInCorso) return;
     setImportazioneInCorso(true);
-    const { datiValidi, vecchioFormato, parametriBolo, alimentiPreferiti } = backupDaRipristinare;
+    const { datiValidi, vecchioFormato, parametriBolo, configurazioneBoloOraria, alimentiPreferiti } = backupDaRipristinare;
     try {
       // Preserva il rollback della precedente importazione in caso di errore.
-      const chiavi = vecchioFormato ? [CHIAVE_STORICO] : [CHIAVE_STORICO, CHIAVE_BOLO, CHIAVE_PREFERITI];
+      const chiavi = vecchioFormato ? [CHIAVE_STORICO] : [CHIAVE_STORICO, CHIAVE_BOLO, CHIAVE_PREFERITI, CHIAVE_BOLO_ORARIO];
       const precedenti = await AsyncStorage.multiGet(chiavi);
       try {
         const nuovi: [string, string][] = [[CHIAVE_STORICO, JSON.stringify(datiValidi)]];
         if (!vecchioFormato) {
           if (parametriBolo !== null) nuovi.push([CHIAVE_BOLO, JSON.stringify(parametriBolo)]);
+          if (configurazioneBoloOraria !== null) nuovi.push([CHIAVE_BOLO_ORARIO, JSON.stringify(configurazioneBoloOraria)]);
           nuovi.push([CHIAVE_PREFERITI, JSON.stringify(alimentiPreferiti)]);
         }
         await AsyncStorage.multiSet(nuovi);
         if (!vecchioFormato && parametriBolo === null) await AsyncStorage.removeItem(CHIAVE_BOLO);
+        if (!vecchioFormato && configurazioneBoloOraria === null) await AsyncStorage.removeItem(CHIAVE_BOLO_ORARIO);
       } catch (erroreScrittura) {
         for (const [chiave, valore] of precedenti) {
           if (valore === null) await AsyncStorage.removeItem(chiave);
