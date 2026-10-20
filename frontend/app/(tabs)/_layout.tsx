@@ -43,11 +43,6 @@ export default function TabsLayout() {
           <NativeTabs.Trigger.Label>Grafici</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         
-        <NativeTabs.Trigger name="sincronizzazione">
-          <NativeTabs.Trigger.Icon sf="qrcode.viewfinder" />
-          <NativeTabs.Trigger.Label>Backup QR</NativeTabs.Trigger.Label>
-        </NativeTabs.Trigger>
-
         <NativeTabs.Trigger name="impostazioni">
           <NativeTabs.Trigger.Icon sf="gearshape.2.fill" />
           <NativeTabs.Trigger.Label>Impostazioni</NativeTabs.Trigger.Label>
@@ -129,16 +124,6 @@ export default function TabsLayout() {
           title: "Grafici",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="stats-chart" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="sincronizzazione"
-        options={{
-          title: "Backup QR",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="qr-code-outline" size={size} color={color} />
           ),
         }}
       />
