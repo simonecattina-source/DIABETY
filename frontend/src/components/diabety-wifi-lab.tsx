@@ -2,7 +2,8 @@
  * DIABETY · FASE 2 — laboratorio WebRTC LAN, completamente isolato.
  * NESSUNA lettura/scrittura AsyncStorage; NESSUN dato medico; NESSUN servizio remoto.
  * Lo scambio SDP/ICE avviene SOLO tramite QR (o copia manuale del codice).
- * NON implementa la scoperta automatica o la riconnessione alla riapertura.
+ * FASE 3A: monitoraggio automatico durante la sessione, senza dati sanitari.
+ * NON implementa la scoperta automatica o la riconnessione DOPO la chiusura del browser.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, useWindowDimensions, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -44,6 +45,11 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
   const [connected, setConnected] = useState(false);
   const [pingPassed, setPingPassed] = useState(false);
   const [lastPing, setLastPing] = useState('');
+  const [pingCount, setPingCount] = useState(0);
+  const [lastRoundTripMs, setLastRoundTripMs] = useState<number | null>(null);
+  const [resumedCount, setResumedCount] = useState(0);
+  const [connectionPhase, setConnectionPhase] = useState('Non connesso');
+  const [monitorStatus, setMonitorStatus] = useState('Monitoraggio in attesa di una sessione WebRTC.');
   const [permission, askPermission] = useCameraPermissions();
   const [cameraFacing, setCameraFacing] = useState<'front' | 'back'>(Platform.OS === 'web' ? 'front' : 'back');
   const [cameraStatus, setCameraStatus] = useState('');
@@ -56,6 +62,8 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
   const remoteIdRef = useRef<string | null>(null);
   const pendingPingRef = useRef<string | null>(null);
   const pingTimeRef = useRef<number>(0);
+  const pingIsAutomaticRef = useRef(false);
+  const wasInterruptedRef = useRef(false);
   const scanBusyRef = useRef(false);
   const collectorRef = useRef(new QrPartCollector());
   const aliveRef = useRef(true);
@@ -67,6 +75,8 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
 
   const closeConnection = useCallback(() => {
     pendingPingRef.current = null;
+    pingIsAutomaticRef.current = false;
+    wasInterruptedRef.current = false;
     sessionRef.current = null;
     remoteIdRef.current = null;
     collectorRef.current.reset();
@@ -78,6 +88,11 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
       setConnected(false);
       setPingPassed(false);
       setLastPing('');
+      setPingCount(0);
+      setLastRoundTripMs(null);
+      setResumedCount(0);
+      setConnectionPhase('Non connesso');
+      setMonitorStatus('Monitoraggio in attesa di una sessione WebRTC.');
       setScanProgress('');
       setCameraStatus('');
       setCameraCheckQr(false);
@@ -94,20 +109,30 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
     return () => { aliveRef.current = false; closeConnection(); };
   }, [closeConnection]);
 
-  const sendPing = useCallback(() => {
+  const sendPing = useCallback((automatic = false) => {
     if (!channelRef.current || channelRef.current.readyState !== 'open' || !sessionRef.current) {
-      setStatus('Il canale non è aperto. Completa lo scambio dei QR e riprova.');
+      if (!automatic) setStatus('Il canale non è aperto. Completa lo scambio dei QR e riprova.');
       return;
     }
+    // Un solo ping in volo: i controlli periodici non sovrascrivono un test manuale.
+    if (pendingPingRef.current) return;
     try {
       const nonce = newLanId();
       pendingPingRef.current = nonce;
+      pingIsAutomaticRef.current = automatic;
       pingTimeRef.current = Date.now();
       const packet: TestMessage = { lab: 'DIABETY_PING', kind: 'ping', sessionId: sessionRef.current, nonce, from: deviceId };
       channelRef.current.send(JSON.stringify(packet));
-      setPingPassed(false);
-      setStatus('Messaggio di prova inviato. Attesa della risposta dall’altro dispositivo…');
-    } catch { setStatus('Impossibile inviare il messaggio di prova.'); }
+      if (!automatic) {
+        setPingPassed(false);
+        setStatus('Messaggio di prova inviato. Attesa della risposta dall’altro dispositivo…');
+      }
+      setMonitorStatus(automatic ? 'Controllo periodico in corso…' : 'Verifica manuale in corso…');
+    } catch {
+      pendingPingRef.current = null;
+      if (!automatic) setStatus('Impossibile inviare il messaggio di prova.');
+      setMonitorStatus('Invio del controllo non riuscito.');
+    }
   }, [deviceId]);
 
   const configureChannel = useCallback((channel: RTCDataChannel) => {
@@ -115,6 +140,8 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
     channel.onopen = () => {
       if (!aliveRef.current) return;
       setConnected(true);
+      setConnectionPhase('Canale dati aperto');
+      setMonitorStatus('Monitoraggio automatico attivo finché la pagina resta aperta.');
       setStatus(role === 'main'
         ? 'Canale diretto aperto. Invio del messaggio di prova…'
         : 'Canale diretto aperto. Attesa del messaggio di prova dal MAIN…');
@@ -123,6 +150,9 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
     channel.onclose = () => {
       if (!aliveRef.current) return;
       setConnected(false);
+      setPingPassed(false);
+      setConnectionPhase('Canale chiuso');
+      setMonitorStatus('Sessione terminata: non è possibile riaprire automaticamente il canale chiuso senza una nuova segnalazione.');
       setStatus('Canale chiuso. Per riconnetterti occorre una nuova sessione e un nuovo scambio QR.');
     };
     channel.onerror = () => { if (aliveRef.current) setStatus('Errore del canale diretto WebRTC.'); };
@@ -138,13 +168,19 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
         channel.send(JSON.stringify(answer));
         setPingPassed(true);
         setLastPing(new Date().toLocaleTimeString('it-IT'));
+        setPingCount(n => n + 1);
+        setMonitorStatus('Messaggio ricevuto e risposta inviata automaticamente.');
         setStatus('MESSAGGIO RICEVUTO E RISPOSTA INVIATA. Comunicazione diretta verificata su questo dispositivo.');
       } else if (payload.kind === 'pong' && role === 'main' && pendingPingRef.current === payload.nonce) {
+        const wasAutomatic = pingIsAutomaticRef.current;
         pendingPingRef.current = null;
         setPingPassed(true);
         setLastPing(new Date().toLocaleTimeString('it-IT'));
+        setPingCount(n => n + 1);
         const elapsed = Date.now() - pingTimeRef.current;
-        setStatus(`TEST SUPERATO. Risposta ricevuta dal dispositivo associato (${elapsed} ms).`);
+        setLastRoundTripMs(elapsed);
+        setMonitorStatus(`Ultimo controllo riuscito: ${elapsed} ms. Il collegamento risponde.`);
+        if (!wasAutomatic) setStatus(`TEST SUPERATO. Risposta ricevuta dal dispositivo associato (${elapsed} ms).`);
       }
     };
   }, [deviceId, role, sendPing]);
@@ -155,16 +191,64 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
     pcRef.current = pc;
     pc.onconnectionstatechange = () => {
       if (!aliveRef.current || pcRef.current !== pc) return;
-      if (pc.connectionState === 'failed') {
+      const state = pc.connectionState;
+      setConnectionPhase(state === 'connected' ? 'WebRTC connesso' : `WebRTC: ${state}`);
+      if (state === 'failed') {
+        pendingPingRef.current = null;
+        wasInterruptedRef.current = true;
         setConnected(false);
-        setStatus('Connessione non riuscita. Possibili limiti di Safari/Chrome, firewall o isolamento Wi-Fi.');
-      } else if (pc.connectionState === 'disconnected') {
+        setPingPassed(false);
+        setMonitorStatus('Connessione fallita: servono nuove informazioni ICE, non disponibili senza segnalazione.');
+        setStatus('Connessione non riuscita. Per un nuovo tentativo ripeti offerta e risposta QR.');
+      } else if (state === 'disconnected') {
+        pendingPingRef.current = null;
+        wasInterruptedRef.current = true;
         setConnected(false);
-        setStatus('Collegamento interrotto. La riconnessione automatica non fa parte della Fase 2.');
+        setPingPassed(false);
+        setMonitorStatus('Interruzione rilevata. Verifica se WebRTC riprende spontaneamente.');
+        setStatus('Collegamento temporaneamente interrotto. Il browser potrebbe ristabilirlo senza nuovi QR.');
+      } else if (state === 'connected') {
+        setConnected(true);
+        if (wasInterruptedRef.current) {
+          wasInterruptedRef.current = false;
+          setResumedCount(count => count + 1);
+          setMonitorStatus('Connessione ripristinata durante la sessione: verifica automatica in corso.');
+          if (role === 'main') sendPing(true);
+        }
       }
     };
     return pc;
-  }, []);
+  }, [role, sendPing]);
+
+  // FASE 3A: verifiche periodiche in una sessione ancora aperta.
+  // Non crea nuovi canali e NON scopre dispositivi dopo che Safari/Chrome sono stati chiusi.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !available || role !== 'main') return;
+    const checkAlive = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      const pc = pcRef.current, channel = channelRef.current;
+      if (!pc || pc.connectionState !== 'connected' || !channel || channel.readyState !== 'open') return;
+      if (pendingPingRef.current && Date.now() - pingTimeRef.current > 12000) {
+        pendingPingRef.current = null;
+        setPingPassed(false);
+        setMonitorStatus('Controllo senza risposta entro 12 secondi. Riproverò se il canale è ancora aperto.');
+        return;
+      }
+      sendPing(true);
+    };
+    const interval = setInterval(checkAlive, 15000);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') checkAlive();
+    };
+    const onFocus = () => checkAlive();
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [available, role, sendPing]);
 
   const showSignalCode = useCallback(async (signal: LanSignal) => {
     const encoded = await encodeLanSignal(signal);
@@ -397,9 +481,26 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
           <Text style={s.muted}>{pingPassed ? `Messaggio verificato alle ${lastPing}` : connected ? 'Canale aperto — prova in corso' : 'Nessuna prova completata'}</Text>
         </View>
       </View>
-      {isMain && connected && <LabButton icon="send-outline" title="Invia un nuovo messaggio di prova" onPress={sendPing} />}
+      {isMain && connected && <LabButton icon="send-outline" title="Invia un nuovo messaggio di prova" onPress={() => sendPing(false)} />}
       {pcRef.current && <LabButton icon="close-circle-outline" title="Termina test e chiudi connessione" outline onPress={() => { closeConnection(); setStatus('Test terminato.'); }} />}
-      <Text style={s.footer}>Questo test verifica solo ping/pong tra browser. Non prova sincronizzazione, riconnessione automatica o compatibilità nativa Android/iOS.</Text>
+      <View style={s.phase3Card}>
+        <View style={s.header}>
+          <Ionicons name="pulse-outline" size={19} color={C.brandPrimary} />
+          <View style={{ flex: 1 }}>
+            <Text style={s.label}>STEP 3A · Continuità della sessione</Text>
+            <Text style={s.muted}>Controllo automatico ogni 15 secondi mentre il canale WebRTC è attivo.</Text>
+          </View>
+        </View>
+        <Text style={s.body}>Stato: {connectionPhase}</Text>
+        <Text style={s.body}>Risposte di prova: {pingCount} · Riprese osservate: {resumedCount}</Text>
+        <Text style={s.body}>Ultimo controllo: {lastPing || 'nessuno'}{lastRoundTripMs === null ? '' : ` · ${lastRoundTripMs} ms`}</Text>
+        <Text style={s.cameraStatus}>{monitorStatus}</Text>
+        <Text style={s.muted}>Prova: completa il collegamento QR, lascia entrambe le pagine aperte e verifica che il numero di risposte aumenti. Poi cambia scheda e torna nell'app. Se la connessione di rete si interrompe brevemente, osserva se riprende spontaneamente.</Text>
+        <View style={s.notice}>
+          <Text style={s.noticeText}>WIFI-002B (chiusura completa): NON disponibile senza un nuovo scambio di segnalazione. La rete Wi-Fi comune e l'associazione memorizzata, da sole, non consentono a Safari e Chrome di ricreare un canale WebRTC alla riapertura.</Text>
+        </View>
+      </View>
+      <Text style={s.footer}>Laboratorio: non invia dati medici, non effettua sincronizzazione né scoperta automatica tra dispositivi. La continuità è sperimentale e vale solo per una connessione ancora recuperabile dal browser.</Text>
     </View>
   );
 }
@@ -434,5 +535,6 @@ const s = StyleSheet.create({
   input: { backgroundColor: '#090D15', borderColor: '#23586A', borderWidth: 1, padding: 12, borderRadius: 10, color: C.onSurface, fontSize: 12, textAlignVertical: 'top' },
   statusBox: { backgroundColor: '#0B1E28', borderRadius: 10, padding: 12, gap: 7, borderWidth: 1, borderColor: '#284C60' },
   status: { color: '#BEEFFA', fontSize: 13, lineHeight: 20 },
+  phase3Card: { backgroundColor: '#091B23', borderColor: '#245463', borderWidth: 1, padding: 12, borderRadius: 12, gap: 9 },
   footer: { color: '#96A5B0', fontSize: 11, lineHeight: 18 },
 });
