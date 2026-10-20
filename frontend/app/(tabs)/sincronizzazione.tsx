@@ -1,8 +1,9 @@
 /**
- * DIABETY · Laboratorio QR (FASE 1)
+ * DIABETY · Laboratorio QR (FASI 1 e 2)
  * ISOLATO: usa soltanto la chiave AsyncStorage diabety_qr_lab_v1.
  * Non legge né modifica glicotrack_data, bolo, IOB, alimenti o backup.
- * Non trasmette dati medici e NON implementa sincronizzazione di rete.
+ * Fase 2: collegamento diretto WebRTC isolato, senza accesso ai dati medici.
+ * NON implementa la sincronizzazione né la riconnessione automatica.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -11,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import QRCode from 'react-native-qrcode-svg';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { DIABETY_COLORS as C } from '@/src/theme/diabety';
+import { DiabetyWifiLab } from '@/src/components/diabety-wifi-lab';
 
 type Role = 'nessuno' | 'main' | 'associato';
 type Peer = { id: string; name: string; linkedAt: string };
@@ -235,14 +237,14 @@ export default function SincronizzazioneScreen() {
         <View style={styles.accent} />
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Sincronizzazione</Text>
-          <Text style={styles.subtitle}>Laboratorio QR · Fase 1</Text>
+          <Text style={styles.subtitle}>Laboratorio QR e Wi-Fi · Fasi 1–2</Text>
         </View>
         <Ionicons name="qr-code-outline" size={26} color={C.brandPrimary} />
       </View>
 
       <View style={styles.warning}>
         <Ionicons name="flask-outline" size={19} color={C.warning} />
-        <Text style={styles.warningText}>Questa fase serve SOLO a verificare generazione, lettura e registrazione dei QR. Non comunica sulla rete e non trasferisce, modifica o sincronizza dati sanitari.</Text>
+        <Text style={styles.warningText}>FASE 1: associazione QR. FASE 2: test WebRTC con scambio di messaggi non sanitari. Nessuna delle due funzioni trasferisce o sincronizza il diario clinico.</Text>
       </View>
 
       <View style={styles.card}>
@@ -317,6 +319,11 @@ export default function SincronizzazioneScreen() {
         </View>
       )}
 
+      {state.role !== 'nessuno' && (
+        <DiabetyWifiLab role={state.role} deviceId={state.deviceId}
+          mainId={state.mainId} linkedDevices={state.linkedDevices} />
+      )}
+
       {scanning && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Inquadra il QR</Text>
@@ -356,7 +363,7 @@ export default function SincronizzazioneScreen() {
         </View>
       )}
 
-      <Text style={styles.footer}>Prossima fase: verifica della comunicazione locale e riconnessione su Safari/Chrome. Nessun archivio sanitario sarà collegato prima dei test e del sistema anti-conflitto.</Text>
+      <Text style={styles.footer}>Fase 2: prova manuale di connessione WebRTC tramite QR. La riconnessione automatica alla riapertura e lo scambio di dati clinici non sono ancora disponibili.</Text>
     </ScrollView>
   );
 }
