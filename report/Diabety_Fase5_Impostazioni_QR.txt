@@ -1,0 +1,85 @@
+DIABETY - REPORT MODIFICHE
+Scheda Impostazioni / Trasferimento Dati con QR code
+Data: 20 ottobre 2026
+
+1. OBIETTIVO
+Integrare il trasferimento backup tramite QR nella scheda Impostazioni,
+attraverso una finestra a schermo intero, e rimuovere dalla navigazione
+la scheda separata Sincronizzazione, preservando i servizi già presenti.
+
+2. MODIFICHE GRAFICHE - MANUTENZIONE E REPORT
+- Esporta Backup: nuovo sottotesto
+  "Salva tutti i dati. Crea un file .JSON come Backup."
+- Freccia Esporta Backup: arancione #FF9800, come l'icona.
+- Freccia Importa Backup: viola #A855F7, come l'icona.
+- Esporta Excel e Esporta CSV: due pulsanti affiancati.
+- Eliminati titolo e sottotesto generale "Esporta Excel / CSV".
+- Filtro temporale Excel/CSV mantenuto e condiviso (7, 14, 30, 90,
+  Tutti), senza separatore orizzontale tra pulsanti e filtro.
+- Aggiunto dopo il filtro il pulsante
+  "Trasferimento Dati con QR code".
+- Sottotesto QR:
+  "Usa la funzione QR code per Importare / Esportare i dati su un altro dispositivo."
+- Colore dell'icona e della freccia QR: oro #D4AF37.
+
+3. TRASFERIMENTO QR E NAVIGAZIONE
+- L'interfaccia precedentemente presente nella scheda Sincronizzazione
+  è stata estratta in un componente riutilizzabile in src/components.
+- Da Impostazioni il pulsante oro apre una finestra a schermo intero.
+- È presente il comando "Indietro" in alto a destra per chiuderla.
+- È prevista una conferma di interruzione quando la sessione QR è attiva.
+- Il backup ricevuto viene passato alla procedura di validazione e
+  conferma importazione già presente in Impostazioni, dopo la chiusura
+  della finestra QR; non viene importato automaticamente.
+- Rimossi i riferimenti alla scheda Sincronizzazione dalla barra di
+  navigazione; il relativo file può essere eliminato come indicato sotto.
+- I servizi di trasferimento QR/WebRTC in src/services non sono stati
+  modificati.
+
+4. MANUALE & LINEE GUIDA
+Gli otto riquadri mantengono l'ordine originale e sono rinumerati:
+  1. Registrazione dei Dati
+  2. Calcolatore del Bolo Insulinico
+  3. Database Alimenti e Carboidrati
+  4. Archivio e Auto-Pulizia
+  5. Analisi Avanzata e Grafici
+  6. Target Colorati
+  7. Esportazione dei File
+  8. Backup e Sicurezza Dati
+
+Nel capitolo 7, "Esportazione dei File", è stata aggiunta la spiegazione
+"TRASFERIMENTO DATI CON QR CODE" alla fine del capitolo. Il blocco
+"DA SAPERE" resta immediatamente prima della spiegazione QR.
+
+5. FILE DA AGGIORNARE SU GITHUB
+Sostituire:
+  frontend/app/(tabs)/impostazioni.tsx
+  frontend/app/(tabs)/_layout.tsx
+
+Aggiungere:
+  frontend/src/components/diabety-trasferimento-qr.tsx
+
+Eliminare:
+  frontend/app/(tabs)/sincronizzazione.tsx
+
+Non modificare i servizi presenti in frontend/src/services/.
+
+6. ARCHIVI CONSEGNATI
+- DIABETY_Impostazioni_Trasferimento_QR_2026-10-20.zip
+  Progetto completo aggiornato.
+- DIABETY_solo_file_modificati.zip
+  Contiene i tre file aggiornati/nuovi e LEGGIMI.txt.
+
+7. VERIFICHE E LIMITI
+- Eseguiti controlli statici di coerenza del codice, della navigazione,
+  dei collegamenti QR e dell'ordine delle otto schede del Manuale.
+- Verificata l'integrità dell'archivio ZIP.
+- NON risultano eseguiti in questa sessione una build Expo/Vercel né
+  un test end-to-end del trasferimento QR tra due dispositivi.
+- Prima dell'utilizzo con dati reali, verificare la build e provare
+  apertura/chiusura popup, invio, ricezione, conferma e annullamento
+  dell'importazione usando esclusivamente dati di prova.
+- Nessuna modifica è stata pubblicata direttamente su GitHub o Vercel.
+
+STATO
+File preparati per l'aggiornamento manuale del repository.
