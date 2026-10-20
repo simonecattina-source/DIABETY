@@ -45,7 +45,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "DIABETY usa la fotocamera soltanto quando scegli di scansionare un codice QR di associazione.",
+          "cameraPermission": "DIABETY usa la fotocamera soltanto quando scegli di scansionare un codice QR per trasferire un backup.",
           "barcodeScannerEnabled": true
         }
       ]
