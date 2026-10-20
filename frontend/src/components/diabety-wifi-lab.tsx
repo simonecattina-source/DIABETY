@@ -5,7 +5,7 @@
  * NON implementa la scoperta automatica o la riconnessione alla riapertura.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, useWindowDimensions, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -45,6 +45,11 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
   const [pingPassed, setPingPassed] = useState(false);
   const [lastPing, setLastPing] = useState('');
   const [permission, askPermission] = useCameraPermissions();
+  const [cameraFacing, setCameraFacing] = useState<'front' | 'back'>(Platform.OS === 'web' ? 'front' : 'back');
+  const [cameraStatus, setCameraStatus] = useState('');
+  const [cameraCheckQr, setCameraCheckQr] = useState(false);
+  const { width: windowWidth } = useWindowDimensions();
+  const qrSize = Math.min(340, Math.max(210, windowWidth - 100));
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const channelRef = useRef<RTCDataChannel | null>(null);
   const sessionRef = useRef<string | null>(null);
@@ -74,6 +79,8 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
       setPingPassed(false);
       setLastPing('');
       setScanProgress('');
+      setCameraStatus('');
+      setCameraCheckQr(false);
       setCode('');
       setQrParts([]);
       setQrPage(0);
@@ -165,6 +172,7 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
     setCode(encoded);
     setQrParts(parts);
     setQrPage(0);
+    setCameraCheckQr(false);
     setShowText(false);
     setScanner(false);
     setPasting(false);
@@ -255,7 +263,14 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
   const onCodeRead = async (data: string) => {
     if (scanBusyRef.current) return;
     scanBusyRef.current = true;
-    try { await receive(data); }
+    setCameraStatus('Codice rilevato. Verifica del contenuto…');
+    try {
+      if (data.startsWith('DWL2CHECK|')) {
+        setCameraStatus('TEST WEBCAM SUPERATO: il QR semplice è stato letto. Ora mostra sul MAIN i QR tecnici dell’offerta.');
+        return;
+      }
+      await receive(data);
+    }
     catch (error) {
       setStatus(`Errore lettura/connessione: ${error instanceof Error ? error.message : 'codice non valido'}`);
       setScanner(false);
@@ -265,19 +280,25 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
   const openCamera = async () => {
     collectorRef.current.reset();
     setScanProgress('');
+    setCameraStatus('Richiesta accesso alla fotocamera…');
     setPasting(false);
     if (!permission?.granted) {
-      const grant = await askPermission();
+      let grant;
+      try { grant = await askPermission(); }
+      catch { setCameraStatus('Impossibile richiedere l’accesso alla fotocamera.'); setPasting(true); return; }
       if (!grant.granted) {
-        setStatus('Fotocamera non disponibile. Usa «Incolla codice completo» come alternativa.');
+        setStatus('Permesso fotocamera negato/non disponibile nel browser. In Chrome controlla l’icona fotocamera nella barra degli indirizzi.');
+        setCameraStatus('Fotocamera non autorizzata.');
         setPasting(true);
         return;
       }
     }
+    setCameraStatus('Apertura fotocamera…');
     setScanner(true);
   };
 
   const isMain = role === 'main';
+  const cameraCheckValue = `DWL2CHECK|${deviceId.slice(0, 12)}`;
   const canTest = isMain ? linkedDevices.length > 0 : role === 'associato' && !!mainId;
   return (
     <View style={s.card}>
@@ -317,6 +338,7 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
             <>
               <Text style={s.body}>1. Sul MAIN genera l’offerta. Da questo dispositivo associato leggi tutti i QR.</Text>
               <LabButton icon="scan-outline" title="2 · Leggi offerta del MAIN" disabled={busy} onPress={() => { void openCamera(); }} />
+              <Text style={s.muted}>Sul PC serve una webcam: premendo questo pulsante deve comparire l’anteprima video. Senza webcam utilizza «Incolla codice completo».</Text>
               <Text style={s.body}>2. Al termine DIABETY mostrerà i QR di risposta da far leggere al MAIN.</Text>
             </>
           )}
@@ -326,9 +348,16 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
       {qrParts.length > 0 && (
         <View style={s.stack}>
           <Text style={s.label}>{isMain ? 'QR offerta del MAIN' : 'QR risposta dell’associato'}</Text>
-          <View style={s.qrBox}><QRCode value={qrParts[qrPage]} size={254} ecl="L" backgroundColor="#fff" color="#111" /></View>
-          <Text style={[s.label, { textAlign: 'center' }]}>QR {qrPage + 1} di {qrParts.length}</Text>
-          {qrParts.length > 1 && <View style={s.horiz}>
+          {isMain && <LabButton outline icon="camera-outline"
+            title={cameraCheckQr ? 'Torna ai QR dell’offerta' : 'Mostra QR semplice per verificare la webcam del PC'}
+            onPress={() => setCameraCheckQr(p => !p)} />}
+          <View style={s.qrBox}>
+            <QRCode value={cameraCheckQr ? cameraCheckValue : qrParts[qrPage]}
+              size={cameraCheckQr ? Math.min(qrSize, 220) : qrSize} ecl="L" backgroundColor="#fff" color="#111" />
+          </View>
+          <Text style={[s.label, { textAlign: 'center' }]}>{cameraCheckQr ? 'QR DIAGNOSTICO: non avvia la connessione' : `QR ${qrPage + 1} di ${qrParts.length}`}</Text>
+          {cameraCheckQr && <Text style={s.muted}>Mostra questo QR al PC mentre lo scanner è aperto. Se appare «TEST WEBCAM SUPERATO», torna ai QR dell’offerta.</Text>}
+          {!cameraCheckQr && qrParts.length > 1 && <View style={s.horiz}>
             <TouchableOpacity accessibilityRole="button" style={[s.navButton, qrPage === 0 && s.disabled]} disabled={qrPage === 0} onPress={() => setQrPage(p => Math.max(0, p - 1))}><Text style={s.navText}>← Precedente</Text></TouchableOpacity>
             <TouchableOpacity accessibilityRole="button" style={[s.navButton, qrPage === qrParts.length - 1 && s.disabled]} disabled={qrPage === qrParts.length - 1} onPress={() => setQrPage(p => Math.min(qrParts.length - 1, p + 1))}><Text style={s.navText}>Successivo →</Text></TouchableOpacity>
           </View>}
@@ -339,9 +368,14 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
       {scanner && <View style={s.stack}>
         <Text style={s.label}>Inquadra il QR Wi-Fi</Text>
         <View style={s.cameraBox}>
-          <CameraView style={s.camera} facing="back" barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          <CameraView style={s.camera} facing={cameraFacing} barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            onCameraReady={() => setCameraStatus('Fotocamera avviata. Inquadra un QR nitido, ben illuminato, completamente visibile.')}
+            onMountError={event => setCameraStatus(`Errore apertura fotocamera: ${event.message}`)}
             onBarcodeScanned={({ data }) => { void onCodeRead(data); }} />
         </View>
+        <Text style={s.cameraStatus}>{cameraStatus}</Text>
+        <LabButton title={`Cambia fotocamera (${cameraFacing === 'front' ? 'anteriore' : 'posteriore'})`} outline
+          onPress={() => { setCameraFacing(p => p === 'front' ? 'back' : 'front'); setCameraStatus('Cambio fotocamera in corso…'); }} />
         {!!scanProgress && <Text style={s.muted}>{scanProgress}</Text>}
         <Text style={s.muted}>Per sequenze di più QR, fai avanzare sullo schermo dell’altro dispositivo e inquadra ciascuna parte.</Text>
         <LabButton title="Chiudi scanner" outline onPress={() => setScanner(false)} />
@@ -390,7 +424,8 @@ const s = StyleSheet.create({
   disabled: { opacity: 0.4 },
   peerOption: { backgroundColor: '#071921', flexDirection: 'row', alignItems: 'center', padding: 12, gap: 8, borderWidth: 1, borderColor: '#203B47', borderRadius: 10 },
   peerSelected: { borderColor: C.brandPrimary },
-  qrBox: { backgroundColor: '#FFFFFF', alignSelf: 'center', padding: 12, borderRadius: 12 },
+  qrBox: { backgroundColor: '#FFFFFF', alignSelf: 'center', padding: 14, borderRadius: 12 },
+  cameraStatus: { color: '#BEEFFA', fontSize: 12, lineHeight: 19 },
   navButton: { flex: 1, alignItems: 'center', backgroundColor: '#0E2D38', padding: 12, borderRadius: 9 },
   navText: { color: '#D0F4FB', fontSize: 12, fontWeight: '700' },
   raw: { backgroundColor: '#07141C', padding: 10, borderRadius: 9, fontSize: 11, color: '#BCD0DC', lineHeight: 16 },
