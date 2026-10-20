@@ -13,7 +13,9 @@ import { DiabetyStatusNotice } from '@/src/components/diabety-status-notice';
 import { DiabetyPdfExportModal } from '@/src/components/diabety-pdf-export-modal';
 import { DIABETY_COLORS } from '@/src/theme/diabety';
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform, LayoutAnimation, UIManager, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import TrasferimentoQrPanel from '@/src/components/diabety-trasferimento-qr';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform, LayoutAnimation, UIManager, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDiabetyAlert } from '@/src/components/diabety-alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -115,6 +117,37 @@ export default function StrumentiScreen() {
     haTerapiaIob: boolean;
   } | null>(null);
   const [importazioneInCorso, setImportazioneInCorso] = useState(false);
+  const [qrModalVisibile, setQrModalVisibile] = useState(false);
+  const [qrSessioneAttiva, setQrSessioneAttiva] = useState(false);
+  const timerImportQr = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => () => {
+    if (timerImportQr.current !== null) clearTimeout(timerImportQr.current);
+  }, []);
+
+  const segnalaQrAttivo = React.useCallback((attiva: boolean) => {
+    setQrSessioneAttiva(attiva);
+  }, []);
+
+  const chiudiTrasferimentoQr = () => {
+    const chiudi = () => {
+      setQrModalVisibile(false);
+      setQrSessioneAttiva(false);
+    };
+    if (!qrSessioneAttiva) { chiudi(); return; }
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Interrompere il trasferimento QR? Nessun dato verrà importato.')) chiudi();
+      return;
+    }
+    Alert.alert(
+      'Interrompere il trasferimento?',
+      'Il collegamento QR verrà chiuso. Nessun dato verrà importato.',
+      [
+        { text: 'Continua', style: 'cancel' },
+        { text: 'Interrompi', style: 'destructive', onPress: chiudi },
+      ],
+    );
+  };
+
 
   const mostraMessaggioNotifica = (testo: string) => {
     setStatoNotifica(testo);
@@ -415,6 +448,20 @@ export default function StrumentiScreen() {
     }
   };
 
+  // Chiusura prima della conferma: si usa il validatore originale di Impostazioni.
+  // Il trasferimento non modifica AsyncStorage e non introduce sincronizzazione.
+  const riceviBackupDaQr = (contenuto: string) => {
+    setQrModalVisibile(false);
+    setQrSessioneAttiva(false);
+    if (timerImportQr.current !== null) clearTimeout(timerImportQr.current);
+    // Lascia terminare la chiusura animata del popup su iOS e Android,
+    // evitando di presentare due Modal nello stesso istante.
+    timerImportQr.current = setTimeout(() => {
+      timerImportQr.current = null;
+      void preparaImportazioneBackup(contenuto);
+    }, 450);
+  };
+
   // Backup ricevuto tramite QR: passaggio in RAM, stesso validatore e popup
   // dell'importazione JSON esistente. Nessuna sovrascrittura senza conferma.
   useFocusEffect(React.useCallback(() => {
@@ -537,13 +584,13 @@ export default function StrumentiScreen() {
   };
   const manualPoints = [
     { id: 1, title: "1. Registrazione dei Dati", icon: "pulse-outline", color: "#00C8D7", content: "Nella schermata 'Inserisci' puoi registrare manualmente una misurazione, scegliendo Data e Ora del Test. L'app propone automaticamente data e ora attuali, ma puoi modificarle per registrare un test precedente.\n\nGLICEMIA (mg/dL)\nInserisci il valore della glicemia misurata in milligrammi per decilitro (mg/dL). Questo campo è obbligatorio per salvare una misurazione. Il valore viene conservato nello Storico e utilizzato nei Grafici e nelle analisi dell'app. Puoi correggerlo dalla finestra 'Modifica Misurazione'.\n\nINSULINA (UI)\nInserisci la quantità di insulina somministrata, espressa in UI. Il campo è facoltativo: puoi salvare una misurazione anche senza insulina. Se presente, il valore viene memorizzato nello Storico e può essere modificato o cancellato in seguito.\n\nCARBOIDRATI - CHO (g)\nInserisci i carboidrati assunti, espressi in grammi (g). Il campo è facoltativo. Il valore viene salvato con la misurazione, visualizzato nello Storico accanto all'insulina e può essere aggiunto, corretto o cancellato dalla finestra di modifica.\n\nMOMENTO DELLA GIORNATA\nSeleziona il momento a cui si riferisce la misurazione, ad esempio prima di colazione, dopo pranzo o notte.\n\nNOTE ALIMENTARI / SINTOMI\nPuoi inserire informazioni aggiuntive su pasti, attività o sintomi. Le note sono facoltative e vengono salvate con il test; l'app può riportare nelle note anche l'orario della misurazione.\n\nSALVATAGGIO ED ESPORTAZIONE\nPremendo 'Salva misurazione', i dati vengono registrati nel diario locale di DIABETY. Le registrazioni seguono la pulizia automatica prevista dall'app dopo 90 giorni." },
-    { id: 7, title: "7. Calcolatore del Bolo Insulinico", icon: "calculator-outline", color: "#E9A45B", content: "Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro. Puoi inserire il valore della tua Glicemia con la quantità di Carboidrati (CHO) che stai assumendo per elaborare secondo i tuoi parametri la dose di Insulina da fare. Puoi anche inserire solo il valore della Glicemia per calcolare la quantità di Insulina per la correzione della Glicemia per rientrare nel tuo target." },
-    { id: 8, title: "8. Database Alimenti e Carboidrati", icon: "restaurant-outline", color: "#53C98B", content: "Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente. Usa la barra di ricerca per trovare l'alimento che ti interessa, impostane la quantità che stai assumendo espressa in grammi e clicca sull'icona ' + ' per aggiungerla al Piatto Virtuale. L'applicazione genererà in basso una scheda momentanea dove simulerà l'insieme del tuo pasto. Qui puoi aggiungere tutti gli alimenti relativi al pasto tenendo traccia del totale dei Carboidrati (CHO)." },
-    { id: 3, title: "3. Archivio e Auto-Pulizia", icon: "trash-outline", color: "#D5D7DE", content: "L'applicazione applica un algoritmo rigoroso di conservazione locale calcolato su una finestra mobile di 90 giorni rispetto al record più recente. I vecchi dati vengono eliminati automaticamente per ottimizzare la memoria del dispositivo: ricordati di salvare periodicamente un file di backup per non perderli. L'Eliminazione dei vecchi dati non significa perdere 'Tutti i dati' ma si intende perdere la singola misurazione registrata a partire da 90 giorni precedenti la data attuale." },
-    { id: 6, title: "6. Analisi Avanzata e Grafici", icon: "stats-chart-outline", color: "#A78BFA", content: "Controlla l'andamento della tua Glicemia. Questa sezione mostra grafici chiari con l'andamento della tua Glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito si sei a target. Nota molto importante, tutti i dati e i grafici che vedi non sono dati medici ufficiali in quanto si basano solo ed esclusivamente su dati inseriti da te nel monitoraggio della Glicemia. La funzione del grafico è basata per avvicinarsi molto alla rapresentazione di un CGM ma non lo è! Un CGM (Monitoraggio Continuo del Glucosio) è un sistema tecnologico che misura i livelli di zucchero (glucosio) nel liquido interstiziale 24 ore su 24 tramite l'utilizzo di un Sensore. Il sensore rileva il glucosio ogni pochi minuti e invia i dati in tempo reale a un ricevitore, a uno smartphone o a uno smartwatch. L'app Diabety non ha questa funzione. Tutto ciò che vedi nella sezione Grafici è puramente a scopo indicativo basato soltanto su dati inseriti da te." },
-    { id: 2, title: "2. Target Colorati", icon: "color-palette-outline", color: "#E38BB5", content: "Monitora istantaneamente il tuo stato metabolico tramite la codifica dinamica dei colori di sicurezza:\n• Verde (Euglicemia): Valori compresi nel range ideale tra 70 e 180 mg/dL.\n• Arancione (Ipoglicemia): Rilevazioni critiche inferiori a 70 mg/dL.\n• Rosso (Iperglicemia): Rilevazioni elevate superiori a 180 mg/dL." },
-    { id: 4, title: "4. Esportazione dei File", icon: "document-text-outline", color: "#5BA8F2", content: "La sezione Manutenzione e Report, situata nella parte superiore del Pannello di Controllo, permette di salvare, ripristinare ed esportare i dati registrati in DIABETY. Contiene quattro funzioni principali.\n\nESPORTA BACKUP\nCrea un file JSON contenente il database dell'app. Premendo il pulsante puoi salvare una copia dei dati, utile per conservarli al sicuro o trasferirli su un altro dispositivo.\n\nIMPORTA BACKUP\nPermette di caricare un file di backup JSON precedentemente esportato per ripristinare i dati nell'app. Prima di procedere, verifica di aver selezionato il file corretto.\n\nESPORTA PDF\nGenera un documento PDF con le misurazioni del diario glicemico, comodo da consultare, stampare o condividere con il medico. Seleziona prima il periodo desiderato (7, 14, 30, 90 giorni oppure Tutti) e poi premi Esporta PDF.\n\nESPORTA EXCEL / CSV\nEsporta le misurazioni in formato Excel (.xlsx) oppure CSV (.csv), per consultarle ed elaborarle con programmi di foglio di calcolo. Seleziona il periodo desiderato e premi Esporta Excel oppure Esporta CSV, in base al formato che preferisci.\n\nDA SAPERE\nI filtri temporali del PDF e di Excel/CSV sono indipendenti: puoi scegliere periodi diversi per ciascuna esportazione. L'esportazione dei report non modifica le misurazioni salvate." },
-    { id: 5, title: "5. Backup e Sicurezza Dati", icon: "sync-outline", color: "#BA93E8", content: "Salva e proteggi i tuoi dati in pochi clic. Puoi esportare un file di sicurezza con tutto lo storico del tuo diario oppure caricarne uno vecchio per ripristinare i log. L'importazione sovrascrive il database attuale e richiede sempre una conferma per evitare cancellazioni involontarie." },
+    { id: 2, title: "2. Calcolatore del Bolo Insulinico", icon: "calculator-outline", color: "#E9A45B", content: "Calcola le unità di insulina necessarie per i pasti e per correggere i picchi alti in un attimo. Sblocca la scheda inserendo i tuoi rapporti personali (Rapporto I:CHO, Sensibilità ISF e Target) concordati con il medico: l'applicazione li terrà salvati sul dispositivo per semplificare ogni calcolo futuro. Puoi inserire il valore della tua Glicemia con la quantità di Carboidrati (CHO) che stai assumendo per elaborare secondo i tuoi parametri la dose di Insulina da fare. Puoi anche inserire solo il valore della Glicemia per calcolare la quantità di Insulina per la correzione della Glicemia per rientrare nel tuo target." },
+    { id: 3, title: "3. Database Alimenti e Carboidrati", icon: "restaurant-outline", color: "#53C98B", content: "Consulta un archivio completo con le marche e i cibi più comuni per comporre il tuo piatto virtuale. L'applicazione somma automaticamente i carboidrati totali mentre aggiungi i prodotti, aiutandoti a calcolare al volo la dose corretta di insulina senza dover fare calcoli a mente. Usa la barra di ricerca per trovare l'alimento che ti interessa, impostane la quantità che stai assumendo espressa in grammi e clicca sull'icona ' + ' per aggiungerla al Piatto Virtuale. L'applicazione genererà in basso una scheda momentanea dove simulerà l'insieme del tuo pasto. Qui puoi aggiungere tutti gli alimenti relativi al pasto tenendo traccia del totale dei Carboidrati (CHO)." },
+    { id: 4, title: "4. Archivio e Auto-Pulizia", icon: "trash-outline", color: "#D5D7DE", content: "L'applicazione applica un algoritmo rigoroso di conservazione locale calcolato su una finestra mobile di 90 giorni rispetto al record più recente. I vecchi dati vengono eliminati automaticamente per ottimizzare la memoria del dispositivo: ricordati di salvare periodicamente un file di backup per non perderli. L'Eliminazione dei vecchi dati non significa perdere 'Tutti i dati' ma si intende perdere la singola misurazione registrata a partire da 90 giorni precedenti la data attuale." },
+    { id: 5, title: "5. Analisi Avanzata e Grafici", icon: "stats-chart-outline", color: "#A78BFA", content: "Controlla l'andamento della tua Glicemia. Questa sezione mostra grafici chiari con l'andamento della tua Glicemia nelle ultime 24 ore e nei tre mesi passati. Inoltre, calcola in automatico una stima indicativa della tua Emoglobina Glicata (HbA1c) per aiutarti a capire subito si sei a target. Nota molto importante, tutti i dati e i grafici che vedi non sono dati medici ufficiali in quanto si basano solo ed esclusivamente su dati inseriti da te nel monitoraggio della Glicemia. La funzione del grafico è basata per avvicinarsi molto alla rapresentazione di un CGM ma non lo è! Un CGM (Monitoraggio Continuo del Glucosio) è un sistema tecnologico che misura i livelli di zucchero (glucosio) nel liquido interstiziale 24 ore su 24 tramite l'utilizzo di un Sensore. Il sensore rileva il glucosio ogni pochi minuti e invia i dati in tempo reale a un ricevitore, a uno smartphone o a uno smartwatch. L'app Diabety non ha questa funzione. Tutto ciò che vedi nella sezione Grafici è puramente a scopo indicativo basato soltanto su dati inseriti da te." },
+    { id: 6, title: "6. Target Colorati", icon: "color-palette-outline", color: "#E38BB5", content: "Monitora istantaneamente il tuo stato metabolico tramite la codifica dinamica dei colori di sicurezza:\n• Verde (Euglicemia): Valori compresi nel range ideale tra 70 e 180 mg/dL.\n• Arancione (Ipoglicemia): Rilevazioni critiche inferiori a 70 mg/dL.\n• Rosso (Iperglicemia): Rilevazioni elevate superiori a 180 mg/dL." },
+    { id: 7, title: "7. Esportazione dei File", icon: "document-text-outline", color: "#5BA8F2", content: "La sezione Manutenzione e Report, situata nella parte superiore del Pannello di Controllo, permette di salvare, ripristinare ed esportare i dati registrati in DIABETY. Contiene cinque funzioni principali.\n\nESPORTA BACKUP\nCrea un file JSON contenente il database dell'app. Premendo il pulsante puoi salvare una copia dei dati, utile per conservarli al sicuro o trasferirli su un altro dispositivo.\n\nIMPORTA BACKUP\nPermette di caricare un file di backup JSON precedentemente esportato per ripristinare i dati nell'app. Prima di procedere, verifica di aver selezionato il file corretto.\n\nESPORTA PDF\nGenera un documento PDF con le misurazioni del diario glicemico, comodo da consultare, stampare o condividere con il medico. Seleziona prima il periodo desiderato (7, 14, 30, 90 giorni oppure Tutti) e poi premi Esporta PDF.\n\nESPORTA EXCEL / CSV\nEsporta le misurazioni in formato Excel (.xlsx) oppure CSV (.csv), per consultarle ed elaborarle con programmi di foglio di calcolo. Seleziona il periodo desiderato e premi Esporta Excel oppure Esporta CSV, in base al formato che preferisci.\n\nDA SAPERE\nI filtri temporali del PDF e di Excel/CSV sono indipendenti: puoi scegliere periodi diversi per ciascuna esportazione. L'esportazione dei report non modifica le misurazioni salvate.\nIl trasferimento QR non crea una sincronizzazione automatica o permanente tra i dispositivi. Attualmente questa funzione è disponibile nella versione Web su browser compatibili.\n\nTRASFERIMENTO DATI CON QR CODE\nPermette di trasferire un backup di DIABETY da un dispositivo a un altro utilizzando i codici QR e una connessione Wi-Fi, senza dover salvare manualmente un file JSON.\n\nApri DIABETY su entrambi i dispositivi, collegali alla stessa rete Wi-Fi e seleziona «Trasferimento Dati con QR code» nel Pannello di Controllo.\n\nSul dispositivo che contiene i dati scegli «Invia dati», mentre sul dispositivo che deve riceverli scegli «Ricevi dati». Segui la procedura guidata per scansionare i codici QR e completare il trasferimento.\n\nIl QR serve a stabilire un collegamento temporaneo tra i dispositivi. Una volta ricevuto e verificato il backup, DIABETY aprirà la finestra di conferma dell'importazione. I dati esistenti verranno sostituiti soltanto dopo la tua conferma.\n\nIl pulsante «Indietro», in alto a destra, permette di chiudere la schermata del trasferimento e tornare al Pannello di Controllo." },
+    { id: 8, title: "8. Backup e Sicurezza Dati", icon: "sync-outline", color: "#BA93E8", content: "Salva e proteggi i tuoi dati in pochi clic. Puoi esportare un file di sicurezza con tutto lo storico del tuo diario oppure caricarne uno vecchio per ripristinare i log. L'importazione sovrascrive il database attuale e richiede sempre una conferma per evitare cancellazioni involontarie." },
   ];
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -559,17 +606,17 @@ export default function StrumentiScreen() {
 
       <Text style={styles.sectionLabel}>Manutenzione e Report</Text>
       <View style={styles.cardAzioni}>
-        <TouchableOpacity style={styles.rowAzione} onPress={esportaBackupJSON}>
+        <TouchableOpacity style={[styles.rowAzione, { height: 'auto', minHeight: 68 }]} onPress={esportaBackupJSON}>
           <View style={styles.leftAzione}>
             <View style={[styles.iconWrapper, { backgroundColor: '#1A1A24' }]}>
               <Ionicons name="cloud-download-outline" size={20} color="#FF9800" />
             </View>
-            <View>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.titoloAzione}>Esporta Backup</Text>
-              <Text style={styles.descAzione}>Salva storico, parametri del bolo e alimenti preferiti</Text>
+              <Text style={styles.descAzione}>Salva tutti i dati. Crea un file .JSON come Backup.</Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+          <Ionicons name="chevron-forward" size={18} color="#FF9800" />
         </TouchableOpacity>
 
         {Platform.OS === 'web' ? (
@@ -583,7 +630,7 @@ export default function StrumentiScreen() {
                 <Text style={styles.descAzione}>Ripristina i dati da un backup JSON</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+            <Ionicons name="chevron-forward" size={18} color="#A855F7" />
             <input type="file" accept=".json" onChange={gestisciImportazioneWeb} style={{ display: 'none' }} />
           </label>
         ) : (
@@ -597,7 +644,7 @@ export default function StrumentiScreen() {
                 <Text style={styles.descAzione}>Ripristina i dati da un backup JSON</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+            <Ionicons name="chevron-forward" size={18} color="#A855F7" />
           </TouchableOpacity>
         )}
         <View style={styles.dividerBackupPdf} />
@@ -629,37 +676,99 @@ export default function StrumentiScreen() {
         </View>
         <View style={styles.dividerAzione} />
         <View style={styles.cardExportTabellare}>
-        <View style={styles.exportTabellareHeader}>
-          <View style={styles.iconWrapper}><Ionicons name="documents-outline" size={21} color={COLORS.success} /></View>
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.exportTabellareTitle}>Esporta Excel / CSV</Text>
-            <Text style={styles.exportTabellareSubtitle}>Esporta le misurazioni del diario glicemico</Text>
+          <View style={styles.exportTabellareButtons}>
+            <TouchableOpacity
+              style={styles.exportTabellareButton}
+              onPress={() => setModalTabellare('excel')}
+              accessibilityRole="button"
+              accessibilityLabel="Esporta Excel"
+            >
+              <View style={styles.exportTabellareIcona}><Ionicons name="grid-outline" size={21} color={COLORS.success} /></View>
+              <View style={styles.exportTabellareTesto}>
+                <Text numberOfLines={1} style={styles.exportTabellareButtonTitle}>Esporta Excel</Text>
+                <Text style={styles.exportTabellareExtension}>.xlsx</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={17} color={COLORS.brandPrimary} />
+            </TouchableOpacity>
+            <View style={styles.exportTabellareDivider} />
+            <TouchableOpacity
+              style={styles.exportTabellareButton}
+              onPress={() => setModalTabellare('csv')}
+              accessibilityRole="button"
+              accessibilityLabel="Esporta CSV"
+            >
+              <View style={styles.exportTabellareIcona}><Ionicons name="document-text-outline" size={21} color={COLORS.success} /></View>
+              <View style={styles.exportTabellareTesto}>
+                <Text numberOfLines={1} style={styles.exportTabellareButtonTitle}>Esporta CSV</Text>
+                <Text style={styles.exportTabellareExtension}>.csv</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={17} color={COLORS.brandPrimary} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.exportTabellareFiltri}>
+            <View style={styles.containerMiniFiltriPdf}>
+              {PERIODI_EXPORT.map(intervallo => {
+                const attivo = filtroTabellare === intervallo;
+                return (
+                  <TouchableOpacity key={intervallo} style={[styles.chipMiniPdf, attivo && styles.chipMiniPdfAttiva]} onPress={() => setFiltroTabellare(intervallo)}>
+                    <Text style={[styles.textMiniChipPdf, attivo && styles.textMiniChipPdfAttivo]}>{intervallo}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
-        <View style={styles.exportTabellareButtons}>
-          <TouchableOpacity style={styles.exportTabellareButton} onPress={() => setModalTabellare('excel')}>
-            <View style={styles.exportButtonTop}><Ionicons name="grid-outline" size={24} color={COLORS.success} /><Ionicons name="chevron-forward" size={20} color={COLORS.brandPrimary} /></View>
-            <Text style={styles.exportTabellareButtonTitle}>Esporta Excel</Text>
-            <Text style={styles.exportTabellareExtension}>.xlsx</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.exportTabellareButton} onPress={() => setModalTabellare('csv')}>
-            <View style={styles.exportButtonTop}><Ionicons name="document-text-outline" size={24} color={COLORS.success} /><Ionicons name="chevron-forward" size={20} color={COLORS.brandPrimary} /></View>
-            <Text style={styles.exportTabellareButtonTitle}>Esporta CSV</Text>
-            <Text style={styles.exportTabellareExtension}>.csv</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.containerMiniFiltriPdf}>
-          {PERIODI_EXPORT.map(intervallo => {
-            const attivo = filtroTabellare === intervallo;
-            return (
-              <TouchableOpacity key={intervallo} style={[styles.chipMiniPdf, attivo && styles.chipMiniPdfAttiva]} onPress={() => setFiltroTabellare(intervallo)}>
-                <Text style={[styles.textMiniChipPdf, attivo && styles.textMiniChipPdfAttivo]}>{intervallo}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        </View>
+        <View style={styles.dividerAzione} />
+        <TouchableOpacity
+          style={styles.rowTrasferimentoQr}
+          onPress={() => setQrModalVisibile(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Trasferimento Dati con QR code"
+        >
+          <View style={styles.leftAzione}>
+            <View style={styles.iconaTrasferimentoQr}>
+              <Ionicons name="qr-code-outline" size={21} color="#D4AF37" />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.titoloAzione}>Trasferimento Dati con QR code</Text>
+              <Text style={styles.descAzione}>Usa la funzione QR code per Importare / Esportare i dati su un altro dispositivo.</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#D4AF37" />
+        </TouchableOpacity>
       </View>
+
+      {/* QR a schermo intero. La sessione WebRTC resta isolata nel componente di src. */}
+      <Modal
+        visible={qrModalVisibile}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={chiudiTrasferimentoQr}
+      >
+        <SafeAreaView style={styles.qrFullScreen} edges={['top', 'bottom']}>
+          <View style={styles.qrBarraTitolo}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.qrBarraNome}>Trasferimento backup QR</Text>
+              <Text style={styles.qrBarraSottotitolo}>Da un dispositivo all'altro, passo dopo passo</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.qrIndietro}
+              onPress={chiudiTrasferimentoQr}
+              accessibilityRole="button"
+              accessibilityLabel="Indietro, chiudi trasferimento QR"
+            >
+              <Ionicons name="arrow-back" size={18} color="#D4AF37" />
+              <Text style={styles.qrIndietroTesto}>Indietro</Text>
+            </TouchableOpacity>
+          </View>
+          {qrModalVisibile && (
+            <TrasferimentoQrPanel
+              onBackupReady={riceviBackupDaQr}
+              onActivityChange={segnalaQrAttivo}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
 
       {/* Conferma di importazione con lo stesso tema nero/ciano di DIABETY. */}
       <Modal
@@ -806,7 +915,18 @@ export default function StrumentiScreen() {
 
             {isOpen && (
               <View style={styles.accordionContent}>
-                <Text style={styles.contentText}>{point.content}</Text>
+                {point.id === 7 ? (
+                  <>
+                    <Text style={styles.contentText}>{point.content.split('\n\nTRASFERIMENTO DATI CON QR CODE\n')[0]}</Text>
+                    <View style={styles.manualQrTitolo}>
+                      <Ionicons name="qr-code-outline" size={20} color="#D4AF37" />
+                      <Text style={styles.manualQrTitoloTesto}>TRASFERIMENTO DATI CON QR CODE</Text>
+                    </View>
+                    <Text style={styles.contentText}>{point.content.split('\n\nTRASFERIMENTO DATI CON QR CODE\n')[1]}</Text>
+                  </>
+                ) : (
+                  <Text style={styles.contentText}>{point.content}</Text>
+                )}
               </View>
             )}
           </View>
@@ -816,15 +936,27 @@ export default function StrumentiScreen() {
   );
 }
 const styles = StyleSheet.create({
-  cardExportTabellare: { backgroundColor: COLORS.surfaceSecondary, padding: 13 },
+  cardExportTabellare: { backgroundColor: COLORS.surfaceSecondary },
+  exportTabellareFiltri: { paddingHorizontal: 13, paddingTop: 3, paddingBottom: 13 },
+  exportTabellareIcona: { width: 35, height: 35, borderRadius: 10, backgroundColor: '#1A1A24', alignItems: 'center', justifyContent: 'center' },
+  exportTabellareTesto: { flex: 1, minWidth: 0 },
+  exportTabellareDivider: { width: 1, height: 42, backgroundColor: '#30303A' },
+  rowTrasferimentoQr: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, minHeight: 88, width: '100%', gap: 10 },
+  iconaTrasferimentoQr: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#292314' },
+  qrFullScreen: { flex: 1, backgroundColor: '#0A0A0C' },
+  qrBarraTitolo: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#101B28', borderBottomWidth: 1, borderBottomColor: '#28556A', paddingHorizontal: 16, paddingVertical: 12 },
+  qrBarraNome: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  qrBarraSottotitolo: { color: '#9CA9B8', fontSize: 11, marginTop: 3 },
+  qrIndietro: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 10, paddingHorizontal: 11, borderWidth: 1, borderColor: '#7A662C', borderRadius: 11 },
+  qrIndietroTesto: { color: '#D4AF37', fontSize: 13, fontWeight: '700' },
   exportTabellareHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   exportButtonTop: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 },
   exportTabellareTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   exportTabellareSubtitle: { color: COLORS.muted, fontSize: 12, marginTop: 3 },
-  exportTabellareButtons: { flexDirection: 'row', gap: 9, marginBottom: 13 },
-  exportTabellareButton: { flex: 1, alignItems: 'flex-start', justifyContent: 'center', gap: 5, padding: 12, backgroundColor: COLORS.bgUtility, borderWidth: 1, borderColor: COLORS.borderUtility, borderRadius: 13 },
+  exportTabellareButtons: { flexDirection: 'row', alignItems: 'center', width: '100%' },
+  exportTabellareButton: { flex: 1, height: 68, alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', gap: 7, paddingHorizontal: 8 },
   exportTabellareButtonTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  exportTabellareExtension: { color: '#A5B3C7', fontSize: 11 },
+  exportTabellareExtension: { color: '#A5B3C7', fontSize: 11, marginTop: 2 },
   exportModalDetails: { backgroundColor: '#112D34', borderRadius: 12, padding: 14, marginBottom: 17, gap: 9 },
   exportModalDetail: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   exportModalActions: { flexDirection: 'row', gap: 10 },
@@ -926,5 +1058,7 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   contentText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: COLORS.muted, lineHeight: 22, textAlign: 'left', paddingLeft: 2 },
+  manualQrTitolo: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, marginBottom: 9 },
+  manualQrTitoloTesto: { color: '#D4AF37', fontSize: 13, fontWeight: '800', flex: 1 },
 
 });
