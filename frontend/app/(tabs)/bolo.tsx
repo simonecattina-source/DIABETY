@@ -98,6 +98,7 @@ export default function CalcolatoreBoloScreen() {
   const [fasciaApertaId, setFasciaApertaId] = useState<string | null>(null);
   const [glicemiaInserita, setGlicemiaInserita] = useState(false);
   const [richiestaRiepilogo, setRichiestaRiepilogo] = useState(false);
+  const [iobAperta, setIobAperta] = useState(false);
   const [somministrazioniAperte, setSomministrazioniAperte] = useState(false);
   const [tabSomministrazioni, setTabSomministrazioni] = useState<'rapida'|'basale'>('rapida');
   const revisioneBackup = useRef(revisioneRipristinoBackup());
@@ -165,6 +166,8 @@ export default function CalcolatoreBoloScreen() {
       void caricaParametri();
     }
     setAdesso(new Date());
+    setIobAperta(false);
+    setSomministrazioniAperte(false);
     setFasceAperte(false);
     setFasciaApertaId(null);
     void aggiornaStoricoIob();
@@ -382,10 +385,19 @@ export default function CalcolatoreBoloScreen() {
         {aiuto === 'calcolo' && testoAiuto('calcolo')}
 
         <View style={{backgroundColor:'#0B1921',borderWidth:1,borderColor:'#245263',borderRadius:12,padding:12,gap:8,marginBottom:12}}>
-          <View style={styles.rowSpace}>
+          <TouchableOpacity
+            style={styles.rowSpace}
+            onPress={() => { setIobAperta(aperta => !aperta); setSomministrazioniAperte(false); }}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: iobAperta }}
+            accessibilityLabel={`Insulina attiva (IOB), ${iob.stato==='zero'?'0 UI':iob.ui===null?'— UI':`${iob.ui.toFixed(2)} UI`}, ${iobAperta?'chiudi':'apri'} dettagli`}>
             <Text style={styles.subheading}>Insulina attiva (IOB)</Text>
-            <Text style={{fontSize:20,fontWeight:'800',color:CYAN}}>{iob.stato==='zero'?'0 UI':iob.ui===null?'— UI':`${iob.ui.toFixed(2)} UI`}</Text>
-          </View>
+            <View style={styles.rowSmall}>
+              <Text style={{fontSize:20,fontWeight:'800',color:CYAN}}>{iob.stato==='zero'?'0 UI':iob.ui===null?'— UI':`${iob.ui.toFixed(2)} UI`}</Text>
+              <Ionicons name={iobAperta ? 'chevron-up' : 'chevron-down'} size={17} color={CYAN}/>
+            </View>
+          </TouchableOpacity>
+          {iobAperta && <View style={{gap:8}}>
           <Text style={styles.secondaryText}>Ultima dose rapida: {iob.ultima?`${iob.ultima.ui} UI · ${new Date(iob.ultima.istante).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}`:'—'}</Text>
           <Text style={styles.microNote}>{erroreTerapiaIob ?? iob.motivo}</Text>
           <Text style={styles.microNote}>IOB informativa non validata: non utilizzarla per decidere dosi e non viene sottratta dal bolo.</Text>
@@ -401,21 +413,8 @@ export default function CalcolatoreBoloScreen() {
             {dataSomministrazioni.length===0?<Text style={styles.secondaryText}>Nessuna somministrazione registrata.</Text>:
              dataSomministrazioni.map(d=><Text key={d.id} style={styles.secondaryText}>{d.ui} UI · {new Date(d.istante).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</Text>)}
           </View>}
+          </View>}
         </View>
-        <View style={styles.fasciaAttivaBox}>
-          <View style={styles.rowSpace}>
-            <View style={styles.rowSmall}>
-              <Ionicons name="time-outline" color={CYAN} size={16} />
-              <Text style={styles.eyebrow}>FASCIA ORARIA ATTIVA</Text>
-            </View>
-            <Text style={styles.oraLabel}>{oraAttuale}</Text>
-          </View>
-          <Text style={styles.fasciaAttivaTitolo}>
-            {fasciaCorrente ? `${fasciaCorrente.inizio} – ${fineFascia(configSalvata!.fasce, fasciaCorrente.id)}${fasciaCorrente.nome?.trim() ? ` · ${fasciaCorrente.nome.trim()}` : ''}` : 'Da configurare'}
-          </Text>
-          <Text style={styles.secondaryText}>Selezione automatica dall'orario locale del dispositivo</Text>
-        </View>
-
         <View style={styles.inputRow}>
           <View style={styles.inputCard}>
             <View style={styles.rowSmall}>
@@ -444,6 +443,32 @@ export default function CalcolatoreBoloScreen() {
           </View>
         </View>
         <Text style={styles.microNote}>CHO a 00 consentiti; la glicemia 00 è soltanto un valore iniziale, non una misurazione.</Text>
+
+        <View style={styles.resultBox}>
+          <Text style={styles.eyebrow}>STIMA MATEMATICA · NON TERAPEUTICA</Text>
+          <Text style={styles.resultValue}>
+            {simulazione?.ok === true ? simulazione.risultato.totale.toFixed(2) : '—'} <Text style={styles.resultUnit}>UI</Text>
+          </Text>
+          <Text style={[styles.secondaryText, { textAlign: 'center' }]}>
+            {simulazione?.ok === true
+              ? 'Somma puramente teorica delle quote CHO e correzione · IOB non sottratta'
+              : inputGlicemiaAttivato ? 'Simulazione non disponibile: controlla l’avviso presente nella scheda' : 'Inserisci la glicemia per visualizzare la stima matematica'}
+          </Text>
+          <Text style={[styles.microNote, { textAlign: 'center' }]}>Non usare questo valore per decidere una somministrazione di insulina. Bolo consigliato: non abilitato.</Text>
+        </View>
+        <View style={styles.fasciaAttivaBox}>
+          <View style={styles.rowSpace}>
+            <View style={styles.rowSmall}>
+              <Ionicons name="time-outline" color={CYAN} size={16} />
+              <Text style={styles.eyebrow}>FASCIA ORARIA ATTIVA</Text>
+            </View>
+            <Text style={styles.oraLabel}>{oraAttuale}</Text>
+          </View>
+          <Text style={styles.fasciaAttivaTitolo}>
+            {fasciaCorrente ? `${fasciaCorrente.inizio} – ${fineFascia(configSalvata!.fasce, fasciaCorrente.id)}${fasciaCorrente.nome?.trim() ? ` · ${fasciaCorrente.nome.trim()}` : ''}` : 'Da configurare'}
+          </Text>
+          <Text style={styles.secondaryText}>Selezione automatica dall'orario locale del dispositivo</Text>
+        </View>
 
         <View style={styles.paramsUsed}>
           <View style={styles.rowSpace}>
@@ -525,18 +550,6 @@ export default function CalcolatoreBoloScreen() {
             <Text style={styles.alertText}>{testoAvviso}</Text>
           </View>
         </View>}
-        <View style={styles.resultBox}>
-          <Text style={styles.eyebrow}>STIMA MATEMATICA · NON TERAPEUTICA</Text>
-          <Text style={styles.resultValue}>
-            {simulazione?.ok === true ? simulazione.risultato.totale.toFixed(2) : '—'} <Text style={styles.resultUnit}>UI</Text>
-          </Text>
-          <Text style={[styles.secondaryText, { textAlign: 'center' }]}>
-            {simulazione?.ok === true
-              ? 'Somma puramente teorica delle quote CHO e correzione · IOB non sottratta'
-              : inputGlicemiaAttivato ? 'Simulazione non disponibile: controlla l’avviso sopra' : 'Inserisci la glicemia per visualizzare la stima matematica'}
-          </Text>
-          <Text style={[styles.microNote, { textAlign: 'center' }]}>Non usare questo valore per decidere una somministrazione di insulina. Bolo consigliato: non abilitato.</Text>
-        </View>
       </View>
 
       {/* CARD 2 — PARAMETRI, lucchetto con semantica originale di salvataggio */}
