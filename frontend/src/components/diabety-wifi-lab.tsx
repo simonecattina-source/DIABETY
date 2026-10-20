@@ -3,6 +3,7 @@
  * NESSUNA lettura/scrittura AsyncStorage; NESSUN dato medico; NESSUN servizio remoto.
  * Lo scambio SDP/ICE avviene SOLO tramite QR (o copia manuale del codice).
  * FASE 3A: monitoraggio automatico durante la sessione, senza dati sanitari.
+ * FASE 3B: diagnosi lifecycle/background su Web App, solo dati tecnici locali.
  * NON implementa la scoperta automatica o la riconnessione DOPO la chiusura del browser.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -17,6 +18,55 @@ type LabRole = 'nessuno' | 'main' | 'associato';
 type LabPeer = { id: string; name: string };
 type LabProps = { role: LabRole; deviceId: string; mainId: string | null; linkedDevices: LabPeer[] };
 type TestMessage = { lab: 'DIABETY_PING'; kind: 'ping' | 'pong'; sessionId: string; nonce: string; from: string };
+
+// Registro tecnico locale: mai salvare SDP, IP, token QR, ID dispositivi o misure cliniche.
+type DiagnosticRow = {
+  at: number;
+  event: string;
+  visibility: string;
+  rtc: string;
+  ice: string;
+  channel: string;
+  backgroundMs?: number;
+};
+const DIAG_KEY = 'diabety_wifi_lab_diag_v1';
+const BACKGROUND_KEY = 'diabety_wifi_lab_last_hidden_v1';
+const MAX_DIAG_ROWS = 45;
+function loadDiagnostic(): DiagnosticRow[] {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return [];
+  try {
+    const raw = window.sessionStorage.getItem(DIAG_KEY);
+    const value: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(value)) return [];
+    return value.slice(-MAX_DIAG_ROWS).filter((v): v is DiagnosticRow =>
+      v && typeof v === 'object' && typeof v.at === 'number' &&
+      typeof v.event === 'string' && typeof v.visibility === 'string' &&
+      typeof v.rtc === 'string' && typeof v.ice === 'string' &&
+      typeof v.channel === 'string');
+  } catch { return []; }
+}
+function loadHiddenAt(): number | null {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(BACKGROUND_KEY);
+    if (!raw) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && n <= Date.now() && Date.now() - n < 86400000 ? n : null;
+  } catch { return null; }
+}
+function saveDiagnostic(rows: DiagnosticRow[]): void {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  try { window.sessionStorage.setItem(DIAG_KEY, JSON.stringify(rows)); } catch { /* memoria browser non disponibile */ }
+}
+function saveHiddenAt(value: number | null): void {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  try {
+    if (value === null) window.sessionStorage.removeItem(BACKGROUND_KEY);
+    else window.sessionStorage.setItem(BACKGROUND_KEY, String(value));
+  } catch { /* memoria browser non disponibile */ }
+}
+const fmtDuration = (durationMs: number) => durationMs < 1000
+  ? `${durationMs} ms` : `${(durationMs / 1000).toFixed(1)} s`;
 
 function LabButton({ title, onPress, outline = false, disabled = false, icon }: {
   title: string; onPress: () => void; outline?: boolean; disabled?: boolean;
@@ -54,6 +104,10 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
   const [cameraFacing, setCameraFacing] = useState<'front' | 'back'>(Platform.OS === 'web' ? 'front' : 'back');
   const [cameraStatus, setCameraStatus] = useState('');
   const [cameraCheckQr, setCameraCheckQr] = useState(false);
+  const [diagRows, setDiagRows] = useState<DiagnosticRow[]>(() => loadDiagnostic());
+  const [showAllDiagnostic, setShowAllDiagnostic] = useState(false);
+  const [showDiagnosticText, setShowDiagnosticText] = useState(false);
+  const [copyStatus, setCopyStatus] = useState('');
   const { width: windowWidth } = useWindowDimensions();
   const qrSize = Math.min(340, Math.max(210, windowWidth - 100));
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -67,6 +121,106 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
   const scanBusyRef = useRef(false);
   const collectorRef = useRef(new QrPartCollector());
   const aliveRef = useRef(true);
+  const diagRowsRef = useRef<DiagnosticRow[]>(diagRows);
+  const hiddenAtRef = useRef<number | null>(loadHiddenAt());
+  const waitingPongAfterReturnRef = useRef(false);
+
+  const recordDiagnostic = useCallback((event: string, backgroundMs?: number) => {
+    if (Platform.OS !== 'web') return;
+    const pc = pcRef.current;
+    const channel = channelRef.current;
+    const row: DiagnosticRow = {
+      at: Date.now(), event,
+      visibility: typeof document === 'undefined' ? 'non disponibile' : document.visibilityState,
+      rtc: pc?.connectionState ?? 'assente',
+      ice: pc?.iceConnectionState ?? 'assente',
+      channel: channel?.readyState ?? 'assente',
+      ...(backgroundMs === undefined ? {} : { backgroundMs }),
+    };
+    const updated = [...diagRowsRef.current, row].slice(-MAX_DIAG_ROWS);
+    diagRowsRef.current = updated;
+    saveDiagnostic(updated);
+    if (aliveRef.current) setDiagRows(updated);
+  }, []);
+
+  // Diagnostica del ciclo di vita della WEB APP: nessuna modifica alla connessione.
+  // Un browser può non emettere pagehide quando l'OS termina il processo.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const markHidden = () => {
+      if (hiddenAtRef.current === null) {
+        hiddenAtRef.current = Date.now();
+        saveHiddenAt(hiddenAtRef.current);
+      }
+    };
+    const markVisible = (label: string) => {
+      const start = hiddenAtRef.current;
+      hiddenAtRef.current = null;
+      saveHiddenAt(null);
+      if (start !== null) waitingPongAfterReturnRef.current = true;
+      recordDiagnostic(label, start === null ? undefined : Date.now() - start);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        markHidden();
+        recordDiagnostic('visibilitychange: hidden');
+      } else markVisible('visibilitychange: visible');
+    };
+    const onBlur = () => recordDiagnostic('window: blur');
+    const onFocus = () => recordDiagnostic('window: focus');
+    const onPageHide = () => {
+      markHidden();
+      recordDiagnostic('window: pagehide');
+    };
+    const onPageShow = () => {
+      if (document.visibilityState === 'visible' && hiddenAtRef.current !== null) markVisible('window: pageshow (rientro)');
+      else recordDiagnostic('window: pageshow (caricamento)');
+    };
+    recordDiagnostic('Laboratorio montato / nuova apertura');
+    if (document.visibilityState === 'hidden') markHidden();
+    else if (hiddenAtRef.current !== null) markVisible('Pagina caricata dopo background/reload');
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      recordDiagnostic('Laboratorio smontato / cambio vista');
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('blur', onBlur);
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, [recordDiagnostic]);
+
+  const diagnosticText = [
+    'DIABETY | WIFI-003 | SOLO DATI TECNICI',
+    'Dispositivo: ' + (role === 'main' ? 'MAIN' : role === 'associato' ? 'ASSOCIATO' : 'NON CONFIGURATO'),
+    'Nota: connessione diretta, segnalazione iniziale mediante QR; nessuna riconnessione automatica.',
+    ...diagRows.map(item => {
+      const when = new Date(item.at).toLocaleString('it-IT');
+      const duration = item.backgroundMs === undefined ? '' : ` | background: ${fmtDuration(item.backgroundMs)}`;
+      return `${when} | ${item.event} | vis: ${item.visibility} | RTC: ${item.rtc} | ICE: ${item.ice} | DataChannel: ${item.channel}${duration}`;
+    }),
+  ].join('\n');
+
+  const copyDiagnostic = async () => {
+    try {
+      if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) throw new Error('clipboard non supportato');
+      await navigator.clipboard.writeText(diagnosticText);
+      setCopyStatus('Registro tecnico copiato.');
+    } catch {
+      setShowDiagnosticText(true);
+      setCopyStatus('Copia automatica non disponibile: seleziona il testo qui sotto.');
+    }
+  };
+  const clearDiagnostic = () => {
+    diagRowsRef.current = [];
+    setDiagRows([]);
+    saveDiagnostic([]);
+    setCopyStatus('Registro cancellato (solo diagnostica).');
+  };
 
   useEffect(() => {
     setAvailable(Platform.OS === 'web' && typeof RTCPeerConnection !== 'undefined' &&
@@ -139,6 +293,7 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
     channelRef.current = channel;
     channel.onopen = () => {
       if (!aliveRef.current) return;
+      recordDiagnostic('DataChannel: open');
       setConnected(true);
       setConnectionPhase('Canale dati aperto');
       setMonitorStatus('Monitoraggio automatico attivo finché la pagina resta aperta.');
@@ -149,13 +304,18 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
     };
     channel.onclose = () => {
       if (!aliveRef.current) return;
+      recordDiagnostic('DataChannel: close');
       setConnected(false);
       setPingPassed(false);
       setConnectionPhase('Canale chiuso');
       setMonitorStatus('Sessione terminata: non è possibile riaprire automaticamente il canale chiuso senza una nuova segnalazione.');
       setStatus('Canale chiuso. Per riconnetterti occorre una nuova sessione e un nuovo scambio QR.');
     };
-    channel.onerror = () => { if (aliveRef.current) setStatus('Errore del canale diretto WebRTC.'); };
+    channel.onerror = () => {
+      if (!aliveRef.current) return;
+      recordDiagnostic('DataChannel: error');
+      setStatus('Errore del canale diretto WebRTC.');
+    };
     channel.onmessage = (event) => {
       if (typeof event.data !== 'string' || event.data.length > 1024) return;
       let payload: Partial<TestMessage>;
@@ -179,11 +339,15 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
         setPingCount(n => n + 1);
         const elapsed = Date.now() - pingTimeRef.current;
         setLastRoundTripMs(elapsed);
+        if (waitingPongAfterReturnRef.current) {
+          waitingPongAfterReturnRef.current = false;
+          recordDiagnostic(`PONG ricevuto dopo ritorno (${elapsed} ms)`);
+        }
         setMonitorStatus(`Ultimo controllo riuscito: ${elapsed} ms. Il collegamento risponde.`);
         if (!wasAutomatic) setStatus(`TEST SUPERATO. Risposta ricevuta dal dispositivo associato (${elapsed} ms).`);
       }
     };
-  }, [deviceId, role, sendPing]);
+  }, [deviceId, role, sendPing, recordDiagnostic]);
 
   const createPeerConnection = useCallback((): RTCPeerConnection => {
     // iceServers VUOTO: nessun server STUN/TURN e nessun traffico via relay.
@@ -192,6 +356,7 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
     pc.onconnectionstatechange = () => {
       if (!aliveRef.current || pcRef.current !== pc) return;
       const state = pc.connectionState;
+      recordDiagnostic(`WebRTC: ${state}`);
       setConnectionPhase(state === 'connected' ? 'WebRTC connesso' : `WebRTC: ${state}`);
       if (state === 'failed') {
         pendingPingRef.current = null;
@@ -217,8 +382,11 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
         }
       }
     };
+    pc.oniceconnectionstatechange = () => {
+      if (aliveRef.current && pcRef.current === pc) recordDiagnostic(`ICE: ${pc.iceConnectionState}`);
+    };
     return pc;
-  }, [role, sendPing]);
+  }, [role, sendPing, recordDiagnostic]);
 
   // FASE 3A: verifiche periodiche in una sessione ancora aperta.
   // Non crea nuovi canali e NON scopre dispositivi dopo che Safari/Chrome sono stati chiusi.
@@ -482,7 +650,7 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
         </View>
       </View>
       {isMain && connected && <LabButton icon="send-outline" title="Invia un nuovo messaggio di prova" onPress={() => sendPing(false)} />}
-      {pcRef.current && <LabButton icon="close-circle-outline" title="Termina test e chiudi connessione" outline onPress={() => { closeConnection(); setStatus('Test terminato.'); }} />}
+      {pcRef.current && <LabButton icon="close-circle-outline" title="Termina test e chiudi connessione" outline onPress={() => { recordDiagnostic('Test terminato manualmente'); closeConnection(); setStatus('Test terminato.'); }} />}
       <View style={s.phase3Card}>
         <View style={s.header}>
           <Ionicons name="pulse-outline" size={19} color={C.brandPrimary} />
@@ -498,6 +666,42 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
         <Text style={s.muted}>Prova: completa il collegamento QR, lascia entrambe le pagine aperte e verifica che il numero di risposte aumenti. Poi cambia scheda e torna nell'app. Se la connessione di rete si interrompe brevemente, osserva se riprende spontaneamente.</Text>
         <View style={s.notice}>
           <Text style={s.noticeText}>WIFI-002B (chiusura completa): NON disponibile senza un nuovo scambio di segnalazione. La rete Wi-Fi comune e l'associazione memorizzata, da sole, non consentono a Safari e Chrome di ricreare un canale WebRTC alla riapertura.</Text>
+        </View>
+      </View>
+      <View style={s.phase3Card}>
+        <View style={s.header}>
+          <Ionicons name="analytics-outline" size={19} color={C.brandPrimary} />
+          <View style={{ flex: 1 }}>
+            <Text style={s.label}>STEP 3B · Diagnostica del ritorno in app</Text>
+            <Text style={s.muted}>WIFI-003: osserva cosa succede quando DIABETY va in secondo piano e torna visibile.</Text>
+          </View>
+        </View>
+        <Text style={s.body}>Visibilità attuale: {Platform.OS === 'web' && typeof document !== 'undefined' ? document.visibilityState : 'non disponibile'}</Text>
+        <Text style={s.body}>Ultimo WebRTC: {pcRef.current?.connectionState ?? 'assente'} · ICE: {pcRef.current?.iceConnectionState ?? 'assente'} · DataChannel: {channelRef.current?.readyState ?? 'assente'}</Text>
+        <Text style={s.muted}>Il registro resta nella sessione del browser anche dopo alcuni ricaricamenti, quando il browser lo consente. Non contiene misurazioni, identificativi dispositivi, indirizzi di rete o codici QR.</Text>
+        <View style={s.horiz}>
+          <TouchableOpacity accessibilityRole="button" style={s.navButton} onPress={() => recordDiagnostic('Stato richiesto manualmente')}>
+            <Text style={s.navText}>Registra stato ora</Text>
+          </TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" style={s.navButton} onPress={() => setShowAllDiagnostic(v => !v)}>
+            <Text style={s.navText}>{showAllDiagnostic ? 'Mostra meno' : 'Mostra tutto'}</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={s.label}>Eventi registrati: {diagRows.length}</Text>
+        {(showAllDiagnostic ? diagRows : diagRows.slice(-8)).slice().reverse().map((row, index) => (
+          <View key={`${row.at}-${index}`} style={s.diagItem}>
+            <Text style={s.diagTitle}>{new Date(row.at).toLocaleTimeString('it-IT')} · {row.event}</Text>
+            <Text style={s.muted}>Pagina: {row.visibility} · RTC: {row.rtc} · ICE: {row.ice} · Canale: {row.channel}{row.backgroundMs === undefined ? '' : ` · Fuori: ${fmtDuration(row.backgroundMs)}`}</Text>
+          </View>
+        ))}
+        {diagRows.length === 0 && <Text style={s.muted}>Registro vuoto. Avvia un collegamento e prova il cambio app.</Text>}
+        <LabButton outline icon="copy-outline" title="Copia diagnostica" onPress={() => { void copyDiagnostic(); }} />
+        <LabButton outline icon="document-text-outline" title={showDiagnosticText ? 'Nascondi testo tecnico' : 'Mostra testo tecnico selezionabile'} onPress={() => setShowDiagnosticText(v => !v)} />
+        {!!copyStatus && <Text style={s.cameraStatus}>{copyStatus}</Text>}
+        {showDiagnosticText && <Text selectable style={s.raw}>{diagnosticText}</Text>}
+        <LabButton outline icon="trash-outline" title="Cancella solo il registro tecnico" onPress={clearDiagnostic} />
+        <View style={s.notice}>
+          <Text style={s.noticeText}>Questa fase è SOLO diagnostica: non mantiene la connessione in background e non la ricrea automaticamente dopo WebRTC failed. Nessuna sincronizzazione sanitaria.</Text>
         </View>
       </View>
       <Text style={s.footer}>Laboratorio: non invia dati medici, non effettua sincronizzazione né scoperta automatica tra dispositivi. La continuità è sperimentale e vale solo per una connessione ancora recuperabile dal browser.</Text>
@@ -536,5 +740,7 @@ const s = StyleSheet.create({
   statusBox: { backgroundColor: '#0B1E28', borderRadius: 10, padding: 12, gap: 7, borderWidth: 1, borderColor: '#284C60' },
   status: { color: '#BEEFFA', fontSize: 13, lineHeight: 20 },
   phase3Card: { backgroundColor: '#091B23', borderColor: '#245463', borderWidth: 1, padding: 12, borderRadius: 12, gap: 9 },
+  diagItem: { backgroundColor: '#0B2530', borderColor: '#224652', borderWidth: 1, padding: 8, gap: 2, borderRadius: 8 },
+  diagTitle: { color: '#D0F4FB', fontSize: 12, fontWeight: '700' },
   footer: { color: '#96A5B0', fontSize: 11, lineHeight: 18 },
 });
