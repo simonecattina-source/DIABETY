@@ -4,6 +4,7 @@
  * Lo scambio SDP/ICE avviene SOLO tramite QR (o copia manuale del codice).
  * FASE 3A: monitoraggio automatico durante la sessione, senza dati sanitari.
  * FASE 3B: diagnosi lifecycle/background su Web App, solo dati tecnici locali.
+ * FASE 4: verifica effettiva PONG dopo ritorno/recupero, senza nuova segnalazione.
  * NON implementa la scoperta automatica o la riconnessione DOPO la chiusura del browser.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -108,6 +109,14 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
   const [showAllDiagnostic, setShowAllDiagnostic] = useState(false);
   const [showDiagnosticText, setShowDiagnosticText] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
+  // WIFI-004: una connessione nominalmente "connected" non equivale a dati ricevuti.
+  const [lastRealPongAt, setLastRealPongAt] = useState<number | null>(null);
+  const [lastRemotePingAt, setLastRemotePingAt] = useState<number | null>(null);
+  const [returnCheck, setReturnCheck] = useState<'mai' | 'attesa' | 'verificato' | 'scaduto' | 'nuova-sessione'>('mai');
+  const [returnCheckText, setReturnCheckText] = useState('Nessuna verifica dopo il ritorno eseguita.');
+  const [lastReturnPongAt, setLastReturnPongAt] = useState<number | null>(null);
+  const [lastReturnRtt, setLastReturnRtt] = useState<number | null>(null);
+  const [recoveryCheck, setRecoveryCheck] = useState<'mai' | 'attesa' | 'verificato' | 'non-verificato'>('mai');
   const { width: windowWidth } = useWindowDimensions();
   const qrSize = Math.min(340, Math.max(210, windowWidth - 100));
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -124,6 +133,13 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
   const diagRowsRef = useRef<DiagnosticRow[]>(diagRows);
   const hiddenAtRef = useRef<number | null>(loadHiddenAt());
   const waitingPongAfterReturnRef = useRef(false);
+  const returnSinceRef = useRef<number>(0);
+  const returnDeadlineRef = useRef<number>(0);
+  const returnPendingRef = useRef(false);
+  const recoveryPendingRef = useRef(false);
+  const recoveryDeadlineRef = useRef(0);
+  const seenHiddenRef = useRef(false);
+  const returnWasManualRef = useRef(false);
 
   const recordDiagnostic = useCallback((event: string, backgroundMs?: number) => {
     if (Platform.OS !== 'web') return;
@@ -157,7 +173,6 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
       const start = hiddenAtRef.current;
       hiddenAtRef.current = null;
       saveHiddenAt(null);
-      if (start !== null) waitingPongAfterReturnRef.current = true;
       recordDiagnostic(label, start === null ? undefined : Date.now() - start);
     };
     const onVisibility = () => {
@@ -195,9 +210,9 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
   }, [recordDiagnostic]);
 
   const diagnosticText = [
-    'DIABETY | WIFI-003 | SOLO DATI TECNICI',
+    'DIABETY | WIFI-004 | SOLO DATI TECNICI',
     'Dispositivo: ' + (role === 'main' ? 'MAIN' : role === 'associato' ? 'ASSOCIATO' : 'NON CONFIGURATO'),
-    'Nota: connessione diretta, segnalazione iniziale mediante QR; nessuna riconnessione automatica.',
+    'Nota: i PONG confermano dati realmente ricevuti; nuova sessione dopo chiusura richiede QR.',
     ...diagRows.map(item => {
       const when = new Date(item.at).toLocaleString('it-IT');
       const duration = item.backgroundMs === undefined ? '' : ` | background: ${fmtDuration(item.backgroundMs)}`;
@@ -238,7 +253,21 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
     try { pcRef.current?.close(); } catch { /* ignore */ }
     channelRef.current = null;
     pcRef.current = null;
+    returnPendingRef.current = false;
+    returnSinceRef.current = 0;
+    returnWasManualRef.current = false;
+    returnDeadlineRef.current = 0;
+    recoveryPendingRef.current = false;
+    recoveryDeadlineRef.current = 0;
+    waitingPongAfterReturnRef.current = false;
     if (aliveRef.current) {
+      setLastRealPongAt(null);
+      setLastRemotePingAt(null);
+      setLastReturnPongAt(null);
+      setLastReturnRtt(null);
+      setReturnCheck('mai');
+      setReturnCheckText('Nessuna verifica dopo il ritorno eseguita.');
+      setRecoveryCheck('mai');
       setConnected(false);
       setPingPassed(false);
       setLastPing('');
@@ -329,6 +358,8 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
         setPingPassed(true);
         setLastPing(new Date().toLocaleTimeString('it-IT'));
         setPingCount(n => n + 1);
+        setLastRemotePingAt(Date.now());
+        recordDiagnostic('PING ricevuto; PONG inviato al MAIN');
         setMonitorStatus('Messaggio ricevuto e risposta inviata automaticamente.');
         setStatus('MESSAGGIO RICEVUTO E RISPOSTA INVIATA. Comunicazione diretta verificata su questo dispositivo.');
       } else if (payload.kind === 'pong' && role === 'main' && pendingPingRef.current === payload.nonce) {
@@ -337,11 +368,35 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
         setPingPassed(true);
         setLastPing(new Date().toLocaleTimeString('it-IT'));
         setPingCount(n => n + 1);
-        const elapsed = Date.now() - pingTimeRef.current;
+        const receivedAt = Date.now();
+        const elapsed = receivedAt - pingTimeRef.current;
+        setLastRealPongAt(receivedAt);
         setLastRoundTripMs(elapsed);
-        if (waitingPongAfterReturnRef.current) {
+        recordDiagnostic(`PONG valido ricevuto (${elapsed} ms)`);
+        // Conta come prova DOPO il ritorno solo un ping creato DOPO il ritorno,
+        // non un vecchio pong arrivato in ritardo dalla sessione precedente.
+        if (returnPendingRef.current && pingTimeRef.current >= returnSinceRef.current) {
+          returnPendingRef.current = false;
           waitingPongAfterReturnRef.current = false;
-          recordDiagnostic(`PONG ricevuto dopo ritorno (${elapsed} ms)`);
+          if (receivedAt <= returnDeadlineRef.current) {
+            setReturnCheck('verificato');
+            setLastReturnPongAt(receivedAt);
+            setLastReturnRtt(elapsed);
+            setReturnCheckText(`${returnWasManualRef.current ? 'Verifica manuale' : 'Ritorno in app'}: PONG ricevuto (${elapsed} ms). Dati realmente scambiati.`);
+            recordDiagnostic(`WIFI-004: PONG dopo ${returnWasManualRef.current ? 'verifica manuale' : 'ritorno'} confermato (${elapsed} ms)`);
+          } else {
+            setReturnCheck('scaduto');
+            setReturnCheckText('PONG ricevuto oltre i 12 secondi del test: comunicazione ripresa, ma verifica nei tempi NON superata.');
+            recordDiagnostic('WIFI-004: PONG arrivato oltre timeout post-ritorno');
+          }
+        }
+        if (recoveryPendingRef.current) {
+          const inTime = receivedAt <= recoveryDeadlineRef.current;
+          recoveryPendingRef.current = false;
+          recoveryDeadlineRef.current = 0;
+          setRecoveryCheck(inTime ? 'verificato' : 'non-verificato');
+          recordDiagnostic(inTime ? `WIFI-004: recupero CONFERMATO da PONG (${elapsed} ms)`
+            : 'WIFI-004: recupero PONG oltre timeout');
         }
         setMonitorStatus(`Ultimo controllo riuscito: ${elapsed} ms. Il collegamento risponde.`);
         if (!wasAutomatic) setStatus(`TEST SUPERATO. Risposta ricevuta dal dispositivo associato (${elapsed} ms).`);
@@ -361,6 +416,7 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
       if (state === 'failed') {
         pendingPingRef.current = null;
         wasInterruptedRef.current = true;
+        if (recoveryPendingRef.current) setRecoveryCheck('non-verificato');
         setConnected(false);
         setPingPassed(false);
         setMonitorStatus('Connessione fallita: servono nuove informazioni ICE, non disponibili senza segnalazione.');
@@ -377,7 +433,13 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
         if (wasInterruptedRef.current) {
           wasInterruptedRef.current = false;
           setResumedCount(count => count + 1);
-          setMonitorStatus('Connessione ripristinata durante la sessione: verifica automatica in corso.');
+          if (role === 'main') {
+            recoveryPendingRef.current = true;
+            recoveryDeadlineRef.current = Date.now() + 12000;
+            setRecoveryCheck('attesa');
+            recordDiagnostic('WIFI-004: RTC connesso di nuovo; attendo PONG di conferma');
+          }
+          setMonitorStatus('WebRTC riporta connected: recupero da confermare con PONG.');
           if (role === 'main') sendPing(true);
         }
       }
@@ -387,6 +449,94 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
     };
     return pc;
   }, [role, sendPing, recordDiagnostic]);
+
+  // WIFI-004: al ritorno in primo piano avvia una NUOVA prova su questa sessione.
+  // Se la pagina è stata ricreata, RTCPeerConnection non esiste più: niente falso successo.
+  const verifyAfterReturn = useCallback((manual = false) => {
+    if (role !== 'main') return;
+    const pc = pcRef.current;
+    if (!pc || !sessionRef.current || !channelRef.current) {
+      returnPendingRef.current = false;
+      setReturnCheck('nuova-sessione');
+      setReturnCheckText('Nessuna sessione WebRTC attiva in questa istanza. Serve una nuova offerta e risposta QR.');
+      recordDiagnostic('WIFI-004: nessuna sessione RTC; nuova negoziazione necessaria');
+      return;
+    }
+    const now = Date.now();
+    returnSinceRef.current = now;
+    returnWasManualRef.current = manual;
+    returnDeadlineRef.current = now + 12000;
+    returnPendingRef.current = true;
+    waitingPongAfterReturnRef.current = true;
+    setReturnCheck('attesa');
+    setReturnCheckText(manual
+      ? 'Verifica manuale avviata: aspetto un PONG generato da un nuovo ping.'
+      : 'DIABETY è tornata in primo piano: verifica automatica in corso (12 secondi).');
+    recordDiagnostic(manual ? 'WIFI-004: prova manuale avviata' : 'WIFI-004: rientro, verifica PONG avviata');
+    if (pc.connectionState === 'connected' && channelRef.current.readyState === 'open') {
+      sendPing(true);
+    }
+  }, [role, recordDiagnostic, sendPing]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !available || role !== 'main') return;
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        seenHiddenRef.current = true;
+      } else if (seenHiddenRef.current) {
+        seenHiddenRef.current = false;
+        verifyAfterReturn();
+      }
+    };
+    // pageshow/focus sono utili su iPadOS, ma una semplice messa a fuoco
+    // non deve generare false prove di background: serve hidden precedente.
+    const onPageShow = () => {
+      if (document.visibilityState === 'visible' && seenHiddenRef.current) {
+        seenHiddenRef.current = false;
+        verifyAfterReturn();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, [available, role, verifyAfterReturn]);
+
+  // Timeout non equivale a un ICE failure definitivo; indica solo che
+  // la verifica applicativa non ha ricevuto un PONG entro 12 secondi.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !available || role !== 'main') return;
+    const timer = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      if (recoveryPendingRef.current && recoveryDeadlineRef.current && Date.now() >= recoveryDeadlineRef.current) {
+        recoveryPendingRef.current = false;
+        recoveryDeadlineRef.current = 0;
+        setRecoveryCheck('non-verificato');
+        recordDiagnostic('WIFI-004: recupero connected NON confermato da PONG entro 12 s');
+      }
+      if (!returnPendingRef.current) return;
+      if (Date.now() >= returnDeadlineRef.current) {
+        returnPendingRef.current = false;
+        waitingPongAfterReturnRef.current = false;
+        setReturnCheck('scaduto');
+        setReturnCheckText('Nessun PONG valido ricevuto entro 12 secondi dal ritorno. Collegamento NON verificato.');
+        recordDiagnostic('WIFI-004: verifica post-ritorno SCADUTA, nessun PONG');
+        return;
+      }
+      const pc = pcRef.current;
+      const ch = channelRef.current;
+      if (pc?.connectionState !== 'connected' || ch?.readyState !== 'open') return;
+      // Il ping precedente può essere partito prima del ritorno; trascorsi
+      // 3 s non blocca la prova post-rientro per tutta la sua durata.
+      if (pendingPingRef.current && Date.now() - pingTimeRef.current > 3000) {
+        pendingPingRef.current = null;
+      }
+      if (!pendingPingRef.current) sendPing(true);
+    }, 1500);
+    return () => clearInterval(timer);
+  }, [available, role, recordDiagnostic, sendPing]);
 
   // FASE 3A: verifiche periodiche in una sessione ancora aperta.
   // Non crea nuovi canali e NON scopre dispositivi dopo che Safari/Chrome sono stati chiusi.
@@ -666,6 +816,35 @@ export function DiabetyWifiLab({ role, deviceId, mainId, linkedDevices }: LabPro
         <Text style={s.muted}>Prova: completa il collegamento QR, lascia entrambe le pagine aperte e verifica che il numero di risposte aumenti. Poi cambia scheda e torna nell'app. Se la connessione di rete si interrompe brevemente, osserva se riprende spontaneamente.</Text>
         <View style={s.notice}>
           <Text style={s.noticeText}>WIFI-002B (chiusura completa): NON disponibile senza un nuovo scambio di segnalazione. La rete Wi-Fi comune e l'associazione memorizzata, da sole, non consentono a Safari e Chrome di ricreare un canale WebRTC alla riapertura.</Text>
+        </View>
+      </View>
+      <View style={s.phase3Card}>
+        <View style={s.header}>
+          <Ionicons name="checkmark-done-circle-outline" size={19} color={C.brandPrimary} />
+          <View style={{ flex: 1 }}>
+            <Text style={s.label}>STEP 4 · PONG dopo il ritorno (WIFI-004)</Text>
+            <Text style={s.muted}>Verifica effettiva dei messaggi, non soltanto dello stato connected.</Text>
+          </View>
+        </View>
+        <Text style={s.body}>Sessione corrente: {pcRef.current ? 'WebRTC inizializzato' : 'nessuna connessione WebRTC in questa apertura'}</Text>
+        {isMain && <Text style={s.body}>Ultimo PONG valido sul MAIN: {lastRealPongAt === null ? 'nessuno' : new Date(lastRealPongAt).toLocaleTimeString('it-IT')}</Text>}
+        {!isMain && <Text style={s.body}>Ultimo PING ricevuto e confermato dall'associato: {lastRemotePingAt === null ? 'nessuno' : new Date(lastRemotePingAt).toLocaleTimeString('it-IT')}</Text>}
+        {isMain && <>
+          <Text style={s.body}>Verifica al rientro: {returnCheck === 'mai' ? 'non effettuata'
+            : returnCheck === 'attesa' ? 'in corso'
+            : returnCheck === 'verificato' ? 'PONG VERIFICATO'
+            : returnCheck === 'scaduto' ? 'NON verificata'
+            : 'nuova sessione da inizializzare'}</Text>
+          <Text style={s.cameraStatus}>{returnCheckText}</Text>
+          <Text style={s.body}>Ultimo PONG di verifica: {lastReturnPongAt === null ? 'nessuno' : `${new Date(lastReturnPongAt).toLocaleTimeString('it-IT')} · ${lastReturnRtt} ms`}</Text>
+          <Text style={s.body}>Ultimo recupero dopo disconnessione: {recoveryCheck === 'mai' ? 'non osservato'
+            : recoveryCheck === 'attesa' ? 'connected, PONG ancora da verificare'
+            : recoveryCheck === 'verificato' ? 'confermato dal PONG'
+            : 'non confermato dal PONG'}</Text>
+          <LabButton title="WIFI-004 · Verifica PONG adesso" icon="send-outline" outline onPress={() => verifyAfterReturn(true)} />
+        </>}
+        <View style={s.notice}>
+          <Text style={s.noticeText}>Se il MAIN viene chiuso completamente, una nuova apertura non conserva il vecchio RTCPeerConnection. La prova mostrerà «nuova sessione» e NON potrà ricreare il collegamento senza segnalazione. Il test non legge dati sanitari.</Text>
         </View>
       </View>
       <View style={s.phase3Card}>
