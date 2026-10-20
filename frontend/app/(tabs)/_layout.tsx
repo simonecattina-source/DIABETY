@@ -45,7 +45,7 @@ export default function TabsLayout() {
         
         <NativeTabs.Trigger name="sincronizzazione">
           <NativeTabs.Trigger.Icon sf="qrcode.viewfinder" />
-          <NativeTabs.Trigger.Label>QR Test</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>Backup QR</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
 
         <NativeTabs.Trigger name="impostazioni">
@@ -136,7 +136,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="sincronizzazione"
         options={{
-          title: "QR Test",
+          title: "Backup QR",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="qr-code-outline" size={size} color={color} />
           ),
