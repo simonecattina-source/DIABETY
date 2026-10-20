@@ -31,6 +31,7 @@ export default function StoricoScreen() {
   const [modGlicemia, setModGlicemia] = useState('');
   const [modInsulina, setModInsulina] = useState('');
   const [modTipoInsulina,setModTipoInsulina]=useState<'rapida'|'basale'|'non_specificata'>('non_specificata');
+  const [modTipoMenuAperto, setModTipoMenuAperto] = useState(false);
   const [modCho, setModCho] = useState('');
   const [modNote, setModNote] = useState('');
   const [modMomento, setModMomento] = useState('');
@@ -128,6 +129,7 @@ export default function StoricoScreen() {
     setModGlicemia(item.glicemia.toString());
     setModInsulina(item.insulina ? item.insulina.replace(' UI', '').replace('-', '') : '');
     setModTipoInsulina(item.tipoInsulina==='rapida'||item.tipoInsulina==='basale'?item.tipoInsulina:'non_specificata');
+    setModTipoMenuAperto(false);
     setModCho(item.cho === null || item.cho === undefined || item.cho === '' ? '' : String(item.cho));
     setModMomento(item.tipo || 'Prima Colazione');
     setModOraText(item.ora || '12:00');
@@ -396,40 +398,103 @@ export default function StoricoScreen() {
               closeLabel="Chiudi modifica"
             />
             <ScrollView style={{flexShrink:1}} keyboardShouldPersistTaps="handled" contentContainerStyle={{gap:12,paddingBottom:8}} showsVerticalScrollIndicator={false}>
-              <View style={styles.newEditGrid}>
-                <View style={styles.newEditCard}>
-                  <Text style={styles.newEditLabel}>▣  Data del Test</Text>
-                  <View style={styles.newWebFieldWrap}>
-                    {Platform.OS==='web' ? <input type="date" value={modDataISO} onChange={e=>setModDataISO(e.target.value)} style={{display:'block',width:'100%',maxWidth:'100%',minWidth:0,boxSizing:'border-box',fontSize:'16px',color:'#FFFFFF',colorScheme:'dark',backgroundColor:'#080F18',border:'1px solid #344C63',borderRadius:'8px',padding:'10px 3px',outline:'none'}}/> : <TextInput style={styles.newEditInput} value={modDataISO} onChangeText={setModDataISO}/>}
+              {/* Stessa disposizione compatta di Inserisci: un'unica barra Data/Ora. */}
+              <View style={styles.newCompactTemporalRow}>
+                <View style={[styles.newCompactTemporalSlot, { flex: 1.55 }]}>
+                  <Ionicons name="calendar-outline" size={15} color={COLORS.brandPrimary}/>
+                  {Platform.OS === 'web' ? (
+                    <View style={styles.newCompactTemporalValueWrap}>
+                      <Text style={styles.newCompactTemporalValue} numberOfLines={1}>
+                        {modDataISO ? `${modDataISO.slice(8,10)}/${modDataISO.slice(5,7)}/${modDataISO.slice(0,4)}` : 'Data'}
+                      </Text>
+                      <input type="date" value={modDataISO} onChange={e=>setModDataISO(e.target.value)}
+                        aria-label="Data del Test"
+                        style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:0,minWidth:0,boxSizing:'border-box',fontSize:'16px',cursor:'pointer'}}/>
+                    </View>
+                  ) : (
+                    <TextInput style={styles.newCompactTemporalNativeInput} value={modDataISO}
+                      onChangeText={setModDataISO} accessibilityLabel="Data del Test AAAA-MM-GG"/>
+                  )}
+                </View>
+                <View style={styles.newCompactTemporalDivider}/>
+                <View style={[styles.newCompactTemporalSlot, { flex: 1 }]}>
+                  <Ionicons name="time-outline" size={15} color={COLORS.brandPrimary}/>
+                  {Platform.OS === 'web' ? (
+                    <View style={styles.newCompactTemporalValueWrap}>
+                      <Text style={styles.newCompactTemporalValue} numberOfLines={1}>{modOraText || 'Ora'}</Text>
+                      <input type="time" value={modOraText} onChange={e=>setModOraText(e.target.value)}
+                        aria-label="Orario del Test"
+                        style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:0,minWidth:0,boxSizing:'border-box',fontSize:'16px',cursor:'pointer'}}/>
+                    </View>
+                  ) : (
+                    <TextInput style={styles.newCompactTemporalNativeInput} value={modOraText}
+                      onChangeText={setModOraText} accessibilityLabel="Orario del Test HH:MM"/>
+                  )}
+                </View>
+              </View>
+              {/* Stessi valori, controlli e metadati: tre card affiancate e più basse. */}
+              <View style={styles.newCompactMeasurements}>
+                <View style={styles.newCompactMeasureCard}>
+                  <View style={styles.newCompactTitleRow}>
+                    <Ionicons name="water-outline" size={14} color={COLORS.brandPrimary}/>
+                    <Text style={styles.newCompactMeasureTitle}>Glicemia</Text>
+                  </View>
+                  <TextInput style={styles.newCompactNumberInput} keyboardType="numeric"
+                    value={modGlicemia} onChangeText={setModGlicemia} maxLength={3}
+                    accessibilityLabel="Glicemia in milligrammi per decilitro"/>
+                  <View style={styles.newCompactFooter}><Text style={styles.newCompactUnit}>mg/dL</Text></View>
+                </View>
+                <View style={styles.newCompactMeasureCard}>
+                  <View style={styles.newCompactTitleRow}>
+                    <Ionicons name="medkit-outline" size={14} color={COLORS.brandPrimary}/>
+                    <Text style={styles.newCompactMeasureTitle}>Insulina</Text>
+                  </View>
+                  <TextInput style={styles.newCompactNumberInput} keyboardType="numeric"
+                    value={modInsulina} onChangeText={setModInsulina} maxLength={2}
+                    placeholder="Nessuna" placeholderTextColor="#758A9A"
+                    accessibilityLabel="Insulina somministrata in unità"/>
+                  <View style={styles.newCompactFooter}>
+                    {Number(modInsulina)>0 && (
+                      <TouchableOpacity style={styles.newCompactTypeToggle}
+                        onPress={()=>setModTipoMenuAperto(v=>!v)}
+                        accessibilityRole="button" accessibilityLabel="Seleziona tipo di insulina"
+                        accessibilityState={{expanded:modTipoMenuAperto}}>
+                        <Text style={styles.newCompactTypeText}>
+                          {modTipoInsulina==='rapida'?'R':modTipoInsulina==='basale'?'B':'—'}
+                        </Text>
+                        <Ionicons name={modTipoMenuAperto?'chevron-up':'chevron-down'} size={13} color="#67E8F9"/>
+                      </TouchableOpacity>
+                    )}
+                    <Text style={styles.newCompactUnit}>UI</Text>
                   </View>
                 </View>
-                <View style={styles.newEditCard}>
-                  <Text style={styles.newEditLabel}>◷  Orario del Test</Text>
-                  <View style={styles.newWebFieldWrap}>
-                    {Platform.OS==='web' ? <input type="time" value={modOraText} onChange={e=>setModOraText(e.target.value)} style={{display:'block',width:'100%',maxWidth:'100%',minWidth:0,boxSizing:'border-box',fontSize:'16px',color:'#FFFFFF',colorScheme:'dark',backgroundColor:'#080F18',border:'1px solid #344C63',borderRadius:'8px',padding:'10px 3px',outline:'none'}}/> : <TextInput style={styles.newEditInput} value={modOraText} onChangeText={setModOraText}/>}
+                <View style={styles.newCompactMeasureCard}>
+                  <View style={styles.newCompactTitleRow}>
+                    <Ionicons name="nutrition-outline" size={14} color={COLORS.brandPrimary}/>
+                    <Text style={styles.newCompactMeasureTitle}>CHO</Text>
                   </View>
+                  <TextInput style={styles.newCompactNumberInput} keyboardType="decimal-pad"
+                    value={modCho} onChangeText={setModCho} maxLength={7}
+                    placeholder="Nessuno" placeholderTextColor="#758A9A"
+                    accessibilityLabel="Carboidrati in grammi"/>
+                  <View style={styles.newCompactFooter}><Text style={styles.newCompactUnit}>g CHO</Text></View>
                 </View>
-                <View style={styles.newEditCard}>
-                  <Text style={styles.newEditLabel}>◉  Glicemia</Text>
-                  <TextInput style={styles.newEditInput} keyboardType="numeric" value={modGlicemia} onChangeText={setModGlicemia} maxLength={3}/>
-                  <Text style={styles.newUnit}>mg/dL</Text>
+              </View>
+              {Number(modInsulina)>0 && modTipoMenuAperto && (
+                <View style={styles.newCompactTypeMenu}>
+                  {((itemSelezionato?.tipoInsulina==='rapida'||itemSelezionato?.tipoInsulina==='basale')
+                    ? ['rapida','basale'] as const : ['rapida','basale','non_specificata'] as const).map(t=>(
+                    <TouchableOpacity key={t} style={[styles.newCompactTypeOption,
+                      modTipoInsulina===t && styles.newCompactTypeOptionActive]}
+                      onPress={()=>{setModTipoInsulina(t);setModTipoMenuAperto(false)}}
+                      accessibilityRole="button" accessibilityState={{selected:modTipoInsulina===t}}>
+                      <Text style={{color:modTipoInsulina===t?COLORS.brandPrimary:'#FFFFFF',fontSize:12,fontWeight:'600'}}>
+                        {t==='rapida'?'Rapida':t==='basale'?'Basale':'Non specificata'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-                <View style={styles.newEditCard}>
-                  <Text style={styles.newEditLabel}>✚  Insulina</Text>
-                  <TextInput style={styles.newEditInput} keyboardType="numeric" value={modInsulina} onChangeText={setModInsulina} maxLength={2} placeholder="Nessuna" placeholderTextColor="#758A9A"/>
-                  <Text style={styles.newUnit}>UI</Text>
-                  {Number(modInsulina)>0 && <View style={{flexDirection:'row',flexWrap:'wrap',gap:6,marginTop:6}}>
-                    {((itemSelezionato?.tipoInsulina==='rapida'||itemSelezionato?.tipoInsulina==='basale') ? ['rapida','basale'] as const : ['rapida','basale','non_specificata'] as const).map(t=><TouchableOpacity key={t} onPress={()=>setModTipoInsulina(t)} style={{borderWidth:1,borderColor:modTipoInsulina===t?COLORS.brandPrimary:'#344C63',borderRadius:6,padding:6}}>
-                      <Text style={{color:modTipoInsulina===t?COLORS.brandPrimary:'#FFFFFF',fontSize:11}}>{t==='rapida'?'Rapida':t==='basale'?'Basale':'Non specificata'}</Text>
-                    </TouchableOpacity>)}
-                  </View>}
-                </View>
-                <View style={styles.newEditCard}>
-                    <Text style={styles.newEditLabel}>CHO</Text>
-                    <TextInput style={styles.newEditInput} keyboardType="decimal-pad" value={modCho} onChangeText={setModCho} maxLength={7} placeholder="Nessuno" placeholderTextColor="#758A9A"/>
-                    <Text style={styles.newUnit}>g CHO</Text>
-                  </View>
-                </View>
+              )}
               <Text style={styles.newEditSectionTitle}>☼  Momento della Giornata</Text>
               <View style={styles.newMomentGrid}>
                 {MOMENTI_COLONNE.map(m=><TouchableOpacity key={m} style={[styles.newMoment,m===modMomento && styles.newMomentSelected]} onPress={()=>setModMomento(m)}><Text style={[styles.newMomentText,m===modMomento && {color:COLORS.brandPrimary,fontWeight:'800'}]}>{m}</Text></TouchableOpacity>)}
@@ -513,6 +578,25 @@ const styles = StyleSheet.create({
   newPrimaryText:{fontSize:14,fontWeight:'800',color:'#071018'},
   newWarningBox:{backgroundColor:'#25191F',borderWidth:1,borderColor:'#69333C',borderRadius:13,padding:13,flexDirection:'row',gap:10},
   newDeleteConfirm:{backgroundColor:'#341D25',borderWidth:1,borderColor:COLORS.error,borderRadius:12,padding:13,flexDirection:'row',gap:8,alignItems:'center',justifyContent:'center'},
+  // Stili circoscritti alla sola finestra «Modifica Misurazione».
+  newCompactTemporalRow:{flexDirection:'row',alignItems:'center',height:42,width:'100%',backgroundColor:'#101B28',borderWidth:1,borderColor:'#26536A',borderRadius:12,overflow:'hidden'},
+  newCompactTemporalSlot:{flexDirection:'row',alignItems:'center',height:'100%',gap:5,minWidth:0,paddingHorizontal:7},
+  newCompactTemporalDivider:{height:24,width:1,backgroundColor:'#344C63'},
+  newCompactTemporalValueWrap:{flex:1,minWidth:0,height:'100%',justifyContent:'center',position:'relative'},
+  newCompactTemporalValue:{fontSize:12,fontWeight:'700',color:'#FFFFFF'},
+  newCompactTemporalNativeInput:{flex:1,minWidth:0,height:40,fontSize:16,fontWeight:'600',paddingHorizontal:0,paddingVertical:0,color:'#FFFFFF'},
+  newCompactMeasurements:{flexDirection:'row',gap:6,width:'100%'},
+  newCompactMeasureCard:{flex:1,minWidth:0,backgroundColor:'#101B28',borderWidth:1,borderColor:'#26536A',borderRadius:12,padding:5,gap:4},
+  newCompactTitleRow:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:3,minWidth:0},
+  newCompactMeasureTitle:{fontSize:11,color:'#FFFFFF',fontWeight:'700',flexShrink:1},
+  newCompactNumberInput:{height:46,width:'100%',minWidth:0,backgroundColor:'#080F18',borderWidth:1,borderColor:'#344C63',borderRadius:9,paddingHorizontal:5,paddingVertical:0,fontSize:16,fontWeight:'700',color:'#FFFFFF',textAlign:'center'},
+  newCompactFooter:{height:24,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:4,minWidth:0},
+  newCompactUnit:{fontSize:10,color:'#93A7B9'},
+  newCompactTypeToggle:{height:23,minWidth:36,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:3,paddingHorizontal:4,borderWidth:1,borderColor:'#398393',borderRadius:5,backgroundColor:'#14242C'},
+  newCompactTypeText:{fontSize:12,fontWeight:'800',color:'#67E8F9'},
+  newCompactTypeMenu:{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',gap:6,padding:6,backgroundColor:'#101B28',borderWidth:1,borderColor:'#26536A',borderRadius:9},
+  newCompactTypeOption:{minHeight:32,justifyContent:'center',alignItems:'center',paddingHorizontal:10,borderWidth:1,borderColor:'#344C63',borderRadius:7},
+  newCompactTypeOptionActive:{borderColor:COLORS.brandPrimary},
   newEditGrid:{flexDirection:'row',flexWrap:'wrap',gap:8},
   newEditCard:{width:'48.5%',flexGrow:1,minWidth:0,backgroundColor:'#101B28',borderWidth:1,borderColor:'#26536A',borderRadius:13,padding:9,gap:8,overflow:'hidden'},
   newEditLabel:{fontSize:11,color:'#FFFFFF',fontWeight:'700'},
