@@ -1,3 +1,5 @@
+import { useFocusEffect } from 'expo-router';
+import { takeQrBackupForImport } from '@/src/services/backup-transfer';
 import { esportaRegistroPdfDaHtml } from '@/src/services/pdf-export';
 import { MOMENTI_COLONNE, raggruppaMisurePerDataPdf } from '@/src/utils/pdf-measurement-selection';
 import { generaHtmlRegistroPdf } from '@/src/utils/pdf-report-html';
@@ -412,6 +414,15 @@ export default function StrumentiScreen() {
       mostraAvviso('Impossibile leggere o importare il backup. Nessun dato è stato modificato.');
     }
   };
+
+  // Backup ricevuto tramite QR: passaggio in RAM, stesso validatore e popup
+  // dell'importazione JSON esistente. Nessuna sovrascrittura senza conferma.
+  useFocusEffect(React.useCallback(() => {
+    const receivedViaQr = takeQrBackupForImport();
+    if (receivedViaQr !== null) {
+      void preparaImportazioneBackup(receivedViaQr);
+    }
+  }, []));
 
   const gestisciImportazioneWeb = async (evento: any) => {
     const inputFile = evento.target;
