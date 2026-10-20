@@ -17,8 +17,10 @@ const PREFIX = 'DWL2:';
 const PART_PREFIX = 'DWL2P|';
 const MAX_B64_LENGTH = 16000;
 const MAX_SDP_LENGTH = 24000;
-const PIECE_LENGTH = 480;
-const MAX_PARTS = 24;
+// Porzioni piccole: le webcam dei PC spesso non leggono QR con oltre 400 caratteri.
+// Per ogni segnalazione saranno mostrati più QR, ma con maggiore leggibilità.
+const PIECE_LENGTH = 220;
+const MAX_PARTS = 80;
 const isHex = (v: unknown) => typeof v === 'string' && /^[a-f0-9]{24,128}$/i.test(v);
 
 function b64urlEncode(bytes: Uint8Array): string {
