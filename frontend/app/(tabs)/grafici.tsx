@@ -387,6 +387,8 @@ export default function GraficiScreen() {
     { limite: '> 7,0%', nome: 'Elevato', colore: '#FF526E', sfondo: '#3B0D21' },
   ];
 
+  // Visualizzazione compatta a 10 riquadri: stessa logica del precedente quadrante.
+  // Le fasce, i periodi, le soglie glicemiche e la formula non sono stati modificati.
   const renderizzaQuadranteGiornata = () => {
     const oggiIndice = dataIndice(new Date());
     const misurazioniPeriodo = datiReali.filter(v => {
@@ -403,79 +405,122 @@ export default function GraficiScreen() {
       const inRange = valori.filter(v => v.glicemia >= 70 && v.glicemia <= 180).length;
       return { ...fascia, percentuale: valori.length ? Math.round(inRange * 100 / valori.length) : null };
     });
-    // Dieci settori identici da 36°, indipendenti dalla durata delle fasce.
-    const centro = 200, esterno = 190, interno = 94;
-    const punto = (r: number, gradi: number) => {
-      const angolo = (gradi - 90) * Math.PI / 180;
-      return [centro + r * Math.cos(angolo), centro + r * Math.sin(angolo)];
-    };
-    const settore = (da: number, a: number) => {
-      const [x1,y1] = punto(esterno,da), [x2,y2] = punto(esterno,a);
-      const [x3,y3] = punto(interno,a), [x4,y4] = punto(interno,da);
-      return `M ${x1} ${y1} A ${esterno} ${esterno} 0 0 1 ${x2} ${y2} L ${x3} ${y3} A ${interno} ${interno} 0 0 0 ${x4} ${y4} Z`;
-    };
-    const nomiSuRighe: string[][] = [
-      ['Notte iniziale'], ['Prima', 'di colazione'], ['Dopo', 'colazione'],
-      ['Spuntino'], ['Prima', 'di pranzo'], ['Dopo', 'pranzo'],
-      ['Merenda'], ['Prima', 'di cena'], ['Dopo cena'], ['Notte finale'],
-    ];
+
+    // Colori descrittivi della percentuale (non soglie terapeutiche):
+    // verde >=70%, arancione 60–69%, rosso <60%; grigio in assenza di dati.
+    const colorePercentuale = (p: number | null) =>
+      p === null ? '#8496A6' : p >= 70 ? '#00E676' : p >= 60 ? '#FF9100' : '#FF5252';
+
     return (
-      <View style={[styles.cardGraficoContenitore, { marginTop: 16, borderColor: '#17465C' }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-          <Ionicons name="pie-chart-outline" size={26} color="#00E5FF" />
-          <View style={{ flex: 1 }}>
+      <View style={[styles.cardGraficoContenitore, {
+        marginTop: 16, padding: 12, borderColor: '#17465C', backgroundColor: '#0B1017',
+      }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Ionicons name="stats-chart" size={23} color="#00E5FF" />
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.sectionLabel}>Suddivisione dei momenti della giornata</Text>
-            <Text style={{ color: '#A9C8E8', fontSize: 11, marginTop: 4 }}>Percentuale di misurazioni in range (70–180 mg/dL) per fascia oraria.</Text>
+            <Text style={{ color: '#A9C8E8', fontSize: 11, lineHeight: 15, marginTop: 3 }}>
+              Percentuale di misurazioni in range (70–180 mg/dL) per fascia oraria.
+            </Text>
           </View>
+          <DiabetyHelpButton
+            variant="grafici"
+            iconSize={20}
+            iconColor="#A9C8E8"
+            accessibilityLabel="Informazioni: Suddivisione dei momenti della giornata"
+            onPress={() => {
+              setModalTitolo('Suddivisione dei momenti della giornata');
+              setModalTesto('Ogni riquadro mostra la percentuale delle misurazioni tra 70 e 180 mg/dL registrate nella relativa fascia oraria, nel periodo selezionato. Le barre visualizzano tale percentuale. I colori verde (70–100%), arancione (60–69%) e rosso (0–59%) sono solo indicatori grafici illustrativi e non rappresentano obiettivi terapeutici individuali. Il trattino (—) indica assenza di misurazioni. Si tratta di misurazioni inserite manualmente e non di un monitoraggio glicemico continuo.');
+              setModalVisibile(true);
+            }}
+          />
         </View>
-        <View style={{ flexDirection: 'row', marginTop: 16, borderRadius: 10, borderWidth: 1, borderColor: '#24516B', overflow: 'hidden' }}>
-          {([7,14,30,90] as const).map(giorni => (
-            <TouchableOpacity key={giorni} onPress={() => setPeriodoQuadrante(giorni)} accessibilityRole="button"
-              accessibilityState={{ selected: periodoQuadrante === giorni }}
-              style={{ flex: 1, alignItems: 'center', paddingVertical: 11, backgroundColor: periodoQuadrante === giorni ? '#07354B' : 'transparent', borderWidth: periodoQuadrante === giorni ? 1 : 0, borderColor: '#00E5FF', borderRadius: 9 }}>
-              <Text style={{ color: periodoQuadrante === giorni ? '#00E5FF' : '#B0C4E1', fontSize: 12, fontWeight: '700' }}>{giorni} giorni</Text>
-            </TouchableOpacity>
+
+        <View style={{ flexDirection: 'row', gap: 5, marginTop: 10 }}>
+          {([7, 14, 30, 90] as const).map(giorni => {
+            const selezionato = periodoQuadrante === giorni;
+            return (
+              <TouchableOpacity
+                key={giorni}
+                onPress={() => setPeriodoQuadrante(giorni)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: selezionato }}
+                style={{
+                  flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center',
+                  paddingVertical: 9, borderWidth: 1, borderRadius: 9,
+                  borderColor: selezionato ? '#00E5FF' : '#375064',
+                  backgroundColor: selezionato ? '#07354B' : '#0D1520',
+                }}
+              >
+                <Text style={{
+                  color: selezionato ? '#00E5FF' : '#B0C4E1',
+                  fontSize: 11, fontWeight: '700', textAlign: 'center',
+                }}>{giorni} giorni</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <Text style={{ color: '#A9C8E8', fontSize: 10, textAlign: 'center', marginTop: 6 }}>
+          Periodo selezionato: ultimi {periodoQuadrante} giorni, oggi compreso.
+        </Text>
+
+        <View style={{ marginTop: 9, gap: 6 }}>
+          {[0, 2, 4, 6, 8].map(indice => (
+            <View key={indice} style={{ flexDirection: 'row', alignItems: 'stretch', gap: 6 }}>
+              {statistiche.slice(indice, indice + 2).map(fascia => {
+                const colore = colorePercentuale(fascia.percentuale);
+                return (
+                  <View
+                    key={fascia.nome}
+                    accessible
+                    accessibilityLabel={`${fascia.nome}, ${fascia.orario}, ${fascia.percentuale === null ? 'nessun dato' : `${fascia.percentuale} percento di misurazioni in range`}`}
+                    style={{
+                      flex: 1, minWidth: 0, borderWidth: 1, borderColor: '#12617A',
+                      backgroundColor: '#07131B', borderRadius: 10,
+                      paddingHorizontal: 8, paddingVertical: 7,
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                        <Text style={{
+                          flex: 1, minWidth: 0, fontFamily: 'Plus Jakarta Sans',
+                          color: '#FFFFFF', fontSize: 11, fontWeight: '700', lineHeight: 15,
+                        }} numberOfLines={2}>{fascia.nome}</Text>
+                        <Text style={{
+                          color: colore, fontFamily: 'Space Grotesk',
+                          fontSize: 19, fontWeight: '800', lineHeight: 22,
+                        }} numberOfLines={1}>
+                          {fascia.percentuale === null ? '—' : `${fascia.percentuale}%`}
+                        </Text>
+                      </View>
+                      <Text style={{ color: '#A9C8E8', fontSize: 10, lineHeight: 14 }} numberOfLines={1}>
+                        {fascia.orario}
+                      </Text>
+                    </View>
+                    <View style={{ height: 5, marginTop: 5, borderRadius: 5, backgroundColor: '#25333F', overflow: 'hidden' }}>
+                      {fascia.percentuale !== null && (
+                        <View style={{ height: '100%', width: `${fascia.percentuale}%`, backgroundColor: colore, borderRadius: 5 }} />
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
           ))}
         </View>
-        <Text style={{ color: '#A9C8E8', fontSize: 11, marginTop: 10 }}>Periodo selezionato: ultimi {periodoQuadrante} giorni, oggi compreso.</Text>
-        <View style={{ alignItems: 'center', marginTop: 12 }}>
-          <Svg width="100%" height={400} viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
-            <Defs>
-              <LinearGradient id="spicchioScuro" x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor="#0B1529" />
-                <Stop offset="100%" stopColor="#050B10" />
-              </LinearGradient>
-            </Defs>
-            {statistiche.map((f, i) => {
-              const da = i * 36 + 0.5, a = (i + 1) * 36 - 0.5;
-              const [tx, ty] = punto(145, i * 36 + 18);
-              const nome = nomiSuRighe[i];
-              const primaRiga = ty - (nome.length === 2 ? 26 : 19);
-              return (
-                <G key={i}>
-                  <Path d={settore(da, a)} fill="url(#spicchioScuro)" stroke="#00DDF5" strokeWidth={1.7} strokeLinejoin="round" />
-                  {nome.map((riga, j) => (
-                    <SvgText key={j} x={tx} y={primaRiga + j * 15} fill="#FFFFFF" fontSize={13} fontWeight="700" textAnchor="middle">{riga}</SvgText>
-                  ))}
-                  <SvgText x={tx} y={primaRiga + nome.length * 15 + 1} fill="#C8E3F1" fontSize={11.5} textAnchor="middle">{f.orario}</SvgText>
-                  <SvgText x={tx} y={primaRiga + nome.length * 15 + 27} fill="#FFFFFF" fontSize={21} fontWeight="bold" textAnchor="middle">{f.percentuale === null ? '—' : `${f.percentuale}%`}</SvgText>
-                </G>
-              );
-            })}
-            <Circle cx={centro} cy={centro} r={interno-4} fill="#050B10" stroke="#08364C" strokeWidth={5} />
-            <Circle cx={centro} cy={centro} r={interno-15} fill="none" stroke="#00C8E7" strokeWidth={4} />
-            {/* Freccia discreta sul bordo interno, senza invadere il testo centrale. */}
-            <Path d="M 213.72 122.20 A 79 79 0 0 1 264.71 154.69" fill="none" stroke="#C8F9FF" strokeWidth={2.5} strokeLinecap="round" />
-            <Path d="M 264.71 154.69 L 253.73 147.73 L 261.93 141.99 Z" fill="#C8F9FF" />
-            {/* Testo centrale compatto: tutte le righe restano nel disco nero. */}
-            <SvgText x={centro-5} y={centro+3} fill="#FFFFFF" fontSize={42} fontWeight="bold" textAnchor="end">24</SvgText>
-            <SvgText x={centro-1} y={centro+3} fill="#00E5FF" fontSize={27} fontWeight="bold" textAnchor="start">ORE</SvgText>
-            <SvgText x={centro} y={centro+29} fill="#FFFFFF" fontSize={9.5} letterSpacing={1.1} textAnchor="middle">DELLA GIORNATA</SvgText>
-          </Svg>
-        </View>
-        <View style={{ flexDirection: 'row', backgroundColor: '#0A1C2C', borderWidth: 1, borderColor: '#18435B', borderRadius: 11, padding: 10, marginTop: 10, gap: 9 }}>
-          <Ionicons name="information-circle-outline" size={21} color="#8CB9FF" />
-          <Text style={{ flex: 1, color: '#A9C8E8', fontSize: 11, lineHeight: 17 }}>Ogni spicchio mostra la percentuale di misurazioni in range (70–180 mg/dL) per la corrispondente fascia oraria, calcolata sul periodo selezionato. Le percentuali si aggiornano automaticamente con le tue misurazioni. Il trattino indica assenza di dati.</Text>
+
+        <View style={{
+          flexDirection: 'row', alignItems: 'flex-start', gap: 7,
+          backgroundColor: '#0A1C2C', borderWidth: 1, borderColor: '#18435B',
+          borderRadius: 10, padding: 8, marginTop: 9,
+        }}>
+          <Ionicons name="information-circle-outline" size={19} color="#00BDF4" />
+          <Text style={{ flex: 1, color: '#A9C8E8', fontSize: 10, lineHeight: 15 }}>
+            Ogni riquadro mostra la percentuale di misurazioni in range (70–180 mg/dL)
+            per la corrispondente fascia oraria, calcolata sul periodo selezionato.
+            Il trattino indica assenza di dati.
+          </Text>
         </View>
       </View>
     );
