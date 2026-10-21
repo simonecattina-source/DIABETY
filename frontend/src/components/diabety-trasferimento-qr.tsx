@@ -56,6 +56,7 @@ export default function TrasferimentoQrPanel({ onBackupReady, onActivityChange }
   const [paste, setPaste] = useState(false);
   const [pasted, setPasted] = useState('');
   const [showCode, setShowCode] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const [scanProgress, setScanProgress] = useState('');
   const [connected, setConnected] = useState(false);
   const [offerAccepted, setOfferAccepted] = useState(false);
@@ -83,7 +84,7 @@ export default function TrasferimentoQrPanel({ onBackupReady, onActivityChange }
     setConnected(false); setOfferAccepted(false); setAnswerAccepted(false);
     setSendStarted(false); setDeliveryConfirmed(false);
     setQrParts([]); setQrPage(0); setFullSignal(''); setProgress(null); setScan(false);
-    setPaste(false); setPasted(''); setShowCode(false); setScanProgress('');
+    setPaste(false); setPasted(''); setShowCode(false); setCopyStatus('idle'); setScanProgress('');
   };
   useEffect(() => {
     disposedRef.current = false;
@@ -137,7 +138,7 @@ export default function TrasferimentoQrPanel({ onBackupReady, onActivityChange }
   const displaySignal = async (signal: LanSignal) => {
     const code = await encodeLanSignal(signal);
     const parts = createQrParts(code, newLanId());
-    setQrParts(parts); setQrPage(0); setFullSignal(code); setShowCode(false);
+    setQrParts(parts); setQrPage(0); setFullSignal(code); setShowCode(false); setCopyStatus('idle');
     setStatus(`Codice di collegamento pronto (${parts.length} QR). Usa «Successivo» per mostrare tutte le parti.`);
   };
   const choose = (next: Mode) => {
@@ -233,6 +234,36 @@ export default function TrasferimentoQrPanel({ onBackupReady, onActivityChange }
     onBackupReady(received);
   };
 
+  // Copia il segnale ORIGINALE, non il testo spezzato per la visualizzazione.
+  // Il trasferimento QR è Web-only: Clipboard API con fallback per Safari meno recenti.
+  const copyEntireCode = async () => {
+    if (!fullSignal) return;
+    let copied = false;
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      try { await navigator.clipboard.writeText(fullSignal); copied = true; } catch { /* fallback */ }
+    }
+    if (!copied && typeof document !== 'undefined') {
+      const input = document.createElement('textarea');
+      input.value = fullSignal;
+      input.readOnly = true;
+      input.style.position = 'fixed';
+      input.style.left = '-9999px';
+      input.style.opacity = '0';
+      document.body.appendChild(input);
+      try {
+        input.select();
+        input.setSelectionRange(0, fullSignal.length);
+        copied = document.execCommand('copy');
+      } catch { /* copia non consentita dal browser */ }
+      finally { document.body.removeChild(input); }
+    }
+    setCopyStatus(copied ? 'copied' : 'error');
+  };
+
+  // Solo resa grafica: i ritorni a capo non fanno parte del codice da copiare.
+  // Blocchi brevi evitano che stringhe senza spazi allarghino il layout su iPhone.
+  const displayedSignal = fullSignal.match(/.{1,24}/g)?.join('\n') ?? fullSignal;
+
   const roleColor = mode === 'send' ? SEND_COLOR : mode === 'receive' ? RECEIVE_COLOR : C.brandPrimary;
   const percent = progress?.total ? Math.floor((progress.current / progress.total) * 100) : 0;
   const qrSize = Math.min(320, Math.max(200, screenWidth - 94));
@@ -272,10 +303,21 @@ export default function TrasferimentoQrPanel({ onBackupReady, onActivityChange }
           <Text style={s.smallText}>Successivo</Text><Ionicons name="chevron-forward" color="#B7F1FF" size={16}/>
         </TouchableOpacity>
       </View>}
-      <TouchableOpacity accessibilityRole="button" style={s.textButton} onPress={() => setShowCode(!showCode)}>
+      <TouchableOpacity accessibilityRole="button" style={s.textButton} onPress={() => { setShowCode(!showCode); setCopyStatus('idle'); }}>
         <Text style={s.linkText}>{showCode ? 'Nascondi codice testuale' : 'Usa codice testuale (alternativa)'}</Text>
       </TouchableOpacity>
-      {showCode && <Text selectable style={s.code}>{fullSignal}</Text>}
+      {showCode && <View style={s.codeWrap}>
+        <ScrollView style={s.codeScroll} contentContainerStyle={s.codeScrollContent} nestedScrollEnabled>
+          <Text selectable style={s.code}>{displayedSignal}</Text>
+        </ScrollView>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Copia tutto il codice testuale"
+          style={s.copyButton} onPress={() => { void copyEntireCode(); }}>
+          <Ionicons name={copyStatus === 'copied' ? 'checkmark-outline' : 'copy-outline'} size={18} color={C.brandPrimary}/>
+          <Text style={s.copyButtonText}>{copyStatus === 'copied' ? 'Copiato!' : 'Copia tutto'}</Text>
+        </TouchableOpacity>
+        {copyStatus === 'copied' && <Text style={s.copyFeedback}>Codice completo copiato, senza interruzioni di riga.</Text>}
+        {copyStatus === 'error' && <Text style={s.copyError}>Impossibile copiare automaticamente. Controlla le autorizzazioni del browser.</Text>}
+      </View>}
     </View>
   ) : null;
 
@@ -506,7 +548,14 @@ const s = StyleSheet.create({
   smallText: {color:'#B7F1FF',fontWeight:'700',fontSize:12},
   textButton: {flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,padding:7},
   linkText: {color:C.brandPrimary,fontSize:12,fontWeight:'700',textAlign:'center'},
-  code: {color:'#CFDCE4',fontSize:11,backgroundColor:'#09151F',padding:12,borderRadius:10},
+  codeWrap: {alignSelf:'stretch',width:'100%',minWidth:0,gap:9},
+  codeScroll: {width:'100%',maxHeight:180,backgroundColor:'#09151F',borderWidth:1,borderColor:'#29505C',borderRadius:10,overflow:'hidden'},
+  codeScrollContent: {padding:12},
+  code: {color:'#CFDCE4',fontSize:11,lineHeight:18,fontFamily:Platform.select({ios:'Menlo',android:'monospace',default:'monospace'}),flexShrink:1},
+  copyButton: {alignSelf:'stretch',minHeight:44,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:8,backgroundColor:'#0E2731',borderWidth:1,borderColor:'#296071',borderRadius:10,paddingHorizontal:12,paddingVertical:10},
+  copyButtonText: {color:C.brandPrimary,fontSize:13,fontWeight:'700'},
+  copyFeedback: {color:'#82DBBD',fontSize:12,textAlign:'center'},
+  copyError: {color:'#FFAAAA',fontSize:12,textAlign:'center'},
   cameraFrame: {height:290,borderWidth:1,borderColor:C.brandPrimary,borderRadius:13,overflow:'hidden'},
   scanPanel: {gap:12},
   softInfo: {backgroundColor:'#12313A',borderWidth:1,borderColor:'#2D6270',padding:12,borderRadius:10,flexDirection:'row',gap:8,alignItems:'center'},
