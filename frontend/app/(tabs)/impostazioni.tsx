@@ -98,6 +98,125 @@ const campoCSV = (valore: unknown): string => {
   return /[;"\r\n]/.test(testo) ? `"${testo.replace(/"/g, '""')}"` : testo;
 };
 
+// Manuale & Linee Guida: presentazione tipografica dei testi originali.
+// Le stringhe «content» delle otto schede non vengono modificate.
+type RegolaManuale = {
+  inizio: string;
+  titolo: string;
+  titoloGiaNelTesto?: boolean;
+  colore?: string;
+  iconaQr?: boolean;
+};
+type ParteManuale = {
+  titolo?: string;
+  testo: string;
+  colore?: string;
+  iconaQr?: boolean;
+};
+
+const REGOLE_MANUALE: Record<number, RegolaManuale[]> = {
+  1: [
+    { inizio: '\n\nGLICEMIA (mg/dL)\n', titolo: 'GLICEMIA (mg/dL)', titoloGiaNelTesto: true },
+    { inizio: '\n\nINSULINA (UI)\n', titolo: 'INSULINA (UI)', titoloGiaNelTesto: true },
+    { inizio: '\n\nCARBOIDRATI - CHO (g)\n', titolo: 'CARBOIDRATI - CHO (g)', titoloGiaNelTesto: true },
+    { inizio: '\n\nMOMENTO DELLA GIORNATA\n', titolo: 'MOMENTO DELLA GIORNATA', titoloGiaNelTesto: true },
+    { inizio: '\n\nNOTE ALIMENTARI / SINTOMI\n', titolo: 'NOTE ALIMENTARI / SINTOMI', titoloGiaNelTesto: true },
+    { inizio: '\n\nSALVATAGGIO ED ESPORTAZIONE\n', titolo: 'SALVATAGGIO ED ESPORTAZIONE', titoloGiaNelTesto: true },
+  ],
+  2: [
+    { inizio: 'Sblocca la scheda', titolo: 'PARAMETRI PERSONALI' },
+    { inizio: 'Puoi inserire il valore della tua Glicemia', titolo: 'CALCOLO PER IL PASTO' },
+    { inizio: 'Puoi anche inserire solo il valore della Glicemia', titolo: 'CALCOLO DELLA CORREZIONE' },
+  ],
+  3: [
+    { inizio: 'Usa la barra di ricerca', titolo: 'RICERCA DEGLI ALIMENTI' },
+    { inizio: "L'applicazione genererà in basso", titolo: 'PIATTO VIRTUALE' },
+  ],
+  4: [
+    { inizio: 'I vecchi dati vengono eliminati', titolo: 'ELIMINAZIONE AUTOMATICA' },
+    { inizio: "L'Eliminazione dei vecchi dati", titolo: 'QUALI DATI VENGONO ELIMINATI' },
+  ],
+  5: [
+    { inizio: 'Inoltre, calcola in automatico', titolo: "STIMA DELL'EMOGLOBINA GLICATA" },
+    { inizio: 'Nota molto importante,', titolo: 'IMPORTANTE: DATI INDICATIVI' },
+    { inizio: 'La funzione del grafico è basata', titolo: 'DIFFERENZA RISPETTO A UN CGM' },
+    { inizio: "L'app Diabety non ha questa funzione.", titolo: 'LIMITI DEL MONITORAGGIO' },
+  ],
+  6: [
+    { inizio: '\n• Verde (Euglicemia): ', titolo: '• Verde (Euglicemia):', titoloGiaNelTesto: true, colore: '#49C88D' },
+    { inizio: '\n• Arancione (Ipoglicemia): ', titolo: '• Arancione (Ipoglicemia):', titoloGiaNelTesto: true, colore: '#FF9800' },
+    { inizio: '\n• Rosso (Iperglicemia): ', titolo: '• Rosso (Iperglicemia):', titoloGiaNelTesto: true, colore: '#F07070' },
+  ],
+  7: [
+    { inizio: '\n\nESPORTA BACKUP\n', titolo: 'ESPORTA BACKUP', titoloGiaNelTesto: true },
+    { inizio: '\n\nIMPORTA BACKUP\n', titolo: 'IMPORTA BACKUP', titoloGiaNelTesto: true },
+    { inizio: '\n\nESPORTA PDF\n', titolo: 'ESPORTA PDF', titoloGiaNelTesto: true },
+    { inizio: '\n\nESPORTA EXCEL / CSV\n', titolo: 'ESPORTA EXCEL / CSV', titoloGiaNelTesto: true },
+    { inizio: '\n\nDA SAPERE\n', titolo: 'DA SAPERE', titoloGiaNelTesto: true },
+    { inizio: '\n\nTRASFERIMENTO DATI CON QR CODE\n', titolo: 'TRASFERIMENTO DATI CON QR CODE', titoloGiaNelTesto: true, colore: '#D4AF37', iconaQr: true },
+  ],
+  8: [
+    { inizio: 'Puoi esportare un file di sicurezza', titolo: 'CREAZIONE DEL BACKUP' },
+    { inizio: "L'importazione sovrascrive", titolo: 'SICUREZZA DEL RIPRISTINO' },
+  ],
+};
+
+// La divisione interessa esclusivamente l'impaginazione; le parole restano originali.
+function dividiTestoManuale(id: number, testo: string): ParteManuale[] {
+  const regole = REGOLE_MANUALE[id] ?? [];
+  const posizioni = regole.map((regola) => testo.indexOf(regola.inizio));
+  if (posizioni.some((posizione, i) => posizione < 0 || (i > 0 && posizione <= posizioni[i - 1]))) {
+    return [{ testo }];
+  }
+  const risultato: ParteManuale[] = [];
+  const introduzione = testo.slice(0, posizioni[0]).trim();
+  if (introduzione) risultato.push({ testo: introduzione });
+  regole.forEach((regola, i) => {
+    const inizioTesto = posizioni[i] + (regola.titoloGiaNelTesto ? regola.inizio.length : 0);
+    const fineTesto = i + 1 < posizioni.length ? posizioni[i + 1] : testo.length;
+    risultato.push({
+      titolo: regola.titolo,
+      testo: testo.slice(inizioTesto, fineTesto).trim(),
+      colore: regola.colore,
+      iconaQr: regola.iconaQr,
+    });
+  });
+  return risultato;
+}
+
+const PAROLE_CHIAVE_MANUALE = /(Data e Ora del Test|Modifica Misurazione|Salva misurazione|Rapporto I:CHO|Sensibilità ISF|Piatto Virtuale|70 e 180 mg\/dL|70 mg\/dL|180 mg\/dL|Invia dati|Ricevi dati|Ripristina backup|Carboidrati|Emoglobina Glicata|Glicemia|Insulina|Storico|Grafici|Target|DIABETY|HbA1c|CGM|CHO|JSON|PDF|Excel|CSV|Wi-Fi|Indietro)/gi;
+
+function evidenziaManuale(testo: string): React.ReactNode {
+  return testo.split(PAROLE_CHIAVE_MANUALE).map((parte, indice) =>
+    indice % 2 === 1
+      ? <Text key={`evidenza-${indice}`} style={styles.manualKeyword}>{parte}</Text>
+      : parte
+  );
+}
+
+function TestoManualeFormattato({ id, content, color }: { id: number; content: string; color: string }) {
+  return (
+    <View style={styles.manualReadableContent}>
+      {dividiTestoManuale(id, content).map((parte, indice) => (
+        <View key={`paragrafo-${id}-${indice}`} style={styles.manualPart}>
+          {parte.titolo && (
+            <View style={styles.manualHeadingRow}>
+              <View style={[styles.manualHeadingAccent, { backgroundColor: parte.colore ?? color }]} />
+              {parte.iconaQr && <Ionicons name="qr-code-outline" size={18} color={parte.colore ?? color} />}
+              <Text style={[styles.manualSubheading, { color: parte.colore ?? color }]}>{parte.titolo}</Text>
+            </View>
+          )}
+          {parte.testo.split(/\n\n+/).filter(Boolean).map((paragrafo, n) => (
+            <Text key={`testo-${id}-${indice}-${n}`} style={styles.contentText}>
+              {evidenziaManuale(paragrafo)}
+            </Text>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function StrumentiScreen() {
   const mostraAvviso = useDiabetyAlert();
   const [statoNotifica, setStatoNotifica] = useState<string | null>(null);
@@ -915,18 +1034,7 @@ export default function StrumentiScreen() {
 
             {isOpen && (
               <View style={styles.accordionContent}>
-                {point.id === 7 ? (
-                  <>
-                    <Text style={styles.contentText}>{point.content.split('\n\nTRASFERIMENTO DATI CON QR CODE\n')[0]}</Text>
-                    <View style={styles.manualQrTitolo}>
-                      <Ionicons name="qr-code-outline" size={20} color="#D4AF37" />
-                      <Text style={styles.manualQrTitoloTesto}>TRASFERIMENTO DATI CON QR CODE</Text>
-                    </View>
-                    <Text style={styles.contentText}>{point.content.split('\n\nTRASFERIMENTO DATI CON QR CODE\n')[1]}</Text>
-                  </>
-                ) : (
-                  <Text style={styles.contentText}>{point.content}</Text>
-                )}
+                <TestoManualeFormattato id={point.id} content={point.content} color={point.color} />
               </View>
             )}
           </View>
@@ -1058,6 +1166,12 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   contentText: { fontFamily: 'Plus Jakarta Sans', fontSize: 14, color: COLORS.muted, lineHeight: 22, textAlign: 'left', paddingLeft: 2 },
+  manualReadableContent: { gap: 18 },
+  manualPart: { gap: 9 },
+  manualHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  manualHeadingAccent: { width: 3, height: 18, borderRadius: 3 },
+  manualSubheading: { fontFamily: 'Plus Jakarta Sans', color: '#FFFFFF', fontSize: 13, fontWeight: '800', flex: 1 },
+  manualKeyword: { color: '#FFFFFF', fontWeight: '800' },
   manualQrTitolo: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, marginBottom: 9 },
   manualQrTitoloTesto: { color: '#D4AF37', fontSize: 13, fontWeight: '800', flex: 1 },
 
