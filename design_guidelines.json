@@ -1,19 +1,22 @@
 {
-  "app_name": "Diabety",
+  "app_name": "DIABETY",
   "personality": "OLED Dark Neon / clinical-readable",
-  "personality_one_liner": "DIABETY: diario glicemico offline-first, rapido, leggibile, con card scure e accenti neon, grafici e strumenti di esportazione.",
+  "personality_one_liner": "Diario glicemico locale e strumenti di analisi, alimenti, simulazione bolo e backup manuale; app Expo Web / iOS / Android.",
   "project_status": {
-    "current_iteration": "7",
-    "architecture_type": "Expo (React Native) iOS-Optimized Mobile Frontend + Python Backend",
-    "storage_system": "Offline-First Local Async Storage (glicotrack_data) with Native JSON Backup and Restore Capabilities",
-    "design_system_sync": "OLED Dark Neon come interfaccia attuale; i token light sono mantenuti come riferimento legacy, non prova che il tema chiaro sia attivo.",
+    "current_iteration": "App DIABETY 1.0.0 nel package.json; versione 8.0 SOLO del documento di riferimento, non dell’app.",
+    "architecture_type": "Expo SDK 57, React Native, React Native Web, Expo Router, TypeScript; supporto Web/PWA e progetto mobile iOS/Android.",
+    "actual_repository_content": "Nello ZIP caricato sono presenti frontend, report e test; non è presente una cartella di backend Python attivo. Non indicare il vecchio backend Python come componente reale obbligatorio.",
+    "storage_system": "Dati glicemici e configurazioni su AsyncStorage locale. Il database alimenti è un file JSON incluso nel codice.",
+    "offline_first": "Il diario non prevede account utente o sincronizzazione cloud automatica. Il trasferimento backup manuale richiede una connessione locale WebRTC e interazione esplicita.",
     "target_platforms": [
-      "Expo / React Native Web",
+      "Web/PWA su browser compatibili",
+      "iPhone/iPad",
       "Android",
-      "iOS"
+      "Desktop Web"
     ],
-    "delivery_workflow": "GitHub main → Vercel web build (Expo export); distribuzione mobile futura",
-    "architecture_note": "Il frontend salva le misurazioni localmente in AsyncStorage. La presenza del backend Python nel repository non implica che il diario venga sincronizzato con esso."
+    "delivery_workflow": "Repository GitHub branch main -> deployment automatico Vercel dopo il commit; build npx expo export, directory frontend/dist.",
+    "deployment_status": "Utente conferma da screenshot iPhone del 27/10/2026 che il precedente fix mostra tutta la scritta «Impostazioni», ma rende le tab non proporzionate. Nuova soluzione equilibrata pronta nel file, installazione e risultato visivo non ancora verificati.",
+    "scope_rule": "I file dati e le preferenze salvate localmente non vengono modificati aggiornando questa guida JSON."
   },
   "color": {
     "light": {
@@ -57,8 +60,14 @@
       "warning": "#FF9100",
       "error": "#FF5252",
       "muted": "#7E7E86",
-      "borderGlass": "rgba(255, 255, 255, 0.06)",
-      "borderGlassBright": "rgba(255, 255, 255, 0.15)"
+      "borderGlass": "rgba(255, 255, 255, 0.08)",
+      "borderGlassBright": "rgba(255, 255, 255, 0.15)",
+      "background": "#0A0A0C",
+      "borderGlassCharts": "rgba(255, 255, 255, 0.06)",
+      "tabInactive": "#636366",
+      "sendBackupOrange": "#FF9800",
+      "receiveBackupPurple": "#A855F7",
+      "qrTransferGold": "#D4AF37"
     }
   },
   "typography": {
@@ -75,10 +84,13 @@
       "4xl": 26,
       "5xl": 32,
       "giant": 38
-    }
+    },
+    "navigation_font_size": 11,
+    "navigation_font_weight": "600",
+    "note": "Dimensioni e famiglie dei singoli controlli si verificano nei relativi stili TSX; non ridurre font tab per la correzione Impostazioni."
   },
   "spacing": {
-    "rule": "Generous vertical breathing room for forms. Safe-area clearance is mandatory. Use md (12) for inner component padding and lg (16) for screen edges.",
+    "rule": "Mantenere la compattezza delle card dove approvata: negli input e grafici evitare eccessivo spazio verticale. Rispettare safe-area iOS e spazio per barra inferiore.",
     "xs": 4,
     "sm": 6,
     "md": 8,
@@ -112,59 +124,121 @@
   },
   "navigation_specification": {
     "type": "bottom_tabs",
-    "icon_set": "Ionicons",
-    "bar_style": {
-      "backgroundColor": "#0A0A0C",
-      "borderTopColor": "rgba(255, 255, 255, 0.08)",
-      "borderTopWidth": 1,
-      "activeTintColor": "#00E5FF",
-      "inactiveTintColor": "#636366"
-    },
-    "tabs": [
+    "file": "frontend/app/(tabs)/_layout.tsx",
+    "initial_tab": "index / Inserisci",
+    "icon_set": "Ionicons sulla barra classica JS; SF Symbols su NativeTabs iOS 26+",
+    "tab_order": [
       {
-        "name": "index",
+        "route": "index",
         "title": "Inserisci",
-        "icon": "Ionicons; verificare icona esatta nel file _layout.tsx"
+        "icon_js": "add-circle",
+        "compact_flex": 1.0
       },
       {
-        "name": "storico",
-        "title": "Storico",
-        "icon": "Ionicons; verificare icona esatta nel file _layout.tsx"
-      },
-      {
-        "name": "grafici",
-        "title": "Grafici",
-        "icon": "Ionicons; verificare icona esatta nel file _layout.tsx"
-      },
-      {
-        "name": "alimenti",
-        "title": "Alimenti",
-        "icon": "Ionicons; verificare icona esatta nel file _layout.tsx"
-      },
-      {
-        "name": "bolo",
+        "route": "bolo",
         "title": "Bolo",
-        "icon": "Ionicons; verificare icona esatta nel file _layout.tsx"
+        "icon_js": "calculator",
+        "compact_flex": 1.0
       },
       {
-        "name": "impostazioni",
+        "route": "alimenti",
+        "title": "Alimenti",
+        "icon_js": "fast-food",
+        "compact_flex": 1.0
+      },
+      {
+        "route": "storico",
+        "title": "Storico",
+        "icon_js": "list",
+        "compact_flex": 1.0
+      },
+      {
+        "route": "grafici",
+        "title": "Grafici",
+        "icon_js": "stats-chart",
+        "compact_flex": 1.0
+      },
+      {
+        "route": "impostazioni",
         "title": "Impostazioni",
-        "icon": "Ionicons; verificare icona esatta nel file _layout.tsx"
+        "icon_js": "settings-outline",
+        "compact_flex": 1.08
       }
     ],
-    "platform_note": "I nomi e le route devono corrispondere ai file reali e alla configurazione corrente di _layout.tsx; distinguere maiuscole/minuscole nei percorsi."
+    "bar_style": {
+      "backgroundColor": "#0A0A0C",
+      "borderTopColor": "rgba(255,255,255,0.08)",
+      "borderTopWidth": 1,
+      "activeTintColor": "#00E5FF",
+      "inactiveTintColor": "#636366",
+      "fontFamily": "Plus Jakarta Sans",
+      "fontSize_px": 11,
+      "fontWeight": "600"
+    },
+    "web_height": "64 px in condizioni ordinarie; per PWA Web standalone 78 px con paddingTop 4 e paddingBottom 20 (codice attuale).",
+    "compact_iphone_fix": {
+      "status": "NUOVA CORREZIONE PREPARATA IL 27/10/2026. Non ancora testata in foto o confermata dopo deploy.",
+      "previous_version": "27/10/2026: la prima soluzione con flex [1.04,0.72,1.05,1,0.95,1.54] rendeva leggibile per intero «Impostazioni», ma la scheda risultava visivamente troppo larga rispetto alle altre. Confermato dall’utente tramite screenshot iPhone.",
+      "target": "Barra classica JS su iPhone/PWA Web, viewport fino a 430 px. Il ramo NativeTabs iOS 26+ non cambia.",
+      "method": "Le prime 5 tab hanno flex 1.0; Impostazioni flex 1.08. Tutte hanno minWidth 0: larghezze sostanzialmente uniformi, solo circa 8% di spazio in più a Impostazioni. Conservare la scritta completa a font 11 px.",
+      "visual_test": "Da verificare sullo stesso iPhone del precedente screenshot dopo commit/deploy, in particolare la visibilità completa di «Impostazioni», allineamento e proporzioni.",
+      "no_changes_to": "Etichette, font, icone, colori, ordine, altezza della barra, contenuto e comportamento delle schede; niente swipe."
+    },
+    "ios_native_branch": "Su iOS >=26 usesNativeTabs usa NativeTabs; altre piattaforme/iOS precedenti usano JS Tabs.",
+    "horizontal_swipe_between_tabs": {
+      "status": "NON IMPLEMENTATO",
+      "proposal": "Cambio scheda con gesto orizzontale; proteggere scroll verticale, slider, grafici, input e gesti nativi. Richiede implementazione e test separati."
+    },
+    "navigation_notes": [
+      "Non rinominare route senza aggiornare i relativi file.",
+      "Non mostrare una tab Sincronizzazione: il QR è un popup nella scheda Impostazioni."
+    ]
   },
   "backup_and_restore_specification": {
-    "export_mechanism": "Converts the full local AsyncStorage array into a standardized shareable JSON file using expo-sharing, allowing the user to securely save their raw database to iOS Files, Email, or personal iCloud/Drive storage.",
-    "import_mechanism": "Utilizes native document pickers to read a previously exported Diabety JSON state file, validates the data structure parameters, and rewrites it safely into the local AsyncStorage container.",
-    "conflict_resolution": "Total override upon user confirmation. Replaces the current active phone state with the uploaded backup file to prevent duplicate record collisions.",
-    "privacy_tier": "Absolute. 100% offline. The developer has zero access to data transfer states; files remain strictly in the user's custody.",
-    "web_export": "Download JSON tramite Blob e anchor browser.",
-    "web_import": "Input HTML type=file accept=.json dentro una card cliccabile; leggere e validare prima di qualsiasi sovrascrittura.",
-    "web_validation": "Array non vuoto, record completi, id univoci, glicemia intera 1–999, insulina/ora/data/momento validi; conferma esplicita prima della sostituzione.",
-    "retention_on_restore": "Il codice Impostazioni esaminato esclude i record oltre 91 giorni dalla data corrente e mostra il numero di esclusi.",
-    "native_note": "Non assumere che la scelta/importazione di file su Android/iOS sia già implementata: verificare il codice nativo prima di dichiararla disponibile.",
-    "privacy_note": "Dati nel dispositivo e backup esportati sotto controllo dell’utente; evitare affermazioni assolute sulla privacy dei servizi terzi usati per condividere il file."
+    "export_filename": "backup_diabety_completo.json",
+    "file_format": "JSON",
+    "format_marker": "DIABETY_BACKUP",
+    "version": 2,
+    "exported_fields": [
+      "formato",
+      "versione",
+      "esportatoIl",
+      "storico",
+      "parametriBolo",
+      "configurazioneBoloOraria",
+      "alimentiPreferiti",
+      "terapiaIob"
+    ],
+    "included": [
+      "Storico glicemico",
+      "Dosi/CHO/note inserite nei record",
+      "Parametri bolo legacy",
+      "Configurazione bolo per fascia oraria",
+      "Alimenti preferiti",
+      "Configurazione terapia/IOB"
+    ],
+    "excluded": [
+      "Piatto virtuale attualmente persistito nella scheda Alimenti (diabety_alimenti_piatto_v1)"
+    ],
+    "export_web": "Genera file JSON con Blob e download browser",
+    "export_native": "Usa expo-file-system e expo-sharing se disponibili",
+    "import_formats": [
+      "backup oggetto formato DIABETY_BACKUP versione 2",
+      "backup legacy come array storico"
+    ],
+    "import_validation": [
+      "Schema generale",
+      "Validità completa misurazioni e date/ore",
+      "Glicemie 1-999 e classificazioni dosi valide",
+      "CHO legacy normalizzati",
+      "ID univoci",
+      "Preferiti e configurazione bolo/terapia validi"
+    ],
+    "retention_on_import": "Esclude misurazioni oltre 91 giorni rispetto a oggi; se tutte fuori finestra non cancella lo storico esistente.",
+    "confirmation": "Sempre esplicita prima di sovrascrivere; la preparazione del backup ricevuto via QR non scrive automaticamente in AsyncStorage.",
+    "replacement": "Dati correnti sostituiti soltanto dopo conferma e validazione; rispettare il flusso rollback di salvataggio.",
+    "platform_note": "Disponibilità dei percorsi picker/web share dipende dalla piattaforma e va verificata prima di dichiarare supporto completo.",
+    "privacy": "Conservazione locale dei dati e backup volontari; evitare affermazioni assolute su cloud/piattaforme terze."
   },
   "core_features_and_logic": {
     "glucose_thresholds": {
@@ -205,11 +279,12 @@
       "title": "Andamento sulle ultime 24 ore",
       "independence": "La card Media di oggi resta basata solo sulle misurazioni del giorno corrente.",
       "all_measurements_rule": "Ogni misurazione valida nella finestra mobile di 24 ore è un punto distinto, anche se condivide data e momento della giornata con altre misurazioni. Ordinare per timestamp composto da dataTesto + ora; non deduplicare per tipo/momento.",
-      "same_timestamp_rule": "Misurazioni con identici data e ora restano record distinti; prevedere visualizzazione distinguibile di punti sovrapposti senza alterare i dati."
+      "same_timestamp_rule": "Record con stesso timestamp non vengono deduplicati; possono però sovrapporsi graficamente nella posizione SVG. Non affermare che siano già visivamente distinguibili.",
+      "y_axis": "Scala 50–350 mg/dL, coordinate fuori scala clamped ai limiti, numero di glicemia reale mostrato."
     },
     "data_storage_policy": {
       "rolling_window_days": 91,
-      "action": "Automatic purge filter executed during saves and modifications to enforce privacy and storage efficiency",
+      "action": "La pulizia a 91 giorni è presente su apertura/focus della scheda Inserisci e salvataggio, non attestata universalmente su ogni operazione di tutte le schede.",
       "note": "Verificare la regola esatta per ogni schermata: nel codice esaminato il ripristino usa una soglia di 91 giorni, mentre le statistiche trimestrali usano 90 giorni di calendario incluso oggi. Non confondere le due finestre."
     },
     "tabular_export_specification": {
@@ -217,222 +292,165 @@
         "Excel .xlsx",
         "CSV .csv"
       ],
-      "record_selection": "Tutte le misurazioni valide nel periodo selezionato, incluse più misurazioni con la stessa data e lo stesso momento della giornata. Nessuna deduplicazione per tipo. Conservare data e ora proprie di ciascun record.",
+      "record_selection": "Tutti i record validi del periodo, senza deduplicare per momento della giornata; data/ora proprie di ciascuno.",
       "filter": "Filtro temporale autonomo rispetto al PDF",
       "invalid_records": "Le implementazioni esaminate possono escludere date o glicemie non valide; verificare il codice pubblicato prima di affermare che ogni record, anche invalido, venga esportato."
     }
   },
   "screens": [
     {
-      "name": "Inserimento (Home)",
-      "purpose": "Rapid, single-screen logging of glucose, insulin, and meal context with immediate visual feedback on thresholds.",
-      "states": {
-        "loading": "Continuous background clock interval checking for idle status reset.",
-        "empty": "N/A - This is always an actionable form.",
-        "error": "Standard field-level structural block validation alerts."
-      },
-      "layout": "Header Row: Section title 'Inserisci Nuovi Dati' positioned left, paired with an adjacent minimalist info button icon linked to a comprehensive user guide modal. Time Context Row: Dual independent columns aligning 'Data del Test' and 'Orario del Test' horizontally, embedding native HTML date/time inputs for Web layers. Center Entry Row: Symmetric side-by-side (affiancati) flex layout split (1/2 width each) built with high-contrast card blocks ('#15151F') featuring bright borders. Left input holds 'Glicemia (mg/dL)' using reactive numeric fonts that shift color dynamically (Green/Orange/Red) based on active keystrokes. Right input maps 'Insulina (Unità UI)'. Food Selection: A non-sequential horizontal chip wrap layout tracking 9 core medical columns. Footer: Optional text box for notes and a sticky full-width primary CTA 'Salva Misurazione'."
-    },
-    {
-      "name": "Storico",
-      "purpose": "An interactive chronological medical journal grouped by date with real-time filtering, record editing, and landscape PDF generation.",
-      "states": {
-        "loading": "Skeleton lines mimicking the timeline structure visualization.",
-        "empty": "Centered fallback informational text text block stating 'Nessuna misurazione salvata in questo intervallo di tempo.' inside an active padding layout context.",
-        "error": "Silent catch-block logging if local storage read operations fail."
-      },
-      "layout": "Header Row: Top horizontal bar housing section title 'Storico' paired with an adjacent conditional information icon button '(i)' that triggers a text-aligned descriptive popup modal help screen. The right side of the header anchors two inline functional action buttons: 'Svuota' (minimalist layout trigger for total log purging) and 'Esporta PDF' (styled via a high-contrast coral neon container). Below the header, a dedicated segmented Filter Bar spans five interactive horizontal buttons ('7 GG', '14 GG', '30 GG', '90 GG', 'Tutti') to slice local data states. Main body: A native SectionList components layer sorted descending (most recent first) grouped by date subheadings. Each timeline row combines a left vertical progress line vector accented by a color-coded threshold node status indicator dot linking rightward to an active card container. The individual measurement card is fully pressable to initiate record management modals, containing large geometric text for Glucose values, aligned time strings, a compact pencil icon accent, and row descriptions mapping Meal moment context, Insulin doses, and merged timestamped notes blocks."
-    },
-    {
-      "name": "Grafici",
-      "purpose": "Visual analytics and dashboard indicators for clinical trends, metabolic overview, and estimated HbA1c tracking.",
-      "states": {
-        "loading": "Activity indicators over empty card frames.",
-        "empty": "Fallback informational text state blocks 'Nessun dato inserito' inside empty charts.",
-        "error": "Silent catch-block logging if local storage read operations fail."
-      },
-      "layout": "Titolo 'Analisi e Grafici'. Riga superiore: Trimestre (90 GG) a sinistra (TIR, media glicemica), Media di oggi a destra. Card successive: 'Andamento sulle ultime 24 ore' con asse temporale mobile e curva SVG cyan; 'Andamento Medie Giornaliere' su 90 giorni, con interruzioni nei giorni senza dati; 'Medie per Momento della Giornata' con sette barre orizzontali; 'Stima Emoglobina Glicata (HbA1c)' con indicatore e legenda. Info modal per ogni sezione.",
-      "graph_24h": "Finestra dinamica ultime 24 ore, senza azzeramento alle 00:00; conserva colori dei punti, fasce 70/180 e scala verticale 40–500 mg/dL.",
-      "data_refresh": "Rilettura AsyncStorage al focus; finestra temporale aggiornata periodicamente mentre aperta.",
-      "stats": "Trimestre: ultimi 90 giorni di calendario incluso oggi; Media di oggi: solo data corrente.",
-      "moments": "7 momenti rappresentati: Prima/Dopo Colazione, Prima/Dopo Pranzo, Prima/Dopo Cena, Notte."
-    },
-    {
-      "name": "Alimenti",
-      "route": "app/(tabs)/alimenti.tsx",
-      "purpose": "Ricerca alimenti, carboidrati, quantità, piatto virtuale e supporto al conteggio CHO.",
-      "design": "Card scure, categorie e righe leggibili, ricerca e CTA coerenti con i colori neon.",
-      "behavior_notes": "Verificare nel codice corrente l’effettiva persistenza di preferiti e piatto virtuale, e il supporto grammi/ml; non assumere feature non confermate.",
-      "data_source": "Database locale alimenti in frontend/constants/alimenti_database.json (nello snapshot del repository disponibile)."
+      "name": "Inserisci",
+      "route": "app/(tabs)/index.tsx",
+      "summary": "Registrazione glicemia, insulina, CHO e momento della giornata.",
+      "ui": "Header «Inserisci Nuovi Dati»; barra compatta Data/Ora sullo stesso rigo; card Glicemia, Insulina, CHO; nove momenti selezionabili; note e Salva misurazione.",
+      "logic": [
+        "Default Rapida (R) nella modalità Penne",
+        "Scelta rapida/basale dal titolo Insulina",
+        "Glicemia campo obbligatorio, altri dati facoltativi",
+        "Data e ora salvate in ciascun record",
+        "Auto-pulizia 91 giorni sugli archivi locali"
+      ],
+      "preserve": [
+        "Compattezza verticale e unità di misura",
+        "Tipo dose se valore insulina presente",
+        "Data/Ora riga singola"
+      ]
     },
     {
       "name": "Bolo",
       "route": "app/(tabs)/bolo.tsx",
-      "purpose": "Calcolatore orientativo di bolo pasto e correzione basato su parametri personali concordati con il medico.",
-      "design": "Campi numerici e riepilogo ben separati; avvisi e unità di misura sempre leggibili.",
-      "behavior_notes": "Parametri citati nel manuale: rapporto insulina/carboidrati I:CHO, sensibilità ISF e target. Validare gli input, non suggerire dosi senza parametri; verificare la logica implementata nel file effettivamente pubblicato.",
-      "medical_disclaimer": "Non sostituisce prescrizione o valutazione del medico."
+      "summary": "Simulazione matematica con I:CHO/ISF/target, fasce orarie e IOB.",
+      "ui": "IOB compatta, Glicemia e CHO, stima matematica, fascia attiva e parametri; sezioni terapia/fasce espandibili; ?. ",
+      "logic": [
+        "Penne/Microinfusore",
+        "Parametri fascia oraria e bolo massimo",
+        "Ricalcolo IOB su focus, foreground e ogni minuto",
+        "Avvisi di sicurezza",
+        "Non disponibile dose terapeutica raccomandata"
+      ],
+      "preserve": [
+        "00 iniziale non validato alla semplice apertura",
+        "Fasce persistenti",
+        "Nessun bolo consigliato clinico"
+      ]
+    },
+    {
+      "name": "Alimenti",
+      "route": "app/(tabs)/alimenti.tsx",
+      "summary": "Database alimenti offline, ricerca, categorie, preferiti e piatto CHO.",
+      "ui": "Alimenti e Carboidrati; Preferiti richiudibili; sette categorie; ricerca; quantità in grammi; Piatto Virtuale.",
+      "logic": [
+        "Alimenti da file JSON locale",
+        "Preferiti persistenti",
+        "Piatto persistito localmente ma non esportato nel backup completo",
+        "Formula CHO per 100 g"
+      ],
+      "preserve": [
+        "Unità grammi anche nelle bevande",
+        "Indicazione ≈ per valori stimati",
+        "Non modificare dati senza esplicita richiesta"
+      ]
+    },
+    {
+      "name": "Storico",
+      "route": "app/(tabs)/storico.tsx",
+      "summary": "Archivio misurazioni, filtri, modifica, eliminazione ed export PDF.",
+      "ui": "Elenco cronologico per data; filtro 7/14/30/90/Tutti; Modifica Misurazione, pulsanti Svuota / PDF.",
+      "logic": [
+        "Conserva informazioni insulina, CHO e note",
+        "Modifica con griglia Momento della Giornata 3 x 3 compattata",
+        "Tipi insulina Rapida/Basale/Non specificata per record storici",
+        "Report PDF usa selezione più precoce per data/momento"
+      ],
+      "preserve": [
+        "Nessuna modifica grafica generale dello Storico",
+        "Non cancellare campi originali",
+        "Popup modifica conserva nove pulsanti e dimensione testo"
+      ]
+    },
+    {
+      "name": "Grafici",
+      "route": "app/(tabs)/grafici.tsx",
+      "summary": "Statistiche 90 giorni/oggi, grafici SVG 24h e giornalieri, medie momenti, HbA1c, dieci fasce giornata.",
+      "ui": "Titolo Analisi e Grafici; card superiori compatte; pulsanti ?; grafico 24h; giornaliero; momenti; HbA1c; dieci riquadri fasce.",
+      "logic": [
+        "24 ore mobili reali con timestamp di ciascun record",
+        "Linee medie giornaliere interrotte su assenza dati",
+        "Colorazione range <70, 70-180, >180",
+        "Dieci intervalli orari e filtri 7/14/30/90"
+      ],
+      "preserve": [
+        "L’ultima modifica ha interessato solo Suddivisione dei momenti",
+        "Non cambiare gli altri grafici",
+        "Grafici non assimilabili a dati CGM"
+      ]
     },
     {
       "name": "Impostazioni",
       "route": "app/(tabs)/impostazioni.tsx",
-      "purpose": "Pannello di controllo per manutenzione, report e manuale integrato.",
-      "header": {
-        "title": "Pannello di Controllo",
-        "subtitle": "Gestione database e informazioni mediche dell'app",
-        "accent": "Barra verticale cyan #00E5FF"
-      },
-      "maintenance_layout": {
-        "section": "MANUTENZIONE E REPORT",
-        "structure": "Unica card esterna scura #13131A con bordo #30303A e angoli arrotondati. Righe Esporta Backup, Importa Backup, Esporta PDF; separatore sottile; sezione Esporta Excel / CSV con due pulsanti affiancati e filtro dedicato.",
-        "backup_export": {
-          "label": "Esporta Backup",
-          "icon": "cloud-download",
-          "icon_color": "#FF9800",
-          "subtitle": "Salva un file JSON con tutto lo storico dei log"
-        },
-        "backup_import": {
-          "label": "Importa Backup",
-          "icon": "cloud-upload",
-          "icon_color": "#A855F7",
-          "subtitle": "Ripristina il database caricando un file JSON"
-        },
-        "pdf": {
-          "label": "Esporta PDF",
-          "icon": "file-text",
-          "icon_color": "#ED1C24",
-          "subtitle": "Esporta le misurazioni del diario glicemico",
-          "filters": [
-            "7 GG",
-            "14 GG",
-            "30 GG",
-            "90 GG",
-            "Tutti"
-          ],
-          "default_filter": "Tutti",
-          "filter_independence": "Indipendente dal filtro Excel/CSV",
-          "modal": "Visualizza HTML e Scarica PDF; mantenere paginazione dinamica."
-        },
-        "excel_csv": {
-          "label": "Esporta Excel / CSV",
-          "icon": "files",
-          "icon_color": "#00E676",
-          "subtitle": "Esporta le misurazioni del diario glicemico",
-          "buttons": [
-            {
-              "label": "Esporta Excel",
-              "extension": ".xlsx"
-            },
-            {
-              "label": "Esporta CSV",
-              "extension": ".csv"
-            }
-          ],
-          "filters": [
-            "7 GG",
-            "14 GG",
-            "30 GG",
-            "90 GG",
-            "Tutti"
-          ],
-          "default_filter": "Tutti",
-          "filter_independence": "Indipendente dal filtro PDF",
-          "data_policy": "Esportare ogni misurazione valida nel periodo selezionato, con data, ora e momento, senza deduplicare per momento della giornata."
-        },
-        "colors": {
-          "screen_background": "#0A0A0C",
-          "card_background": "#13131A",
-          "card_border": "#30303A",
-          "button_background": "#1A1A24",
-          "button_border": "#3A3A4A",
-          "accent": "#00E5FF",
-          "title": "#FFFFFF",
-          "subtitle": "#7E7E86"
-        }
-      },
-      "manual": {
-        "section": "MANUALE & LINEE GUIDA",
-        "layout": "Otto card scure singole impilate, con icona colorata, titolo bianco e chevron; contenuti espandibili. Conservare integralmente i testi delle altre sette voci.",
-        "order_with_original_numbering": [
-          {
-            "id": 1,
-            "title": "Registrazione dei Dati",
-            "icon": "activity",
-            "color": "#00C8D7"
-          },
-          {
-            "id": 7,
-            "title": "Calcolatore del Bolo Insulinico",
-            "icon": "calculator",
-            "color": "#E9A45B"
-          },
-          {
-            "id": 8,
-            "title": "Database Alimenti e Carboidrati",
-            "icon": "utensils",
-            "color": "#53C98B"
-          },
-          {
-            "id": 3,
-            "title": "Archivio e Auto-Pulizia",
-            "icon": "trash-2",
-            "color": "#D5D7DE"
-          },
-          {
-            "id": 6,
-            "title": "Analisi Avanzata e Grafici",
-            "icon": "chart-no-axes-column",
-            "color": "#A78BFA"
-          },
-          {
-            "id": 2,
-            "title": "Target Colorati",
-            "icon": "palette",
-            "color": "#E38BB5"
-          },
-          {
-            "id": 4,
-            "title": "Esportazione dei File",
-            "icon": "file-text",
-            "color": "#5BA8F2"
-          },
-          {
-            "id": 5,
-            "title": "Backup e Sicurezza Dati",
-            "icon": "refresh-cw",
-            "color": "#BA93E8"
-          }
-        ],
-        "section_4_approved_text": [
-          "La sezione Manutenzione e Report, situata nella parte superiore del Pannello di Controllo, permette di salvare, ripristinare ed esportare i dati registrati in DIABETY. Contiene quattro funzioni principali.",
-          "Esporta Backup: Crea un file JSON contenente il database dell’app. Premendo il pulsante puoi salvare una copia dei dati, utile per conservarli al sicuro o trasferirli su un altro dispositivo.",
-          "Importa Backup: Permette di caricare un file di backup JSON precedentemente esportato per ripristinare i dati nell’app. Prima di procedere, verifica di aver selezionato il file corretto.",
-          "Esporta PDF: Genera un documento PDF con le misurazioni del diario glicemico, comodo da consultare, stampare o condividere con il medico. Seleziona prima il periodo desiderato (7, 14, 30, 90 giorni oppure Tutti) e poi premi Esporta PDF.",
-          "Esporta Excel / CSV: Esporta le misurazioni in formato Excel (.xlsx) oppure CSV (.csv), per consultarle ed elaborarle con programmi di foglio di calcolo. Seleziona il periodo desiderato e premi Esporta Excel oppure Esporta CSV, in base al formato che preferisci.",
-          "Da sapere: I filtri temporali del PDF e di Excel/CSV sono indipendenti: puoi scegliere periodi diversi per ciascuna esportazione. L’esportazione dei report non modifica le misurazioni salvate."
-        ]
-      }
+      "summary": "Pannello di Controllo, report, import/export e guida QR.",
+      "ui": "Sfondo nero #0A0A0C; Manutenzione e Report; Esporta Backup, Importa Backup, Esporta PDF; Excel/CSV affiancati; pulsante oro Trasferimento Dati con QR code; Manuale 8 capitoli.",
+      "logic": [
+        "Filtri report indipendenti",
+        "Backup JSON completo di storico e configurazioni eccetto piatto",
+        "Conferma importazione",
+        "QR manuale in popup fullscreen"
+      ],
+      "preserve": [
+        "Esporta Backup sottotesto esatto: Salva tutti i dati. Crea un file .JSON come Backup.",
+        "Frecce Esporta #FF9800, Importa #A855F7",
+        "QR icona/freccia oro #D4AF37",
+        "Manuale otto sezioni"
+      ]
     }
   ],
   "medical_pdf_export_specification": {
-    "orientation": "Landscape (Orizzontale)",
-    "structure": "Professional 10-column nested header table layout",
-    "intended_recipient": "Designed for clinical review and printing for medical practitioners/endocrinologists",
-    "rendering_algorithm": "Processes data in strict 4-day blocks per page table structures, dynamically embedding target inline styles to bypass native safety blocks on iOS Safari architectures.",
-    "actual_web_flow": "Nel file Impostazioni esaminato: generazione HTML con tabella A4 landscape; misurazione dell’altezza reale per suddividere giornate indivisibili; conversione PDF pagina per pagina con html2pdf.js, evitando pagine bianche.",
-    "actual_native_flow": "expo-print per produrre PDF e expo-sharing per condividerlo.",
-    "report_filters": [
+    "source_files": [
+      "frontend/src/utils/pdf-report-html.ts",
+      "frontend/src/utils/pdf-measurement-selection.ts",
+      "frontend/src/services/pdf-export.ts",
+      "frontend/src/components/diabety-pdf-export-modal.tsx"
+    ],
+    "supported_screens": [
+      "Storico",
+      "Impostazioni"
+    ],
+    "paper": "A4 orizzontale / landscape",
+    "layout": "Tabella con Data e Parametro + dieci colonne di momenti: Notte iniziale, otto momenti intermedi, Notte finale. Per ogni data righe Glicemia, Insulina, Note.",
+    "report_moments": [
+      "Notte iniziale",
+      "Prima Colazione",
+      "Dopo Colazione",
+      "Spuntino",
+      "Prima Pranzo",
+      "Dopo Pranzo",
+      "Merenda",
+      "Prima Cena",
+      "Dopo Cena",
+      "Notte finale"
+    ],
+    "night_ranges": [
+      "00:00–06:00 (incluso 06:00 nel selettore attuale)",
+      "22:30–23:59"
+    ],
+    "selection": "Per ciascuna data e momento di riferimento prendere la misurazione con orario più precoce; a parità di orario resta la prima incontrata. PDF soltanto, senza modificare dati memorizzati.",
+    "insulin_cho": "Mantenere la stringa insulina e CHO nello stile approvato (esempio «10 UI – 50 CHO») dove previsto dai formatter delle schermate; non aggiungere distinzione Rapida/Basale al PDF.",
+    "filters": [
       "7 GG",
       "14 GG",
       "30 GG",
       "90 GG",
       "Tutti"
     ],
-    "data_layout": "Intestazione con Data, Parametro e nove momenti; per ogni data righe Glicemia, Insulina, Note.",
-    "legacy_conflict": "Le precedenti regole «10 colonne» e «blocchi fissi di 4 giorni» sono storiche e non corrispondono al flusso PDF web esaminato; prevale la paginazione dinamica per altezza reale.",
-    "record_selection_rule": "Per ciascuna coppia (dataTesto, tipo/momento della giornata), esportare soltanto la misurazione cronologicamente più vecchia in base a dataTesto e ora (HH:mm). A parità di timestamp, mantenere la prima nell’ordine di inserimento originale. Non modificare né cancellare record nel database.",
-    "example": "15/10/2026, Prima Colazione: 08:30 125 mg/dL inserita per prima, 08:00 100 mg/dL inserita per seconda, 08:45 110 mg/dL inserita per terza -> PDF: 08:00, 100 mg/dL.",
-    "scope": "Applicare identica selezione nei PDF delle schede Storico e Impostazioni. Non applicarla a Excel, CSV, backup JSON o grafici."
+    "default_filter": "Tutti",
+    "modal": "Anteprima HTML o creazione PDF mediante selettore esistente; Esporta PDF come comando.",
+    "pagination": "Web: paginazione dinamica basata sull’altezza renderizzata, mantenendo gruppi giorno indivisibili e riducendo rischio pagina bianca; nativo: expo-print/expo-sharing.",
+    "legacy_rules_not_current": [
+      "10 colonne totali",
+      "4 giorni fissi per pagina"
+    ],
+    "preservation": "Non alterare colonne, grafica, struttura, selezione o range del PDF senza richiesta esplicita.",
+    "difference_from_excel_csv": "Excel e CSV includono tutte le righe valide nel periodo, senza deduplicazione per momento."
   },
   "historical_changelog_and_modifications": [
     {
@@ -490,35 +508,87 @@
     {
       "scope": "Grafici 24h / PDF / Excel e CSV / Impostazioni",
       "action": "Decisione approvata: grafico 24h con tutti i punti per timestamp; PDF Storico e Impostazioni con misurazione cronologicamente più vecchia per data e momento, spareggio ordine inserimento; Excel/CSV senza deduplicazione; Impostazioni a card unica su sfondo #0A0A0C e manuale nell’ordine 1,7,8,3,6,2,4,5. Documentazione aggiornata, non prova di build o deploy."
+    },
+    {
+      "date": "2026-10-20",
+      "scope": "Impostazioni / QR",
+      "action": "Trasferimento backup QR manuale integrato in popup, manuale a otto capitoli e export Excel/CSV affiancati.",
+      "status": "verificato nello ZIP 21/10"
+    },
+    {
+      "date": "2026-10-21",
+      "scope": "Grafici / Quadrante",
+      "action": "Dieci riquadri a due colonne, ridotti spazi verticali, percentuali in range per fascia.",
+      "status": "verificato nello ZIP 21/10"
+    },
+    {
+      "date": "2026-10-21",
+      "scope": "Codice testuale QR",
+      "action": "Rigature ogni 24 caratteri solo per display, scroll max 180 px, «Copia tutto» su originale.",
+      "status": "verificato nello ZIP 21/10"
+    },
+    {
+      "date": "2026-10-27",
+      "scope": "Barra inferiore / Impostazioni",
+      "action": "Redistribuzione larghezze di 6 tab per rendere intera la scritta Impostazioni senza ridurre 11 px.",
+      "status": "file preparato, non test/deploy attestati"
+    },
+    {
+      "date": "2026-10-27",
+      "scope": "Swipe tra schede",
+      "action": "Proposta di navigazione laterale discussa.",
+      "status": "NON implementato"
+    },
+    {
+      "date": "2026-10-27",
+      "scope": "Documentazione master",
+      "action": "Revisione integrale e ricostruzione linee guida 8.0 da ultimo ZIP e modifiche approvate, senza cambiare app.",
+      "status": "documentazione aggiornata"
+    },
+    {
+      "date": "2026-10-27",
+      "scope": "Barra inferiore / equilibrio sei schede",
+      "action": "Dopo screenshot iPhone, le cinque tab Inserisci/Bolo/Alimenti/Storico/Grafici portate a flex 1.0; Impostazioni flex 1.08 invece di 1.54. Font 11 px, titoli, icone e altezze invariati; minWidth 0.",
+      "status": "modifica preparata; resta verifica visiva post-deploy. Swipe NON implementato."
     }
   ],
   "instructions_to_main_agent": [
-    "Prima di modificare, leggere il file TSX corrente della schermata interessata.",
-    "Rispettare il perimetro esatto della richiesta e preservare ogni funzione non coinvolta.",
-    "Consegnare il file completo e validare la sintassi prima di proporlo per GitHub.",
-    "Design corrente OLED Dark Neon; usare token esistenti e rispettare il supporto web e mobile.",
-    "Grafico 24h: finestra mobile reale, senza reset a mezzanotte; titolo «Andamento sulle ultime 24 ore».",
-    "Media di oggi indipendente: solo misurazioni della data corrente.",
-    "Grafici SVG leggibili e responsive; colori per soglie <70, 70–180, >180 mg/dL.",
-    "Importa Backup: bordo viola realmente visibile anche nel DOM web; non rompere input file.",
-    "Conservare integralmente gli otto testi del manuale e il loro ordine concordato.",
-    "Backup JSON: validazione, conferma e nessuna sovrascrittura accidentale.",
-    "PDF: mantenere paginazione dinamica senza pagine bianche; verificare HTML e PDF.",
-    "Non confondere le regole di conservazione dati (91 giorni) con le analisi trimestrali (90 giorni).",
-    "Le stime glicemiche e HbA1c sono indicative e non sostituiscono il medico.",
-    "Non dichiarare feature o test non verificati nel codice/deploy corrente.",
-    "PDF Storico e Impostazioni: scegliere per data e momento la misurazione con ora più antica, a parità scegliere la prima inserita.",
-    "Excel e CSV: esportare tutte le misurazioni valide nel filtro autonomo, anche ripetute nello stesso momento.",
-    "Grafico 24h: non deduplicare per momento della giornata; usare data e ora di ogni record.",
-    "Impostazioni: mantenere sfondo #0A0A0C, card Manutenzione e Report unica e manuale nell’ordine 1,7,8,3,6,2,4,5."
+    "Prima di ogni modifica leggere gli effettivi file TSX del repository o ZIP più recente; non basarsi soltanto su questa guida.",
+    "Conservare le funzioni non coinvolte, aggiornando esclusivamente la parte richiesta.",
+    "Consegnare file completo pronto per GitHub, non frammenti; testare sintassi e build quando possibile.",
+    "La UI corrente usa sfondo #0A0A0C, accento cyan #00E5FF e palette comune frontend/src/theme/diabety.ts.",
+    "Sei tab in ordine Inserisci, Bolo, Alimenti, Storico, Grafici, Impostazioni; label 11 px. La correzione Impostazioni ribilancia soltanto la larghezza su iPhone compatti con barra JS.",
+    "Nessuna implementazione swipe orizzontale tra tab nel codice preso in esame.",
+    "Sulla versione Web/PWA iPhone verificare area barra inferiore, safe-area e overflow della scritta Impostazioni prima di dichiarare risolto.",
+    "Non confondere storage storico locale, retention 91 giorni, grafici trimestrali 90 giorni e finestra mobile del grafico 24 ore.",
+    "Ogni misurazione nella finestra 24 ore vale come punto singolo; niente deduplicazione per tipo.",
+    "Il PDF da Storico e Impostazioni condivide selezione cronologicamente prima per data+momento; mantenere layout e CHO/insulina approvati.",
+    "Excel/CSV: esportare ogni misura valida nel filtro indipendente; non usare regola deduplicazione PDF.",
+    "Backup JSON v2 include storico, parametri bolo, fasce, IOB/terapia e preferiti; non include piatto virtuale.",
+    "Trasferimento QR manuale WebRTC: schermata in Impostazioni, colori Invio #FF9800/Ricezione #A855F7, importazione solo su conferma.",
+    "Non introdurre cloud o sincronizzazione permanente e non modificare l’attuale trasferimento QR senza richiesta.",
+    "Mantenere il codice testuale QR leggibile, max 180px, suddivisione righe visuale, pulsante Copia tutto copia esattamente il testo originale.",
+    "Calcolo bolo e IOB sono simulazioni illustrative; non qualificare mai il risultato come dose clinicamente consigliata.",
+    "Mantenere pulsanti ? e spiegazioni di tutti i grafici.",
+    "Mantenere il database alimenti esattamente come fornito, incluse le proprietà supplementari di provenienza; schema desiderato 4 campi non va imposto automaticamente.",
+    "Manuale in 8 card numerate 1–8, ordine registrato nel codice; mantenere i testi e il blocco DA SAPERE prima delle istruzioni QR.",
+    "Non uniformare testi 90/91 giorni né cambiare i periodi di filtro senza richiesta.",
+    "Nessuna modifica al repository/deploy può essere dichiarata effettuata senza una verifica reale."
   ],
   "document_metadata": {
-    "version": "7.1",
-    "updated_on": "2026-10-15",
-    "scope": "Guida completa 360°: design, UX, funzionalità, dati, report, piattaforme, sicurezza e manutenzione",
-    "authority": "Documento di riferimento progettuale aggiornato dalle versioni TSX disponibili e dalle decisioni dell’utente; non certifica il deploy GitHub/Vercel",
-    "change_policy": "Conservare comportamenti funzionanti; intervenire soltanto sulle parti richieste; verificare sintassi TSX e compilazione prima del rilascio.",
-    "change_note": "Allineamento alle decisioni approvate su PDF, Excel/CSV, grafico 24h e design Impostazioni. Specifica, non attestazione di build o deploy."
+    "version": "8.1",
+    "updated_on": "2026-10-27",
+    "document_type": "Database guida / riferimento progettuale COMPLETO (non archivio delle misurazioni)",
+    "scope": "Architettura e distribuzione; design/UI; tutte le sei schede; grafici; logica IOB/bolo; database alimenti; privacy e retention; Storico; backup/importazione; QR/WebRTC; export PDF, Excel e CSV; manuale; vincoli e stato release.",
+    "authority": "Guida 8.0 ricostruita da ZIP del 21/10/2026; aggiornamento 8.1 basato su screenshot dell’utente che conferma il testo completo «Impostazioni» ma mostra sproporzione degli slot nella precedente barra.",
+    "change_policy": "Conservare le funzioni esistenti; aggiornare solo la parte espressamente richiesta. Codice pubblicato e test su dispositivo prevalgono su questa guida.",
+    "previous_versions": [
+      "7.1 (database in ZIP, 15/10/2026)",
+      "7.1 (riferimento Library, 14/10/2026)",
+      "7.2 (aggiornamento parziale barra inferiore, 27/10/2026)",
+      "8.0 (ricostruzione completa; barra inferiore squilibrata, 27/10/2026)"
+    ],
+    "change_note": "Revisione puntuale successiva al feedback visivo su iPhone: correzione proporzioni della barra inferiore con flex 1.0 per le prime cinque tab e 1.08 per Impostazioni. Invariati font 11 px e resto della app; la soluzione è pronta, non ancora testata sul dispositivo dopo deploy."
   },
   "visual_components_and_accessibility": {
     "cards": "Sfondo scuro, bordo da 1 px visibile, radius 12–20 px secondo componente, padding coerente, nessun bordo mancante.",
@@ -528,37 +598,86 @@
     "modals": "Sfondo scurito, titolo, contenuto scorrevole quando lungo, pulsante Chiudi/Annulla accessibile.",
     "responsive": "Supportare mobile e web desktop, evitare overflow e sovrapposizioni in griglie affiancate.",
     "contrast": "Non comunicare stati soltanto tramite colore; mostrare anche valore e testo.",
-    "fonts": "Space Grotesk per titoli e numeri principali; Plus Jakarta Sans per testi e descrizioni; fallback se font non caricato."
+    "fonts": "Space Grotesk per titoli e numeri principali; Plus Jakarta Sans per testi e descrizioni; fallback se font non caricato.",
+    "bottom_tab_labels": "Tutte a 11 px; Impostazioni deve essere interamente visibile sui dispositivi interessati senza riduzione solo della propria scritta.",
+    "graph_ux": "I grafici SVG dispongono di testi/etichette e pulsanti guida; prevenire overflow e interazione accidentale durante scrolling.",
+    "qr_text": "Codici testuali lunghi con a capo di sola visualizzazione ogni 24 caratteri, contenitore max 180 px scrollabile, copia dell’originale senza a capo con pulsante «Copia tutto».",
+    "manual": "Otto card guida espandibili, titoli e parole chiave evidenziati per leggibilità; i contenuti sono mantenuti salvo modifiche espressamente approvate."
   },
   "data_model_and_integrity": {
-    "storage_key": "glicotrack_data",
-    "storage_type": "AsyncStorage JSON array",
-    "record_fields_observed": [
-      "id",
-      "glicemia",
-      "insulina",
-      "tipo",
-      "note",
-      "ora",
-      "dataTesto"
+    "storage_type": "AsyncStorage locale; valori tipicamente serializzati come JSON.",
+    "storage_keys": {
+      "measurements": "glicotrack_data",
+      "legacy_bolo_parameters": "glicotrack_parametri_bolo",
+      "bolo_time_configuration": "CHIAVE_BOLO_ORARIO (valore definito in src/utils/bolo-orario.ts)",
+      "therapy_iob": "CHIAVE_TERAPIA_IOB (valore definito in src/utils/terapia-iob.ts)",
+      "food_favorites": "diabety_alimenti_preferiti_v1",
+      "food_plate": "diabety_alimenti_piatto_v1"
+    },
+    "measurement_record": {
+      "core_fields": [
+        "id",
+        "glicemia",
+        "insulina",
+        "tipo",
+        "note",
+        "ora",
+        "dataTesto"
+      ],
+      "optional_or_new_fields": [
+        "cho",
+        "tipoInsulina",
+        "modalitaTerapia",
+        "istanteDose",
+        "nomeInsulinaDose"
+      ],
+      "glucose": "numero intero 1-999 mg/dL",
+      "date": "dataTesto gg/mm/aa; per il form data ISO yyyy-mm-dd",
+      "time": "ora HH:mm",
+      "insulin": "stringa salvata come NN UI oppure -; il tipo della dose è in tipoInsulina quando presente",
+      "insulin_types": [
+        "rapida",
+        "basale",
+        "non_specificata (record precedenti)"
+      ],
+      "therapy_modes": [
+        "penne",
+        "microinfusore"
+      ],
+      "cho": "grammi facoltativi (numero normalizzato nei backup più recenti); valori legacy con virgola o punto accettati nella procedura di importazione."
+    },
+    "measurement_moments_stored": [
+      "Prima Colazione",
+      "Dopo Colazione",
+      "Spuntino",
+      "Prima Pranzo",
+      "Dopo Pranzo",
+      "Merenda",
+      "Prima Cena",
+      "Dopo Cena",
+      "Notte"
     ],
-    "date_format": "dd/mm/yy",
-    "time_format": "HH:mm",
-    "data_rules": "Non modificare nomi campi o chiave storage senza migrazione; backup e grafici dipendono da questi campi.",
-    "import_safety": "Convalida integrale prima della scrittura, conferma esplicita di sovrascrittura, nessuna mutazione per file invalidi.",
-    "offline_first": "Nessun login o cloud sync presunto per il diario.",
-    "privacy": "I dati glicemici sono sensibili; non inviare a terze parti senza consenso esplicito."
+    "display_label_compatibility": "Le nove chiavi salvate non devono essere rinominate solo per cambiare le etichette mostrate all’utente.",
+    "data_retention": {
+      "keep_days": 91,
+      "exclusion_policy": "Auto-pulizia sulla schermata Inserisci e durante salvataggi; import backup filtra record più vecchi di 91 giorni. Mantenerla attiva.",
+      "preserve_existing_90_91_wording": "Sì: non uniformare arbitrariamente i testi storici che parlano di 90 o 91 giorni.",
+      "analytics_days": 90,
+      "chart_window_24h": "Finestra mobile di 24 ore, indipendente dal periodo 90/91."
+    },
+    "import_integrity": "Convalidare i record, gli ID univoci e i parametri; richiedere conferma prima di scrivere; su backup malformato lo stato locale rimane invariato.",
+    "privacy": "Dati di salute nel dispositivo; qualunque copia esportata è sotto la responsabilità di chi la salva/condivide; non promettere riservatezza assoluta presso servizi terzi."
   },
   "platform_and_release": {
     "repository": "github.com/simonecattina-source/creazio-app",
     "frontend": "Expo + React Native + Expo Router + TypeScript",
     "web_hosting": "Vercel",
-    "build_command_observed": "npx expo export (eseguito nel processo Vercel)",
+    "build_command_observed": "npx expo export",
     "target_mobile": [
       "Android",
       "iOS"
     ],
-    "platform_differences": "Web: Blob, file input HTML, html2pdf.js. Native: expo-print, expo-sharing; verificare picker per import.",
+    "platform_differences": "JS Tabs Web/iOS non 26, NativeTabs su iOS >=26; WebRTC QR su browser Web; esportazione file differente tra Web e nativo.",
     "pre_commit_checks": [
       "Validità JSON tramite json.load/JSON.parse",
       "Validità TSX tramite parser o build",
@@ -568,18 +687,441 @@
       "Testare export/import e PDF con dati reali e senza dati",
       "Verificare build Vercel dopo commit"
     ],
-    "delivery": "Fornire file completo scaricabile, non patch parziali; modifiche minimali e dichiarate."
+    "delivery": "Fornire file completo scaricabile, non patch parziali; modifiche minimali e dichiarate.",
+    "repo_branch": "main",
+    "runtime_snapshot": "Sorgenti nello ZIP creazio-app-main(6).zip del 21 ottobre 2026 e versione pronta con layout barra inferiore corretta del 27 ottobre 2026.",
+    "frontend_root": "frontend",
+    "vercel_output": "dist",
+    "deployment_flow": "GitHub main -> Vercel autodeploy; utente normalmente carica/modifica i file direttamente su GitHub senza terminale.",
+    "ship_state": "Questa documentazione non certifica deploy in produzione, build o test iPhone.",
+    "before_release": [
+      "Controllare che il percorso e i nomi dei file coincidano col repository",
+      "Validare JSON (questa guida) e TypeScript (app quando modificata)",
+      "Provare visualizzazione etichetta Impostazioni su iPhone/PWA",
+      "Non aggiungere swipe come se fosse già attivo",
+      "Verificare Vercel dopo eventuale commit"
+    ]
   },
   "documentation_accuracy": {
-    "source_of_truth": "File effettivamente pubblicati su GitHub; i file locali esaminati sono snapshot e potrebbero non corrispondere al commit attivo.",
-    "known_conflicts": [
-      "Specifiche originali iOS-only vs presenza reale di Expo Web e Vercel",
-      "Modalità light definita nei token vs UI attuale prevalentemente dark",
-      "Vecchio grafico da mezzanotte vs nuova finestra mobile 24h",
-      "Vecchie descrizioni del PDF a blocchi fissi vs paginazione dinamica",
-      "Importazione nativa descritta come disponibile nel vecchio JSON ma da verificare",
-      "Titolo aggiornato «Andamento sulle ultime 24 ore»"
+    "source_of_truth": "Snapshot ZIP e codice TSX effettivamente disponibili; per descrivere lo stato pubblicato prevalgono GitHub/Vercel e prove dirette dell’utente.",
+    "review_date": "2026-10-27",
+    "evidence_sources": [
+      "creazio-app-main(6).zip (snapshot repository 21/10/2026)",
+      "DIABETY_Barra_Inferiore_Impostazioni_Completa_2026-10-27.zip (progetto con layout corretto, non deploy verificato)",
+      "frontend/app/(tabs)/{_layout,index,bolo,alimenti,storico,grafici,impostazioni}.tsx",
+      "frontend/src/components/diabety-trasferimento-qr.tsx",
+      "frontend/src/utils/{calcolo-bolo,iob-storico,pdf-measurement-selection,pdf-report-html}.ts",
+      "frontend/constants/alimenti_database.json",
+      "Report storici inclusi nello ZIP; decisioni esplicite dell’utente"
     ],
-    "verification_note": "Questo documento è una specifica di progetto, non un report di test end-to-end."
+    "verification_levels": {
+      "verified_in_code": "Codice letto nello ZIP e confrontato con file aggiornato",
+      "user_reported": "Test o preferenza riferita dall’utente, non riprodotta adesso",
+      "approved_only": "Scelta approvata senza dimostrazione di commit/deploy",
+      "not_implemented": "Nessuna implementazione nel codice corrente"
+    },
+    "known_conflicts": [
+      "Precedente guida parlava di backend Python attivo; nello ZIP corrente manca il backend.",
+      "Precedente ordine tab Inserisci, Storico, Grafici, Alimenti, Bolo, Impostazioni non coincide col codice: Inserisci, Bolo, Alimenti, Storico, Grafici, Impostazioni.",
+      "Vecchio testo PDF 4 giorni per pagina/10 colonne totali non coincide con implementazione dinamica e 10 colonne di momenti + 2 descrittive.",
+      "Specifiche di preferenza schema alimenti 4 campi contro 9 campi presenti nello ZIP (non è stata alterata la base dati).",
+      "Vecchia guida non descriveva backup completo v2, configurazioni IOB e preferiti, né il nuovo QR.",
+      "Nella guida precedente «Notte» e alcune etichette discusse («Prima di Dormire») non coincidevano sempre con il codice osservato.",
+      "Testi del manuale originale fanno riferimento a 90 giorni; meccanismo di conservazione usa 91 giorni e i grafici trimestrali 90.",
+      "Fix label Impostazioni preparato, non necessariamente pubblicato; swipe laterale tra tab non attivo."
+    ],
+    "limitations": [
+      "Nessuna apertura dell’app su dispositivo reale durante questa revisione",
+      "Nessuna compilazione del progetto o test automatico approfondito in questa revisione",
+      "Questa è documentazione di progetto, non validazione clinica né report di sicurezza."
+    ]
+  },
+  "food_database_specification": {
+    "file": "frontend/constants/alimenti_database.json",
+    "actual_snapshot_count": 665,
+    "actual_snapshot_categories": [
+      "Bevande",
+      "Colazione",
+      "Frutta",
+      "Pane e Forno",
+      "Pizze e Fast Food",
+      "Primi",
+      "Verdure e Piatti Unici"
+    ],
+    "category_count": 7,
+    "actual_schema_fields": [
+      "id",
+      "categoria",
+      "nome",
+      "cho100g",
+      "approssimato",
+      "stato_verifica",
+      "fonte_precedente_non_ricontrollata",
+      "fonte",
+      "dicitura_cho",
+      "dicitura_da_confezione"
+    ],
+    "core_fields_requested_in_prior_decisions": [
+      "id",
+      "categoria",
+      "nome",
+      "cho100g"
+    ],
+    "schema_note": "Le decisioni precedenti richiedevano quattro campi principali, ma il database nello ZIP contiene campi supplementari per approssimazione/fonte/verifica: non eliminarli senza richiesta e verifica.",
+    "approximate_value_entries_count": 427,
+    "portion_unit": "grammi; l’input quantità è limitato nel codice a 500 g per singolo elemento.",
+    "cho_formula": "choTotali = grammi * cho100g / 100; arrotondamento a 1 decimale nel piatto.",
+    "functions": [
+      "ricerca dinamica",
+      "categorie espandibili",
+      "preferiti persistenti",
+      "piatto virtuale",
+      "somma CHO"
+    ],
+    "favorite_default": "sezione Preferiti chiusa all’apertura, secondo impostazione della UI",
+    "plate_persistence": "Persistenza locale tramite diabety_alimenti_piatto_v1.",
+    "backup_scope": "Il file di backup completo include alimentiPreferiti, NON il piatto virtuale; non presumere che questo sia incluso senza cambiare l’export.",
+    "data_quality": "I valori con indicazione ≈ sono stime: fonte e confezione vanno verificate. Nessun valore CHO del file dati è stato modificato da questo aggiornamento di guida."
+  },
+  "bolo_and_iob_specification": {
+    "files": [
+      "frontend/app/(tabs)/bolo.tsx",
+      "frontend/src/utils/bolo-orario.ts",
+      "frontend/src/utils/calcolo-bolo.ts",
+      "frontend/src/utils/terapia-iob.ts",
+      "frontend/src/utils/iob-storico.ts"
+    ],
+    "therapy_mode_selector": "Seleziona la Modalità di Terapia; Penne o Microinfusore, sezione ripiegabile.",
+    "parameters": [
+      "I:CHO / rapporto insulina-carboidrati",
+      "ISF / sensibilità",
+      "Target glicemico",
+      "Soglia correzione",
+      "Bolo massimo"
+    ],
+    "hourly_bands": "Fasce orarie salvate localmente, configurabili con nome e inizio, parametri per fascia, selettore con espansione controllata.",
+    "form_structure_order": [
+      "IOB stimata in riga compatta",
+      "Glicemia e CHO",
+      "Stima matematica",
+      "Fascia oraria attiva",
+      "Parametri selezionati"
+    ],
+    "initial_glucose": "00 è un segnaposto iniziale; la validazione si attiva dopo interazione/richiesta riepilogo, non solo all’apertura.",
+    "mathematical_simulation": "Calcolo aritmetico illustrativo di quota pasto e correzione; NON una raccomandazione sicura di dose. Non sbloccare automaticamente un bolo consigliato.",
+    "simulation_formulas": {
+      "meal_units": "CHO / rapportoCHO",
+      "correction_units": "se glicemia > sogliaCorrezione allora (glicemia-targetGlicemico)/ISF; altrimenti 0",
+      "sum": "quotaPasto + quotaCorrezione"
+    },
+    "simulation_validation": [
+      "glicemia >0 e <=999",
+      "CHO >=0",
+      "nessun risultato con glicemia <70",
+      "sospensione con glicemia sotto target",
+      "blocco se dose stimata supera bolo massimo",
+      "parametri e fascia attiva validi"
+    ],
+    "iob": {
+      "sources": "Calcolo da somministrazioni storiche e configurazione terapia IOB",
+      "display_states": [
+        "IOB stimata (UI)",
+        "0 UI",
+        "— UI con avviso se impossibile stimare"
+      ],
+      "refresh": "Al focus, al rientro in foreground e ogni 60 secondi con schermata attiva; rilettura storico dopo modifiche/ripristino.",
+      "dose_behavior": "Dose 0 UI non genera IOB; rapida/basale distinta e dosi legacy non specificate gestite secondo i controlli.",
+      "details": "Somministrazioni visibili in area richiudibile."
+    },
+    "safety": "Solo simulazione matematica; nessuna valutazione medica convalidata, nessuna indicazione prescrittiva o somministrazione automatica."
+  },
+  "chart_specification": {
+    "file": "frontend/app/(tabs)/grafici.tsx",
+    "implementation": "react-native-svg",
+    "data_source": "glicotrack_data",
+    "top_cards": {
+      "left": "Trimestre (90 GG): media glicemica e percentuale misurazioni 70-180",
+      "right": "Media di oggi: solo dati giorno corrente; dimensioni compatte"
+    },
+    "last_24_hours": {
+      "title": "Andamento sulle ultime 24 ore",
+      "time_window": "ora attuale -24 ore fino ad adesso",
+      "point_policy": "ogni misura valida per data e ora, anche stesso momento/timestamp; no deduplicazione per tipo",
+      "visuals": "Curva e punti con react-native-svg, banda 70–180 mg/dL, valori numerici sulle rilevazioni; scala Y effettiva 50–350 mg/dL (coordinate fuori range bloccate ai margini, numeri reali conservati).",
+      "x_axis": "Tacche a 0, 6, 12, 18, 24 ore della finestra mobile; etichette locali.",
+      "refresh": "focus e ogni minuto a scheda aperta",
+      "distinction": "Non è un CGM; non aggiungere punti artificiali a mezzanotte."
+    },
+    "daily_average": {
+      "title": "Andamento Medie Giornaliere",
+      "data_window": "90 giorni di calendario oggi compreso",
+      "breaks": "La linea è interrotta quando mancano dati tra i giorni",
+      "axis": "Date vere, etichette adattive e scala Y 50–350 mg/dL, soglie 70/180."
+    },
+    "moments_average": {
+      "title": "Medie per Momento della Giornata",
+      "count": 7,
+      "storage_moments": [
+        "Prima Colazione",
+        "Dopo Colazione",
+        "Prima Pranzo",
+        "Dopo Pranzo",
+        "Prima Cena",
+        "Dopo Cena",
+        "Notte"
+      ],
+      "display_current": [
+        "Al risveglio",
+        "Dopo la colazione",
+        "Prima di pranzo",
+        "Dopo pranzo",
+        "Prima di cena",
+        "Dopo cena",
+        "Notte"
+      ],
+      "note_on_prior_approval": "«Prima di Dormire» era stata discussa come etichetta, ma il file corrente mostra «Notte»; riportare la discrepanza senza cambiare la UI.",
+      "range": "Scala barre 50–350, livelli 70 e 180 indicati; colori per media."
+    },
+    "hba1c": {
+      "title": "Stima Emoglobina Glicata (HbA1c)",
+      "formula": "(media glicemica + 46.7)/28.7",
+      "display": "Barra orizzontale e legenda a fasce",
+      "warning": "Stima indicativa e non diagnostica."
+    },
+    "daily_time_slices": {
+      "title": "Suddivisione dei momenti della giornata",
+      "style": "Dieci riquadri compatti a due colonne (5 righe), NON grafico a torta pieno",
+      "data": "Percentuale delle misurazioni entro 70-180 mg/dL per fascia oraria",
+      "period_options": [
+        7,
+        14,
+        30,
+        90
+      ],
+      "time_slices": [
+        {
+          "name": "Notte iniziale",
+          "time": "00:00–06:00"
+        },
+        {
+          "name": "Prima di colazione",
+          "time": "06:00–09:00"
+        },
+        {
+          "name": "Dopo colazione",
+          "time": "09:00–11:00"
+        },
+        {
+          "name": "Spuntino",
+          "time": "11:00–12:30"
+        },
+        {
+          "name": "Prima di pranzo",
+          "time": "12:30–14:30"
+        },
+        {
+          "name": "Dopo pranzo",
+          "time": "14:30–16:00"
+        },
+        {
+          "name": "Merenda",
+          "time": "16:00–18:30"
+        },
+        {
+          "name": "Prima di cena",
+          "time": "18:30–21:30"
+        },
+        {
+          "name": "Dopo cena",
+          "time": "21:30–22:30"
+        },
+        {
+          "name": "Notte finale",
+          "time": "22:30–23:59"
+        }
+      ],
+      "colors": "verde >=70%; arancione 60-69%; rosso <60%; grigio assenza misure; percentuali illustrative non personalizzate",
+      "separate_scope": "La revisione dell’ottobre 2026 ha riguardato soltanto questo grafico; non cambiare altri grafici in blocco."
+    },
+    "shared_rules": [
+      "Pulsanti informazioni ? e relative spiegazioni invariati",
+      "Stato senza dati visibile",
+      "Informazioni illustrative non prescrittive",
+      "La linea 24h è dinamica e la Media di oggi è indipendente."
+    ]
+  },
+  "tabular_export_specification": {
+    "source": "frontend/app/(tabs)/impostazioni.tsx",
+    "formats": [
+      ".xlsx",
+      ".csv"
+    ],
+    "buttons": [
+      "Esporta Excel",
+      "Esporta CSV"
+    ],
+    "layout": "Due pulsanti affiancati; nessun titolo/sottotesto generale sopra ai pulsanti.",
+    "filters": [
+      "7 GG",
+      "14 GG",
+      "30 GG",
+      "90 GG",
+      "Tutti"
+    ],
+    "default_filter": "Tutti",
+    "independent_of_pdf_filter": true,
+    "columns": [
+      "DATA",
+      "ORA",
+      "GLICEMIA (mg/dL)",
+      "INSULINA (UI)",
+      "CHO (g)",
+      "MOMENTO DELLA GIORNATA",
+      "ANNOTAZIONI"
+    ],
+    "record_policy": "Ogni registrazione valida compresa nel filtro, anche più test con stessi giorno/momento. Nessuna regola di scelta della prima misurazione.",
+    "csv": "Escape di celle e protezione dal prefisso delle formule per alcuni contenuti;",
+    "xlsx": "ExcelJS con foglio Misurazioni e foglio Riepilogo."
+  },
+  "qr_transfer_specification": {
+    "ui_entry": "Scheda Impostazioni > Trasferimento Dati con QR code",
+    "entry_color": "#D4AF37",
+    "component": "frontend/src/components/diabety-trasferimento-qr.tsx",
+    "services": [
+      "frontend/src/services/backup-transfer.ts",
+      "frontend/src/services/qr-backup-transport.ts",
+      "frontend/src/services/qr-backup-datachannel.ts"
+    ],
+    "ui": "Finestra a schermo intero con pulsante Indietro; guidata Invia/Ricevi; eventuale conferma abbandono sessione.",
+    "roles": {
+      "send": "Invia dati, arancione #FF9800",
+      "receive": "Ricevi dati, viola #A855F7"
+    },
+    "mechanism": "QR e segnalazione temporanea negoziano una connessione WebRTC DataChannel; il backup non è contenuto nei QR, passa nel canale temporaneo.",
+    "connection_scope": "Connessione locale, manuale e non permanente; nessuna associazione stabile, sincronizzazione automatica o cloud proprietario.",
+    "on_receive": "Verifica backup in memoria e passaggio alla stessa conferma import di Impostazioni; non sovrascrivere senza consenso.",
+    "fallback": "Codice testuale alternativo copiabile/incollabile se la scansione non è utilizzabile.",
+    "code_text_ui": {
+      "visual_wrapping": "24 caratteri per riga soltanto nella visualizzazione",
+      "scroll_max_height_px": 180,
+      "copy": "Copia tutto copia il testo originale senza ritorni a capo",
+      "feedback": [
+        "Copiato!",
+        "Messaggio di errore copia"
+      ]
+    },
+    "compatibility": "WebRTC disponibile nel codice quando Platform.OS === web. Browser e rete devono supportare le funzioni necessarie.",
+    "backup_max_size": "8 MB per la procedura QR, oltre usare JSON tradizionale.",
+    "reported_manual_tests": [
+      "Tablet -> PC, utente ha riferito importazione completata e dati corrispondenti",
+      "iPhone -> iPad, utente ha riferito importazione completata e dati corrispondenti"
+    ],
+    "not_done": [
+      "Test di interruzione QR-BKP-009/010 su dati reali (non richiesti come obbligatori)",
+      "Prova end-to-end in questa sessione"
+    ],
+    "product_decision": "Non modificare il trasferimento QR funzionante né reintrodurre sincronizzazione automatica senza richiesta dell’utente."
+  },
+  "manual_and_guidelines_specification": {
+    "screen": "Impostazioni",
+    "section": "Manuale & Linee Guida",
+    "count": 8,
+    "chapters": [
+      {
+        "number": 1,
+        "title": "Registrazione dei Dati"
+      },
+      {
+        "number": 2,
+        "title": "Calcolatore del Bolo Insulinico"
+      },
+      {
+        "number": 3,
+        "title": "Database Alimenti e Carboidrati"
+      },
+      {
+        "number": 4,
+        "title": "Archivio e Auto-Pulizia"
+      },
+      {
+        "number": 5,
+        "title": "Analisi Avanzata e Grafici"
+      },
+      {
+        "number": 6,
+        "title": "Target Colorati"
+      },
+      {
+        "number": 7,
+        "title": "Esportazione dei File"
+      },
+      {
+        "number": 8,
+        "title": "Backup e Sicurezza Dati"
+      }
+    ],
+    "presentation": "Otto card espandibili, numerazione corrente 1–8, testo leggibile con paragrafi/titoletti evidenziati.",
+    "qr_placement": "Capitolo 7: blocco DA SAPERE prima della spiegazione TRASFERIMENTO DATI CON QR CODE.",
+    "source_of_actual_text": "Le stringhe sorgente complete sono nel file frontend/app/(tabs)/impostazioni.tsx: non sostituirle con riassunti della presente guida.",
+    "known_documentation_variations": "Nel manuale ci sono ancora frasi che usano 90 giorni e descrizioni cliniche semplificate; preservare testi come da decisione utente finché non si chiedono modifiche espressamente."
+  },
+  "ios_web_zoom_and_gestures": {
+    "status": "Funzionante secondo prova diretta dell’utente del 2026-10-14, Safari e app PWA; non equivale a test automatico su tutti i dispositivi.",
+    "critical_preservation_rule": "NON rimuovere il blocco zoom durante aggiornamenti a _layout.tsx o +html.tsx. Non sostituire i listener con il solo meta viewport: il solo viewport era stato provato e non aveva risolto.",
+    "reference_files": [
+      "frontend/app/_layout.tsx",
+      "frontend/app/+html.tsx"
+    ],
+    "viewport": "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover",
+    "layout_web_effect": "In useEffect condizionato a Platform.OS === web: imposta/aggiorna meta viewport; listener document touchstart con passive:false, preventDefault quando touches.length > 1; listener document touchend con passive:false, preventDefault quando due tocchi distano al massimo 300 ms; rimuovi entrambi i listener nel cleanup. Il codice di riferimento completo resta il file _layout.tsx approvato e funzionante, non questa sintesi.",
+    "expected_behavior": [
+      "Un dito: scorrimento verticale nelle schede",
+      "Due dita: pinch zoom bloccato",
+      "Doppio tocco: zoom bloccato",
+      "Cambio scheda: solo pulsanti inferiori"
+    ],
+    "regression_checks": [
+      "Verificare pinch e doppio tocco su Safari iPhone",
+      "Verificare pinch e doppio tocco su PWA installata da Home",
+      "Verificare scorrimento verticale in Alimenti e Storico",
+      "Verificare che tutti i pulsanti e campi restino utilizzabili",
+      "Non ripristinare indiscriminatamente vecchi CSS position:fixed su tutti i contenitori"
+    ],
+    "historical_note": "La rimozione dei listener nel layout aveva coinciso con la perdita del blocco zoom; ripristinando i listener della vecchia versione il problema è stato risolto secondo conferma dell’utente.",
+    "bottom_tabs_horizontal_swipe": "Non implementato; da distinguere dalla gestione di zoom Safari/iOS. Non promettere gesture non presenti."
+  },
+  "verification_register": {
+    "app_source_snapshot": "21/10/2026",
+    "guidelines_version": "8.1",
+    "static_checked": [
+      "Sei schermate nella navigazione e ordine",
+      "Tema colori e font",
+      "Correzione layout fix Impostazioni su JS tabs",
+      "Storico locale e retention",
+      "Backup JSON v2 e campi",
+      "Struttura alimenti e conteggio",
+      "Grafici e fasce",
+      "Manuale e QR",
+      "PDF e XLSX/CSV",
+      "File servizi di calcolo bolo/IOB"
+    ],
+    "prepared_not_live_confirmed": [
+      "Nuova distribuzione flex della barra inferiore sui piccoli iPhone: prime cinque tab 1.0, Impostazioni 1.08, minWidth 0."
+    ],
+    "user_confirmed_prior_tests": [
+      "QR backup tablet->PC e iPhone->iPad (secondo riferito)",
+      "Screenshot 27/10/2026 su iPhone: scritta Impostazioni leggibile con fix precedente ma ultima tab visivamente sproporzionata."
+    ],
+    "not_implemented": [
+      "Swipe orizzontale tra le tab"
+    ],
+    "not_verified": [
+      "Deploy GitHub/Vercel del nuovo riequilibrio",
+      "Risultato visivo su iPhone dopo il riequilibrio",
+      "Build e test end-to-end del nuovo riequilibrio"
+    ],
+    "deferred_not_mandatory": [
+      "Test di interruzione QR-BKP-009/010"
+    ]
   }
 }
