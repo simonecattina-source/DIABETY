@@ -11,7 +11,10 @@ export default function TabsLayout() {
   // Solo iPhone con barra JS (inclusa la PWA aggiunta alla Home).
   // Le etichette conservano lo stesso font a 11 px: redistribuiamo
   // soltanto lo spazio orizzontale quando lo schermo è stretto.
-  // Le prime cinque tab hanno la stessa larghezza; Impostazioni +8%.
+  // Le prime cinque tab hanno la stessa larghezza; Impostazioni ha
+  // solo lo spazio extra necessario per non troncare il testo a 11 px.
+  // Il pulsante conserva 5 px di padding orizzontale per lato,
+  // quindi +8% non era sufficiente sugli iPhone usati nei test.
   const isIPhone =
     Platform.OS === "ios" ||
     (Platform.OS === "web" &&
@@ -152,7 +155,7 @@ export default function TabsLayout() {
         name="impostazioni"
         options={{
           title: "Impostazioni",
-          ...(compactIPhoneTabs ? { tabBarItemStyle: compactTabItemStyle(1.08) } : {}),
+          ...(compactIPhoneTabs ? { tabBarItemStyle: compactTabItemStyle(1.35) } : {}),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="settings-outline" size={size} color={color} />
           ),
