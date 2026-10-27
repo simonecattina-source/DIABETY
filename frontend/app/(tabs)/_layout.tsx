@@ -2,11 +2,24 @@ import { DIABETY_COLORS } from '@/src/theme/diabety';
 import { Tabs } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { Platform } from "react-native";
+import { Platform, useWindowDimensions } from "react-native";
 
 import { usesNativeTabs } from "@/src/navigation";
 
 export default function TabsLayout() {
+  const { width } = useWindowDimensions();
+  // Solo iPhone con barra JS (inclusa la PWA aggiunta alla Home).
+  // Le etichette conservano lo stesso font a 11 px: redistribuiamo
+  // soltanto lo spazio orizzontale quando lo schermo è stretto.
+  const isIPhone =
+    Platform.OS === "ios" ||
+    (Platform.OS === "web" &&
+      typeof navigator !== "undefined" &&
+      /iPhone|iPod/i.test(navigator.userAgent));
+  const compactIPhoneTabs = isIPhone && width <= 430;
+  const compactTabItemStyle = (flex: number) =>
+    compactIPhoneTabs ? { alignSelf: "center" as const, flex } : undefined;
+
   // 🎨 PALETTE NEON HIGH-CONTRAST SINFONICA ED OLED OPTIMIZED
   const DESIGN_NEON = {
     backgroundBar: DIABETY_COLORS.background,
@@ -71,6 +84,7 @@ export default function TabsLayout() {
         },
 
 
+        // Conserva l'aspetto originale sui dispositivi non interessati.
         tabBarItemStyle: { alignSelf: "center" }, 
         tabBarLabelStyle: { 
           fontFamily: 'Plus Jakarta Sans',
@@ -83,6 +97,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Inserisci",
+          ...(compactIPhoneTabs ? { tabBarItemStyle: compactTabItemStyle(1.04) } : {}),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="add-circle" size={size} color={color} />
           ),
@@ -93,6 +108,7 @@ export default function TabsLayout() {
         name="bolo"
         options={{
           title: "Bolo",
+          ...(compactIPhoneTabs ? { tabBarItemStyle: compactTabItemStyle(0.72) } : {}),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calculator" size={size} color={color} />
           ),
@@ -103,6 +119,7 @@ export default function TabsLayout() {
         name="alimenti"
         options={{
           title: "Alimenti",
+          ...(compactIPhoneTabs ? { tabBarItemStyle: compactTabItemStyle(1.05) } : {}),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="fast-food" size={size} color={color} />
           ),
@@ -112,6 +129,7 @@ export default function TabsLayout() {
         name="storico"
         options={{
           title: "Storico",
+          ...(compactIPhoneTabs ? { tabBarItemStyle: compactTabItemStyle(1.0) } : {}),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="list" size={size} color={color} />
           ),
@@ -122,6 +140,7 @@ export default function TabsLayout() {
         name="grafici"
         options={{
           title: "Grafici",
+          ...(compactIPhoneTabs ? { tabBarItemStyle: compactTabItemStyle(0.95) } : {}),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="stats-chart" size={size} color={color} />
           ),
@@ -132,6 +151,7 @@ export default function TabsLayout() {
         name="impostazioni"
         options={{
           title: "Impostazioni",
+          ...(compactIPhoneTabs ? { tabBarItemStyle: compactTabItemStyle(1.54) } : {}),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="settings-outline" size={size} color={color} />
           ),
