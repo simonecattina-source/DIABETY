@@ -1,4 +1,4 @@
-# DIABETY 
+# DIABETY
 
 **Diario digitale per la registrazione e la consultazione dei dati glicemici.**
 
